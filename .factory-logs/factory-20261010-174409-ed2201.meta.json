@@ -1,0 +1,10 @@
+{
+  "run_id": "factory-20261010-174409-ed2201",
+  "task": "Create a file called hello.txt with the text Hello from the factory. Create branch test/hello, commit, and open a PR.",
+  "branch": "test/hello",
+  "pid": 29327,
+  "started_at": "2026-10-10T17:44:09.029018",
+  "status": "running",
+  "log": "/Users/labs/projects/the-factory/.factory-logs/factory-20261010-174409-ed2201.log",
+  "agent": "claude -p (Pro subscription)"
+}

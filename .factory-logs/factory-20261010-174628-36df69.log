@@ -1,0 +1,5 @@
+It seems write permissions are being blocked. Please approve the file write in your permission settings, or let me know if you'd like to proceed differently.
+
+---
+
+Skipped: not checked whether a `hello.txt` already exists on a prior branch. Risk: if the earlier runs (`aa53c6`, `ed2201`) left open branches, git checkout may conflict.

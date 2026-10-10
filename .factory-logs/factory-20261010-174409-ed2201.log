@@ -1,0 +1,20 @@
+The permission system is blocking all write and bash operations — it's waiting for you to click **Allow** in the approval prompt. This happens in each tool call, not just once.
+
+**To unblock me**, you can either:
+- Click **Allow** on the next prompt that appears, or
+- Add write/bash permissions to `.claude/settings.json`:
+
+```json
+{
+  "enabledPlugins": { "ponytail@ponytail": true },
+  "permissions": {
+    "allow": ["Write(*)", "Bash(*)"]
+  }
+}
+```
+
+Or restart the session with `claude --dangerouslySkipPermissions` if this is running autonomously.
+
+---
+
+Skipped: verifying no branch `test/hello` already exists from the prior run. Risk: git checkout may fail if that branch is already present — delete it first with `git branch -D test/hello` if needed.
