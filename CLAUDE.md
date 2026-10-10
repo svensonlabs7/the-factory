@@ -14,6 +14,11 @@ Standalone — no code or state shared with `the-machine`.
 
 ## Engineering Mode: pstack / poteto-mode
 - pstack is the default engineering mode. Reference: `vendor/pstack/README.md`.
+  Its skills and agents are vendored into `.claude/skills/` and `.claude/agents/`
+  (source commit in `vendor/pstack/SOURCE`). It is not a Claude Code plugin.
+- pstack's model routing names Cursor models (grok-*, opus-5). In Claude Code, route
+  every role to Claude subagents (`opus` for judgment and hard changes, `sonnet` for
+  routine code). Skip `/setup-pstack`; it writes Cursor rules.
 - Use `/poteto-mode` for every non-trivial task. It picks a playbook (bug fix,
   feature, refactoring, orchestrate, ...) and runs the supporting skills.
 - Multi-PR / multi-day work goes through the `orchestrate` playbook.
@@ -22,7 +27,8 @@ Standalone — no code or state shared with `the-machine`.
 - Trivial edits (typos, one-line config) skip poteto-mode.
 
 ## Generation: Ponytail
-- Ponytail enforces minimum code at generation time. Generated diffs should be the
+- Ponytail (`ponytail@ponytail` plugin, project scope in `.claude/settings.json`)
+  enforces minimum code at generation time. Generated diffs should be the
   smallest change that satisfies the request. No speculative abstractions, no
   unrequested features, no compatibility shims.
 

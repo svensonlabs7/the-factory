@@ -1,0 +1,4 @@
+Source: https://github.com/cursor/plugins/tree/main/pstack
+Commit: d73344b
+Copied: 2026-10-10
+Skills -> .claude/skills/, agents -> .claude/agents/
