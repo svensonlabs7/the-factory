@@ -21,6 +21,7 @@ Standalone — no code or state shared with `the-machine`.
   routine code). Skip `/setup-pstack`; it writes Cursor rules.
 - Use `/poteto-mode` for every non-trivial task. It picks a playbook (bug fix,
   feature, refactoring, orchestrate, ...) and runs the supporting skills.
+- Full autonomous runs use `/autopilot-full` (no human checkpoints until PR).
 - Multi-PR / multi-day work goes through the `orchestrate` playbook.
 - Core principles to apply without being asked: laziness-protocol (smallest change
   that solves it), prove-it-works (verify against the real artifact), fix-root-causes.
@@ -43,6 +44,10 @@ Standalone — no code or state shared with `the-machine`.
 ## Intake: Grok Bot
 - Grok Bot is the intake layer for feature requests once the factory is running.
 - Agents do not take work from anywhere else without explicit operator approval.
+
+## Health: HEARTBEAT.md
+`HEARTBEAT.md` tracks pipeline status (last run, QA gate result, open incidents).
+Updated by the QA agent after each run; polled by `the-machine` for cross-system health.
 
 ## Pipeline
 Intake (Grok Bot) → Planning (`/poteto-mode` orchestrate) → Build (OpenHands +

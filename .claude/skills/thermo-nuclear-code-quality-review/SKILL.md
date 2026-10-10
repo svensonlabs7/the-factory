@@ -190,3 +190,24 @@ Treat these as presumptive blockers unless the author can justify them clearly:
 - the PR duplicates an existing helper or puts logic in the wrong layer when there is a clear canonical home
 
 If those conditions are not met, leave explicit, actionable feedback and push for a cleaner decomposition.
+
+---
+
+## Verdict Format
+
+End every review with one of two verdicts, on its own line:
+
+- **PASS** — no presumptive blockers; feedback is advisory and the PR can merge.
+- **BLOCK** — one or more presumptive blockers are present; the PR must not merge until they are resolved. List each blocker explicitly under the verdict.
+
+Do not use partial approvals or conditional verdicts. The verdict is binary.
+
+### Tests and Verdict
+
+Passing tests are a floor, not a ceiling. A refactor that keeps tests green while making the codebase structurally worse still receives a **BLOCK**. Treat the following as independent BLOCK conditions regardless of test status:
+
+- the PR pushes a file past 1000 lines
+- the PR adds spaghetti branching to an existing flow
+- the PR adds an unnecessary abstraction, wrapper, or cast-heavy contract
+- the PR duplicates an existing helper or puts logic in the wrong layer
+- there is a clear code-judo move that would delete significant complexity, and the PR ignores it
