@@ -50,6 +50,14 @@ jobs:
             | tee "$RUNNER_TEMP/review.md"
           # Every reviewer ends with a binary verdict line: PASS or BLOCK.
           grep -E '^\**(PASS|BLOCK)\**( |$)' "$RUNNER_TEMP/review.md" | tail -n 1 | grep -qE '^\**PASS'
+      # The factory's builder downloads these to fix what a reviewer blocked.
+      - name: Keep the review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: review-${{ matrix.check }}
+          path: ${{ runner.temp }}/review.md
+          if-no-files-found: ignore
       - name: Review summary
         if: always()
         run: cat "$RUNNER_TEMP/review.md" >> "$GITHUB_STEP_SUMMARY" || true
