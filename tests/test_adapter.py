@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import importlib
+import json
 import subprocess
 import sys
 import time
@@ -45,8 +46,6 @@ def adapter(tmp_path, monkeypatch):
 
 
 def trigger(client, **payload):
-    import json
-
     body = json.dumps({"task": "t", **payload}).encode()
     return client.post("/trigger", content=body, headers=sign(body))
 

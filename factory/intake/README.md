@@ -63,6 +63,7 @@ launchctl load ~/Library/LaunchAgents/com.svenson.factory-intake.plist
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `FACTORY_WEBHOOK_SECRET` | *(required)* | HMAC secret for signature verification |
+| `FACTORY_ROOT` | `/Users/labs/projects/the-factory` | Checkout the service runs from. Tests point it at a temporary repo |
 | `CLAUDE_BIN` | `/Users/labs/.nvm/versions/node/v24.14.0/bin/claude` | Claude Code binary; launchd has no NVM on PATH |
 | `GITHUB_TOKEN` | — | Optional; without it `gh` uses its keychain login |
 
