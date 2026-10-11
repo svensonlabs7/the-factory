@@ -24,8 +24,8 @@ on each PR to `main` and fails unless the review ends with `PASS`. It needs the
 ## To decide
 
 - [x] Trigger: GitHub Action on PR
-- [ ] Output: pass/fail status check done (review in the job summary); PR comments not yet
-- [ ] Enforcement: make `qa-gate / thermo-nuclear` a required check on `main`
-  (needs GitHub Pro or a public repo)
+- [x] Output: pass/fail status check, review in the job summary
+- [ ] Output: PR review comments
+- [x] Enforcement: `thermo-nuclear` is a required check on `main` (branch protection)
 - [ ] Failure loop: send findings back to Build, cap the retries, then escalate to a human
 - [ ] Order relative to CI
