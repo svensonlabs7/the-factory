@@ -37,7 +37,7 @@ if not WEBHOOK_SECRET:
     raise RuntimeError("FACTORY_WEBHOOK_SECRET must be set")
 # launchd has no NVM on PATH, so default to the absolute binary.
 CLAUDE_BIN = os.environ.get("CLAUDE_BIN", "/Users/labs/.nvm/versions/node/v24.14.0/bin/claude")
-FACTORY_ROOT = Path("/Users/labs/projects/the-factory")
+FACTORY_ROOT = Path(os.environ.get("FACTORY_ROOT", "/Users/labs/projects/the-factory"))
 LOG_DIR = FACTORY_ROOT / ".factory-logs"
 # Each run gets its own worktree here, so agents never touch the checkout the service runs from.
 WORKTREE_DIR = FACTORY_ROOT.parent / "the-factory-runs"
