@@ -29,6 +29,7 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from starlette.datastructures import Headers
 from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
@@ -55,10 +56,12 @@ LOG_TAIL = 4000  # characters of a failed run's log kept as findings
 GATE_WORKFLOW = "qa-gate"
 REVIEW_ARTIFACT = "review-{check}"
 LOG_DIR = FACTORY_ROOT / ".factory-logs"
+REPLAY_WINDOW = 300  # a request is valid within this many seconds of its own timestamp, before or after
+REPLAY_DIR = LOG_DIR / "replay"
 # Each run gets its own clone here, under the home directory because the Docker VM mounts only that.
 RUNS_DIR = FACTORY_ROOT.parent / "the-factory-runs"
 HEARTBEAT_FILE = FACTORY_ROOT / "HEARTBEAT.md"
-LOG_DIR.mkdir(parents=True, exist_ok=True)
+REPLAY_DIR.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("factory.intake")
@@ -106,12 +109,41 @@ class TriggerPayload(BaseModel):
 # HMAC verification
 # ---------------------------------------------------------------------------
 
-def _verify_signature(body: bytes, sig_header: str) -> bool:
-    """Return True if the X-Hub-Signature-256 header matches WEBHOOK_SECRET."""
+def _verify_signature(body: bytes, timestamp: str, sig_header: str) -> bool:
+    """Return True if X-Hub-Signature-256 is the HMAC of "<timestamp>.<body>" under WEBHOOK_SECRET."""
     expected = "sha256=" + hmac.new(
-        WEBHOOK_SECRET.encode(), body, hashlib.sha256
+        WEBHOOK_SECRET.encode(), f"{timestamp}.".encode() + body, hashlib.sha256
     ).hexdigest()
     return hmac.compare_digest(expected, sig_header or "")
+
+
+def _replayed(signature: str, timestamp: int) -> bool:
+    """Remember a verified signature until its request goes stale. True if it was already used.
+    One file per signature, so the memory survives a restart and the create is atomic. The file's mtime is the
+    request's own timestamp, so it is pruned exactly when the request stops being valid, even a future-dated one."""
+    cutoff = time.time() - REPLAY_WINDOW
+    for seen in REPLAY_DIR.iterdir():
+        if seen.stat().st_mtime < cutoff:
+            seen.unlink(missing_ok=True)
+    record = REPLAY_DIR / signature.removeprefix("sha256=")
+    try:
+        record.touch(exist_ok=False)
+    except FileExistsError:
+        return True
+    os.utime(record, (timestamp, timestamp))
+    return False
+
+
+def _authenticate(body: bytes, headers: Headers) -> None:
+    """Reject a request unless it is signed, fresh and new. The order matters: nothing is recorded for a request
+    that is not validly signed, so a stranger cannot fill the replay store."""
+    timestamp, signature = headers.get("X-Factory-Timestamp", ""), headers.get("X-Hub-Signature-256", "")
+    if not _verify_signature(body, timestamp, signature):
+        raise HTTPException(status_code=401, detail="Invalid signature")
+    if not timestamp.isdigit() or abs(time.time() - int(timestamp)) > REPLAY_WINDOW:
+        raise HTTPException(status_code=401, detail="Stale request")
+    if _replayed(signature, int(timestamp)):
+        raise HTTPException(status_code=401, detail="Replayed request")
 
 
 # ---------------------------------------------------------------------------
@@ -329,9 +361,7 @@ def _set_heartbeat(**fields: str) -> None:
 async def trigger(request: Request):
     body = await request.body()
 
-    sig = request.headers.get("X-Hub-Signature-256", "")
-    if not _verify_signature(body, sig):
-        raise HTTPException(status_code=401, detail="Invalid signature")
+    _authenticate(body, request.headers)
 
     try:
         payload_data = json.loads(body)
