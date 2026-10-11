@@ -54,12 +54,12 @@ pstack was written for Cursor. Read its Cursor-only terms this way in Claude Cod
 
 ## QA Gate: Thermo-Nuclear
 - Skill: `.claude/skills/thermo-nuclear-code-quality-review/SKILL.md`
-- Runs on every PR before merge, from main's copy of the workflow, next to `ponytail-review` and `tests`. All three are required checks. It is user-invoked only
+- Runs on every PR before merge, from main's copy of the workflow, next to `ponytail-review` and `tests`. All four are required checks (with the `ux-laws` lane). It is user-invoked only
   (`disable-model-invocation: true`), so the QA pipeline invokes it explicitly:
   `/thermo-nuclear-code-quality-review`.
 - Presumptive blockers: a file pushed past 1000 lines, ad-hoc branching in existing
   flows, unnecessary wrappers/casts, logic in the wrong layer, duplicated helpers.
-- A third lane, `ux-laws` (`.claude/skills/ux-laws/SKILL.md`), reviews PRs that touch UI files and passes the rest; it is not yet a required check.
+- A third lane, `ux-laws` (`.claude/skills/ux-laws/SKILL.md`), reviews PRs that touch UI files and passes the rest; it is a required check.
 
 ## Intake: Grok Bot
 - Grok Bot is the intake layer for feature requests once the factory is running.
