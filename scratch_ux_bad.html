@@ -1,0 +1,19 @@
+<!doctype html>
+<html><head><title>Settings</title></head>
+<body>
+<div style="font-size:9px">
+<span onclick="a()">⚙</span> <span onclick="b()">✖</span> <span onclick="c()">★</span> <span onclick="d()">↻</span>
+<span onclick="e()">⌂</span> <span onclick="f()">☰</span> <span onclick="g()">✎</span> <span onclick="h()">⎙</span>
+<button style="width:10px;height:10px" onclick="del()"></button>
+<button style="width:10px;height:10px" onclick="save()"></button>
+<button style="width:10px;height:10px" onclick="reset()"></button>
+</div>
+<form onsubmit="return go()">
+ <input name="a"><input name="b"><input name="c"><input name="d"><input name="e"><input name="f"><input name="g"><input name="h">
+ <input name="i"><input name="j"><input name="k"><input name="l"><input name="m"><input name="n"><input name="o"><input name="p">
+ <button type="submit" style="position:fixed;top:0;right:0;background:#eee;color:#ddd">go</button>
+ <button type="button" onclick="deleteAccount()" style="background:red;color:white;font-size:40px">DELETE EVERYTHING</button>
+ <button type="button" onclick="logout()" style="background:red;color:white;font-size:40px">LOG OUT</button>
+</form>
+<script>function go(){document.body.innerHTML='';return false}</script>
+</body></html>
