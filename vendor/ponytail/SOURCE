@@ -1,0 +1,3 @@
+Source: https://github.com/DietrichGebert/ponytail (plugin version 5.1.0)
+Copied: 2026-10-10
+Skills/ponytail-review -> .claude/skills/ponytail-review/. Vendored so the CI gate runs no third-party plugin code next to the OAuth token.
