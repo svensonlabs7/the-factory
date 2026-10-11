@@ -53,6 +53,7 @@ curl -X POST http://localhost:7654/trigger \
 
 ```bash
 echo "FACTORY_WEBHOOK_SECRET=$(openssl rand -hex 32)" >> .env
+mkdir -p .factory-logs  # launchd opens its log files before the adapter can create this
 cp factory/intake/com.svenson.factory-intake.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.svenson.factory-intake.plist
 ```
