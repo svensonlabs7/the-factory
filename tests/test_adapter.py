@@ -209,6 +209,7 @@ def test_failed_agent_reports_exit_code_and_publishes_nothing(adapter, monkeypat
     monkeypatch.setenv("FAKE_EXIT", "3")
     run = wait_done(client, trigger(client).json()["run_id"])
     assert (run["status"], run["exit_code"]) == ("failed", 3)
+    assert "| **build_status** | failed |" in (root / "HEARTBEAT.md").read_text()
     assert "pr_url" not in run
     assert "refs/heads/factory" not in git(root, "ls-remote", "origin")
 
@@ -255,6 +256,7 @@ def test_a_pr_that_stays_blocked_escalates_after_two_fix_rounds(adapter, monkeyp
     assert (root / ".factory-logs" / f"{run_id}.log").read_text().count("===== attempt") == 3
     heartbeat = (root / "HEARTBEAT.md").read_text()
     assert "| **pipeline_status** | blocked |" in heartbeat
+    assert "| **build_status** | ok |" in heartbeat
     assert "| **last_pr_blocked** | https://example.invalid/pull/1 |" in heartbeat
     assert "thermo-nuclear still failing" in heartbeat
 
