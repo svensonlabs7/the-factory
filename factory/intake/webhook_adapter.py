@@ -1,178 +1,213 @@
+# Uses Claude Code (claude -p) with Pro subscription — no API key required
+
 """
-the-factory: Grok Bot → Claude Code webhook adapter.
+Webhook adapter for The Factory intake pipeline.
+Receives tasks via HTTP, spawns `claude -p` in headless mode, and tracks run state.
 
-Uses `claude -p` (Claude Code headless) with your Pro subscription.
-No API key needed — authenticates via existing Claude login.
-
-Run:
-    cd /Users/labs/projects/the-factory
-    uv run --with fastapi --with uvicorn -- uvicorn factory.intake.webhook_adapter:app --host 0.0.0.0 --port 7654
-
-Or add __init__.py files (see README) and run directly.
+Endpoints:
+  POST /trigger   — start a new factory run
+  GET  /status/:run_id — poll run state
+  GET  /health    — liveness check
 """
 
 import hashlib
-import hmac as hmac_module
+import hmac
 import json
+import logging
 import os
 import subprocess
+import time
 import uuid
-from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
-import uvicorn
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
-app = FastAPI(title="the-factory intake", version="2.0.0")
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
 
-# Config from environment
 WEBHOOK_SECRET = os.environ.get("FACTORY_WEBHOOK_SECRET", "")
-FACTORY_REPO = os.environ.get("FACTORY_REPO", "/Users/labs/projects/the-factory")
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
-LOG_DIR = Path(FACTORY_REPO) / ".factory-logs"
+# Agents run with --dangerously-skip-permissions, so an unsigned trigger would be remote code execution.
+if not WEBHOOK_SECRET:
+    raise RuntimeError("FACTORY_WEBHOOK_SECRET must be set")
+# launchd has no NVM on PATH, so default to the absolute binary.
+CLAUDE_BIN = os.environ.get("CLAUDE_BIN", "/Users/labs/.nvm/versions/node/v24.14.0/bin/claude")
+FACTORY_ROOT = Path("/Users/labs/projects/the-factory")
+LOG_DIR = FACTORY_ROOT / ".factory-logs"
+HEARTBEAT_FILE = FACTORY_ROOT / "HEARTBEAT.md"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+log = logging.getLogger("factory.intake")
+
+# ---------------------------------------------------------------------------
+# In-memory run store  (replace with a DB for persistence)
+# ---------------------------------------------------------------------------
+
+runs: dict[str, dict] = {}
+
+# ---------------------------------------------------------------------------
+# FastAPI app
+# ---------------------------------------------------------------------------
+
+app = FastAPI(title="Factory Intake", version="1.0.0")
 
 
-def verify_signature(body: bytes, signature_header: str) -> bool:
-    """Verify HMAC-SHA256 signature from Grok Bot."""
-    if not WEBHOOK_SECRET:
-        return True  # dev mode — no secret configured
-    if not signature_header or not signature_header.startswith("sha256="):
-        return False
-    mac = hmac_module.new(WEBHOOK_SECRET.encode(), body, hashlib.sha256)
-    expected = "sha256=" + mac.hexdigest()
-    return hmac_module.compare_digest(expected, signature_header)
+# ---------------------------------------------------------------------------
+# Models
+# ---------------------------------------------------------------------------
+
+class TriggerPayload(BaseModel):
+    task: str
+    branch: Optional[str] = None
+    priority: Optional[str] = "normal"
 
 
-def build_claude_task(user_task: str, run_id: str, branch: str) -> str:
-    """Build the full task prompt for claude -p, including git/PR instructions."""
-    return f"""{user_task}
+# ---------------------------------------------------------------------------
+# HMAC verification
+# ---------------------------------------------------------------------------
 
-When your implementation is complete, do the following git steps in order:
-1. git checkout -b {branch}
-2. git add -A
-3. git commit -m "factory({run_id}): {user_task[:60].strip()}"
-4. gh pr create --title "{branch}" --body "Factory build {run_id}\\n\\nTask: {user_task[:300]}" --base main
+def _verify_signature(body: bytes, sig_header: str) -> bool:
+    """Return True if the X-Hub-Signature-256 header matches WEBHOOK_SECRET."""
+    expected = "sha256=" + hmac.new(
+        WEBHOOK_SECRET.encode(), body, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(expected, sig_header or "")
 
-Then update the file /Users/labs/projects/the-factory/HEARTBEAT.md:
-- Set FACTORY STATUS to COMPLETED
-- Set Last run to the current timestamp
-- Set the completed run ID to {run_id}
+
+# ---------------------------------------------------------------------------
+# Task prompt builder
+# ---------------------------------------------------------------------------
+
+TASK_PROMPT_TEMPLATE = """\
+{user_task}
+
+When you are done with the implementation:
+1. Run: git checkout -b {branch}
+2. Run: git add -A && git commit -m "factory: {run_id}"
+3. Run: gh pr create --title "{branch}" --body "Factory build {run_id}\\n\\nTask: {task_summary}" --base main
+4. Update {heartbeat_file} with status: COMPLETED
 """
 
 
-def spawn_claude(run_id: str, task: str, branch: str) -> subprocess.Popen:
-    """Spawn claude -p as a background process. Uses Pro subscription, no API key."""
-    LOG_DIR.mkdir(exist_ok=True)
+def _build_prompt(user_task: str, branch: str, run_id: str) -> str:
+    task_summary = user_task[:200].replace('"', '\\"')
+    return TASK_PROMPT_TEMPLATE.format(
+        user_task=user_task,
+        branch=branch,
+        run_id=run_id,
+        task_summary=task_summary,
+        heartbeat_file=str(HEARTBEAT_FILE),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Background worker
+# ---------------------------------------------------------------------------
+
+def _run_claude(run_id: str, prompt: str) -> None:
     log_file = LOG_DIR / f"{run_id}.log"
+    runs[run_id]["status"] = "running"
+    runs[run_id]["started_at"] = time.time()
 
-    full_task = build_claude_task(task, run_id, branch)
+    _update_heartbeat(run_id, "RUNNING")
 
-    env = os.environ.copy()
-    if GITHUB_TOKEN:
-        env["GITHUB_TOKEN"] = GITHUB_TOKEN
-    env["FACTORY_RUN_ID"] = run_id
+    log.info("Starting claude -p for run %s", run_id)
 
-    cmd = ["/Users/labs/.nvm/versions/node/v24.14.0/bin/claude", "-p", "--dangerously-skip-permissions", full_task]
+    try:
+        with open(log_file, "w") as lf:
+            result = subprocess.run(
+                [CLAUDE_BIN, "-p", "--dangerously-skip-permissions", prompt],
+                stdout=lf,
+                stderr=subprocess.STDOUT,
+                cwd=str(FACTORY_ROOT),
+                timeout=1800,  # 30-minute cap
+            )
+        exit_code = result.returncode
+    except subprocess.TimeoutExpired:
+        log.error("Run %s timed out", run_id)
+        runs[run_id]["status"] = "timeout"
+        _update_heartbeat(run_id, "TIMEOUT")
+        return
+    except Exception as exc:
+        log.exception("Run %s failed with exception: %s", run_id, exc)
+        runs[run_id]["status"] = "error"
+        runs[run_id]["error"] = str(exc)
+        _update_heartbeat(run_id, "ERROR")
+        return
 
-    with open(log_file, "w") as f:
-        proc = subprocess.Popen(
-            cmd,
-            cwd=FACTORY_REPO,
-            env=env,
-            stdout=f,
-            stderr=subprocess.STDOUT,
-        )
+    if exit_code == 0:
+        runs[run_id]["status"] = "completed"
+        _update_heartbeat(run_id, "COMPLETED")
+        log.info("Run %s completed successfully", run_id)
+    else:
+        runs[run_id]["status"] = "failed"
+        runs[run_id]["exit_code"] = exit_code
+        _update_heartbeat(run_id, "FAILED")
+        log.warning("Run %s failed (exit %d)", run_id, exit_code)
 
-    meta = {
-        "run_id": run_id,
-        "task": task,
-        "branch": branch,
-        "pid": proc.pid,
-        "started_at": datetime.utcnow().isoformat(),
-        "status": "running",
-        "log": str(log_file),
-        "agent": "claude -p (Pro subscription)",
-    }
-    (LOG_DIR / f"{run_id}.meta.json").write_text(json.dumps(meta, indent=2))
-
-    return proc
-
-
-def update_heartbeat(run_id: str, task: str):
-    """Update HEARTBEAT.md with current run info."""
-    heartbeat_path = Path(FACTORY_REPO) / "HEARTBEAT.md"
-    now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    content = heartbeat_path.read_text() if heartbeat_path.exists() else ""
-
-    new_block = f"\n\n---\n**BUILDING** | Run: `{run_id}` | Started: {now}\nTask: {task[:120]}\n"
-    heartbeat_path.write_text(content + new_block)
+    runs[run_id]["finished_at"] = time.time()
 
 
-@app.post("/trigger")
-async def trigger(request: Request):
-    """
-    Grok Bot sends a feature request here to kick off a factory run.
+def _update_heartbeat(run_id: str, status: str) -> None:
+    try:
+        ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        content = f"# Factory Heartbeat\n\nLast run: `{run_id}`\nStatus: **{status}**\nTimestamp: {ts}\n"
+        HEARTBEAT_FILE.write_text(content)
+    except Exception:
+        log.exception("Failed to update HEARTBEAT.md")
 
-    Body:
-        {
-            "task": "Add dark mode toggle. Create a PR when done.",
-            "branch": "feat/dark-mode",     # optional
-            "run_id": "grok-20261010-..."   # optional
-        }
 
-    Header:
-        X-Grok-Signature: sha256=<HMAC-SHA256 of body>
-    """
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+@app.post("/trigger", status_code=202)
+async def trigger(request: Request, background_tasks: BackgroundTasks):
     body = await request.body()
 
-    if not verify_signature(body, request.headers.get("X-Grok-Signature", "")):
+    sig = request.headers.get("X-Hub-Signature-256", "")
+    if not _verify_signature(body, sig):
         raise HTTPException(status_code=401, detail="Invalid signature")
 
     try:
-        payload = json.loads(body)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid JSON")
+        payload_data = json.loads(body)
+        payload = TriggerPayload(**payload_data)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
-    task = payload.get("task", "").strip()
-    if not task:
-        raise HTTPException(status_code=400, detail="'task' is required")
+    run_id = str(uuid.uuid4())[:8]
+    branch = payload.branch or f"factory/{run_id}"
+    prompt = _build_prompt(payload.task, branch, run_id)
 
-    run_id = payload.get("run_id") or f"factory-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
-    branch = payload.get("branch") or f"factory/{run_id}"
-
-    update_heartbeat(run_id, task)
-    proc = spawn_claude(run_id, task, branch)
-
-    return JSONResponse({
-        "status": "accepted",
+    runs[run_id] = {
         "run_id": run_id,
-        "pid": proc.pid,
+        "status": "queued",
         "branch": branch,
-        "agent": "claude -p",
-        "log": str(LOG_DIR / f"{run_id}.log"),
-    })
+        "task": payload.task,
+        "queued_at": time.time(),
+    }
+
+    log.info("Queued run %s: branch=%s", run_id, branch)
+    background_tasks.add_task(_run_claude, run_id, prompt)
+
+    return JSONResponse(
+        status_code=202,
+        content={"run_id": run_id, "branch": branch, "status": "queued"},
+    )
 
 
 @app.get("/status/{run_id}")
 async def status(run_id: str):
-    meta_path = LOG_DIR / f"{run_id}.meta.json"
-    if not meta_path.exists():
+    run = runs.get(run_id)
+    if not run:
         raise HTTPException(status_code=404, detail="Run not found")
-    meta = json.loads(meta_path.read_text())
-    try:
-        os.kill(meta["pid"], 0)
-        meta["status"] = "running"
-    except (ProcessLookupError, KeyError):
-        meta["status"] = "completed"
-    return JSONResponse(meta)
+    return run
 
 
 @app.get("/health")
 async def health():
-    return {
-        "status": "ok",
-        "factory": FACTORY_REPO,
-        "agent": "claude -p (Pro subscription)",
-        "time": datetime.utcnow().isoformat(),
-    }
+    return {"status": "ok", "runs_in_memory": len(runs)}
