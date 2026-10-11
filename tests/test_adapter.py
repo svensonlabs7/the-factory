@@ -3,8 +3,10 @@ import hmac
 import importlib
 import itertools
 import json
+import re
 import subprocess
 import sys
+import threading
 import time
 
 import pytest
@@ -104,6 +106,7 @@ HEARTBEAT = """| Field | Value |
 | **qa_gate_status** | — |
 | **last_pr_blocked** | — |
 | **blocking_reason** | — |
+| **open_incidents** | none |
 """
 
 
@@ -480,3 +483,131 @@ def test_an_unsigned_request_is_a_401_even_when_the_queue_is_full(idle_queue):
     seed_runs(module, module.MAX_PENDING, "queued")
     assert client.post("/trigger", content=BODY, headers={"X-Hub-Signature-256": "sha256=bad"}).status_code == 401
     assert trigger(client).status_code == 429
+
+
+def rejections(module):
+    path = module.LOG_DIR / "rejected.jsonl"
+    return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
+
+
+def incidents(root):
+    return re.search(r"\| \*\*open_incidents\*\* \| (.*?) \|", (root / "HEARTBEAT.md").read_text())[1]
+
+
+def bad_signature(client):
+    return client.post("/trigger", content=BODY, headers={"X-Hub-Signature-256": "sha256=bad", "X-Factory-Timestamp": "1"})
+
+
+def test_each_kind_of_rejection_leaves_one_log_line_with_its_reason_and_ip(idle_queue):
+    module, client = idle_queue
+    extra = {"CF-Connecting-IP": "203.0.113.7", "User-Agent": "u" * 300}
+    junk = b"not json"
+    replayed = {**sign(BODY), **extra}
+    seen = [
+        (client.post("/trigger", content=BODY, headers={"X-Hub-Signature-256": "sha256=bad", **extra}), 401, "Invalid signature"),
+        (client.post("/trigger", content=BODY, headers={**sign(BODY, int(time.time()) - 400), **extra}), 401, "Stale request"),
+        (client.post("/trigger", content=junk, headers={**sign(junk), **extra}), 422, "Invalid payload"),
+    ]
+    assert client.post("/trigger", content=BODY, headers=replayed).status_code == 202
+    seen.append((client.post("/trigger", content=BODY, headers=replayed), 401, "Replayed request"))
+    seed_runs(module, module.MAX_PENDING, "queued")
+    full = b'{"task": "over capacity"}'
+    seen.append((client.post("/trigger", content=full, headers={**sign(full), **extra}), 429, "Too many runs"))
+    assert [(r.status_code, line["reason"]) for (r, _, _), line in zip(seen, rejections(module))] == [(c, w) for _, c, w in seen]
+    lines = rejections(module)
+    assert len(lines) == len(seen)
+    assert all(line["ip"] == "203.0.113.7" and line["path"] == "/trigger" for line in lines)
+    assert all(len(line["user_agent"]) == 100 and abs(line["time"] - time.time()) < 60 for line in lines)
+
+
+def test_the_ip_falls_back_to_the_client_host_and_health_logs_nothing(adapter):
+    module, _, client = adapter
+    client.get("/health")
+    bad_signature(client)
+    assert [line["ip"] for line in rejections(module)] == ["testclient"]
+
+
+def test_the_rejection_log_never_holds_the_body_signature_or_timestamp(adapter):
+    module, _, client = adapter
+    body = b'{"task": "BODY-MARKER-77", "branch": "-BRANCH-MARKER-77"}'  # a 422, whose detail echoes the input
+    headers = {"X-Hub-Signature-256": "sha256=SIG-MARKER-77", "X-Factory-Timestamp": "TS-MARKER-77"}
+    client.post("/trigger", content=body, headers=headers)
+    client.post("/trigger", content=body, headers={**sign(body), "X-Hub-Signature-256": "sha256=SIG-MARKER-77"})
+    valid, stale = sign(body), sign(body, 1234567891)
+    client.post("/trigger", content=body, headers=valid)  # an invalid payload under a valid signature
+    client.post("/trigger", content=body, headers=stale)
+    log_text = (module.LOG_DIR / "rejected.jsonl").read_text()
+    assert len(rejections(module)) == 4
+    for marker in ("BODY-MARKER-77", "BRANCH-MARKER-77", "SIG-MARKER-77", "TS-MARKER-77", "1234567891", valid["X-Hub-Signature-256"], stale["X-Hub-Signature-256"]):
+        assert marker not in log_text
+
+
+def test_the_twentieth_rejection_in_an_hour_opens_an_incident(adapter):
+    module, root, client = adapter
+    for _ in range(19):
+        bad_signature(client)
+    assert incidents(root) == "none"
+    bad_signature(client)
+    assert incidents(root) == "20 rejected requests in the last hour"
+
+
+def test_rejections_older_than_an_hour_do_not_count(adapter):
+    module, root, client = adapter
+    module._recent_rejections.extend([time.time() - 3601] * 19)
+    bad_signature(client)
+    assert incidents(root) == "none"
+
+
+def test_a_burst_is_written_once_and_clears_when_it_ends(adapter, monkeypatch):
+    module, root, client = adapter
+    writes = []
+    original = module._set_heartbeat
+    monkeypatch.setattr(module, "_set_heartbeat", lambda **fields: (writes.append(fields), original(**fields)))
+    for _ in range(25):
+        bad_signature(client)
+    assert writes == [{"open_incidents": "20 rejected requests in the last hour"}]
+    module._recent_rejections.clear()
+    bad_signature(client)
+    assert writes[1:] == [{"open_incidents": "none"}]
+    assert incidents(root) == "none"
+
+
+def test_heartbeat_is_not_rewritten_while_the_flag_is_unchanged(adapter, monkeypatch):
+    module, _, client = adapter
+    writes = []
+    original = module._set_heartbeat
+    monkeypatch.setattr(module, "_set_heartbeat", lambda **fields: (writes.append(fields), original(**fields)))
+    for _ in range(3):
+        bad_signature(client)
+    assert writes == []
+
+
+def test_capacity_refusals_are_logged_but_do_not_open_an_incident(idle_queue):
+    module, client = idle_queue
+    seed_runs(module, module.MAX_PENDING, "queued")
+    for i in range(25):
+        body = json.dumps({"task": f"t{i}"}).encode()
+        assert client.post("/trigger", content=body, headers=sign(body)).status_code == 429
+    assert len(rejections(module)) == 25
+    assert len(module._recent_rejections) == 0
+    assert "none" in (module.HEARTBEAT_FILE.read_text())
+
+
+def test_the_rejection_log_stops_growing_at_its_size_cap(adapter, monkeypatch):
+    module, _, client = adapter
+    monkeypatch.setattr(module, "REJECTION_LOG_MAX", 1)
+    bad_signature(client)
+    bad_signature(client)
+    assert len(rejections(module)) == 1
+    assert len(module._recent_rejections) == 2  # the burst count keeps running even when the file is full
+
+
+def test_heartbeat_updates_wait_for_the_lock(adapter):
+    module, _, _ = adapter
+    done = threading.Event()
+    with module.HEARTBEAT_LOCK:
+        worker = threading.Thread(target=lambda: (module._set_heartbeat(open_incidents="x"), done.set()))
+        worker.start()
+        assert not done.wait(0.3)
+    assert done.wait(3)
+    worker.join(3)
