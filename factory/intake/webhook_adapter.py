@@ -178,6 +178,9 @@ def _push(branch: str, workdir: Path, since: str) -> str:
     head = _run("git", "rev-parse", "FETCH_HEAD")
     if _run("git", "rev-list", "--count", f"{since}..{head}") == "0":
         raise RuntimeError("agent made no commits")
+    # A fix that deletes the work leaves nothing for the gate to object to, so an empty PR is not a pass.
+    if not _run("git", "diff", "--name-only", f"origin/main...{head}"):
+        raise RuntimeError("the branch has no net changes against main")
     _run("git", "push", "origin", f"{head}:refs/heads/{branch}")
     return head
 
