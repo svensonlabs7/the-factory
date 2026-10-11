@@ -1,0 +1,7 @@
+tunnel: 0a90aad2-88fb-46b9-81f7-ddb7b0fda40b
+credentials-file: /Users/labs/.cloudflared/0a90aad2-88fb-46b9-81f7-ddb7b0fda40b.json
+
+ingress:
+  - hostname: factory.svensonlabs.dev
+    service: http://localhost:7654
+  - service: http_status:404

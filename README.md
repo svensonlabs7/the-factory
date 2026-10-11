@@ -43,6 +43,7 @@ factory/intake/                                      Signed webhook adapter, QA 
 factory/build/                                       OpenHands sandbox runner
 factory/qa/                                          QA gate notes
 tests/                                               Adapter and wiring tests
+infra/cloudflare-tunnel/                             Public tunnel config (no credentials)
 vendor/                                              pstack and Ponytail sources
 ```
 

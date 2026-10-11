@@ -77,5 +77,6 @@ Claude Code + Ponytail) → QA (thermo-nuclear) → CI → Deploy
 - `factory/build/` — OpenHands sandbox runner
 - `factory/qa/` — QA gate notes (the gate itself is `.github/workflows/qa-gate.yml`)
 - `tests/` — adapter and wiring tests
+- `infra/cloudflare-tunnel/` — the public tunnel's config (credentials stay local)
 - `vendor/` — pstack and Ponytail sources
 - `.claude/skills/`, `.claude/agents/` — Claude Code skills and subagents
