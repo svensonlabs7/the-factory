@@ -64,10 +64,24 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger("factory.intake")
 
 # ---------------------------------------------------------------------------
-# In-memory run store  (replace with a DB for persistence)
+# Run state: one JSON file per run, so it survives a restart
 # ---------------------------------------------------------------------------
 
-runs: dict[str, dict] = {}
+def _meta(run_id: str) -> Path:
+    return LOG_DIR / f"{run_id}.meta.json"
+
+
+def _load(run_id: str) -> dict:
+    return json.loads(_meta(run_id).read_text())
+
+
+def _update(run_id: str, /, **fields) -> None:
+    run = {**(_load(run_id) if _meta(run_id).exists() else {}), **fields}
+    tmp = _meta(run_id).with_suffix(".tmp")
+    tmp.write_text(json.dumps(run, indent=2))
+    tmp.replace(_meta(run_id))  # atomic, so /status never reads a half-written file
+
+
 # One run at a time, in arrival order: runs share one Claude plan quota and one origin.
 RUN_EXECUTOR = ThreadPoolExecutor(max_workers=1)
 
@@ -227,8 +241,8 @@ def _fix_prompt(task: str, findings: str, branch: str, run_id: str) -> str:
 
 
 def _finish(run_id: str, status: str, **fields) -> None:
-    build_status = "ok" if runs[run_id]["status"] == "qa" else status  # a run that reached QA had built fine
-    runs[run_id].update(status=status, finished_at=time.time(), **fields)
+    build_status = "ok" if _load(run_id)["status"] == "qa" else status  # a run that reached QA had built fine
+    _update(run_id, status=status, finished_at=time.time(), **fields)
     pipeline, qa_gate = OUTCOMES[status]
     heartbeat = dict(
         pipeline_status=pipeline,
@@ -236,15 +250,16 @@ def _finish(run_id: str, status: str, **fields) -> None:
         qa_gate_status=qa_gate,
         blocking_reason=fields.get("blocking_reason") or fields.get("error") or "—",
     )
-    if runs[run_id].get("pr_url") and status != "completed":
-        heartbeat["last_pr_blocked"] = runs[run_id]["pr_url"]
+    pr_url = _load(run_id).get("pr_url")
+    if pr_url and status != "completed":
+        heartbeat["last_pr_blocked"] = pr_url
     _set_heartbeat(**heartbeat)
     log.info("Run %s %s", run_id, status)
 
 
 def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> str:
     """One builder round in a fresh sandbox. Returns the head it pushed, or raises AgentFailed."""
-    runs[run_id].update(status="running", attempt=attempt)
+    _update(run_id, status="running", attempt=attempt)
     _set_heartbeat(pipeline_status="running", build_status="building", qa_gate_status="—")
     with _checkout(f"{run_id}-{attempt}", branch, base="main" if attempt == 0 else branch) as workdir, \
             open(LOG_DIR / f"{run_id}.log", "a") as lf:
@@ -262,8 +277,8 @@ def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> s
 
 
 def _run_agent(run_id: str, prompt: str, branch: str) -> None:
-    task = runs[run_id]["task"]
-    runs[run_id]["started_at"] = time.time()
+    task = _load(run_id)["task"]
+    _update(run_id, started_at=time.time())
     _set_heartbeat(last_run=f"{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} ({run_id})", blocking_reason="—")
 
     log.info("Starting the sandboxed agent for run %s", run_id)
@@ -271,10 +286,11 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
     try:
         head = _build(run_id, 0, prompt, branch, since="origin/main")
         body = f"Factory build {run_id}\n\nTask: {task[:200]}"
-        pr_url = runs[run_id]["pr_url"] = _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", branch, "--body", body)
+        pr_url = _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", branch, "--body", body)
+        _update(run_id, pr_url=pr_url)
         # Each pass waits on the checks for `head`. The last pass only decides, because no fix rounds are left.
         for attempt in range(1, MAX_RETRIES + 2):
-            runs[run_id]["status"] = "qa"
+            _update(run_id, status="qa")
             _set_heartbeat(pipeline_status="qa", build_status="ok", qa_gate_status="waiting")
             failed = _failed_checks(pr_url, head)
             if not failed:
@@ -327,13 +343,7 @@ async def trigger(request: Request):
     branch = payload.branch or f"factory/{run_id}"
     prompt = _build_prompt(payload.task, branch, run_id)
 
-    runs[run_id] = {
-        "run_id": run_id,
-        "status": "queued",
-        "branch": branch,
-        "task": payload.task,
-        "queued_at": time.time(),
-    }
+    _update(run_id, run_id=run_id, status="queued", branch=branch, task=payload.task, queued_at=time.time())
 
     log.info("Queued run %s: branch=%s", run_id, branch)
     RUN_EXECUTOR.submit(_run_agent, run_id, prompt, branch)
@@ -346,12 +356,22 @@ async def trigger(request: Request):
 
 @app.get("/status/{run_id}")
 async def status(run_id: str):
-    run = runs.get(run_id)
-    if not run:
+    if not _meta(run_id).exists():
         raise HTTPException(status_code=404, detail="Run not found")
-    return run
+    return _load(run_id)
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "runs_in_memory": len(runs)}
+    return {"status": "ok"}
+
+
+def _recover() -> None:
+    """A restart kills the worker thread, so any run still in flight can never finish. Close it out."""
+    for meta in LOG_DIR.glob("*.meta.json"):
+        run_id = meta.name.removesuffix(".meta.json")
+        if _load(run_id).get("status") in ("queued", "running", "qa"):
+            _finish(run_id, "error", error="the service restarted during the run")
+
+
+_recover()

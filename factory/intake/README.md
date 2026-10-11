@@ -23,6 +23,10 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 9. If a check fails, a fresh builder in a new container gets the reviewers' findings and the branch, and pushes a fix. This repeats up to twice. If the PR is still blocked, the run is `blocked` and HEARTBEAT.md says why.
 10. `HEARTBEAT.md`'s status table is updated at each stage, and logs land in `.factory-logs/<run_id>.log`, one section per attempt.
 
+## Run state
+
+Each run's state is one file, `.factory-logs/<run_id>.meta.json`, and `/status/<run_id>` serves that file, so it survives a restart. A restart kills the worker, so on startup any run still `queued`, `running` or `qa` is closed out as `error` ("the service restarted during the run"), and HEARTBEAT.md follows. The PR it opened, if any, stays open and is listed as `last_pr_blocked`.
+
 ## QA failure loop
 
 The adapter asks `gh pr checks --required`, so it never carries its own list of checks. It first waits for the PR to reach the commit it pushed, because GitHub briefly keeps showing the previous commit's results. "No checks reported yet" means keep waiting, and any other `gh` error ends the run. The gate keeps each reviewer's text as a `review-<check>` artifact, and a failed `tests` run contributes its log tail. The findings go into the next builder's prompt as data, with dashes defanged so they cannot forge the end of their fence. A fix round that makes no commits, or that leaves the branch with no net changes against main, is an error: deleting the work is not a way to pass. Runs go one at a time, so a PR waiting on the gate holds the queue.

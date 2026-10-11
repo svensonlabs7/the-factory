@@ -315,3 +315,43 @@ def test_a_fix_round_that_deletes_the_work_is_an_error_not_a_pass(adapter, monke
     monkeypatch.setenv("FAKE_EMPTY_FIX", "1")
     run = wait_done(client, trigger(client).json()["run_id"])
     assert run["status"] == "error" and "no net changes" in run["error"]
+
+
+def restart(root):
+    sys.modules.pop("factory.intake.webhook_adapter", None)
+    module = importlib.import_module("factory.intake.webhook_adapter")
+    return module, TestClient(module.app)
+
+
+def test_run_state_survives_a_restart(adapter):
+    _, root, client = adapter
+    run_id = trigger(client).json()["run_id"]
+    before = wait_done(client, run_id)
+
+    _, restarted = restart(root)
+    assert restarted.get(f"/status/{run_id}").json() == before
+    assert before["status"] == "completed" and before["pr_url"]
+
+
+def test_a_restart_closes_out_a_run_that_was_in_flight(adapter):
+    module, root, client = adapter
+    module._update("deadbeef", run_id="deadbeef", status="qa", pr_url="https://example.invalid/pull/9", task="t")
+
+    _, restarted = restart(root)
+    run = restarted.get("/status/deadbeef").json()
+    assert run["status"] == "error" and "restarted" in run["error"]
+    heartbeat = (root / "HEARTBEAT.md").read_text()
+    assert "| **pipeline_status** | error |" in heartbeat
+    assert "| **last_pr_blocked** | https://example.invalid/pull/9 |" in heartbeat
+
+
+def test_a_leftover_file_without_a_status_does_not_stop_the_service_starting(adapter):
+    module, root, _ = adapter
+    (root / ".factory-logs" / "cafef00d.meta.json").write_text("{}")
+    restart(root)
+
+
+@pytest.mark.parametrize("run_id", ["unknown1", "../etc/passwd"])
+def test_status_of_an_unknown_run_is_404(adapter, run_id):
+    _, _, client = adapter
+    assert client.get(f"/status/{run_id}").status_code == 404
