@@ -611,3 +611,17 @@ def test_heartbeat_updates_wait_for_the_lock(adapter):
         assert not done.wait(0.3)
     assert done.wait(3)
     worker.join(3)
+
+
+def test_the_heartbeat_is_updated_before_a_run_shows_as_finished(adapter, monkeypatch):
+    module, root, _ = adapter
+    seen = []
+    original = module._update
+    def spy(run_id, /, **fields):
+        if fields.get("status") == "blocked":
+            seen.append(re.search(r"\| \*\*pipeline_status\*\* \| (.*?) \|", (root / "HEARTBEAT.md").read_text())[1])
+        return original(run_id, **fields)
+    monkeypatch.setattr(module, "_update", spy)
+    module._update("abc12345", status="qa")
+    module._finish("abc12345", "blocked", blocking_reason="x")
+    assert seen == ["blocked"]
