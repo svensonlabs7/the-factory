@@ -30,6 +30,11 @@ from pydantic import BaseModel
 # ---------------------------------------------------------------------------
 
 WEBHOOK_SECRET = os.environ.get("FACTORY_WEBHOOK_SECRET", "")
+# Agents run with --dangerously-skip-permissions, so an unsigned trigger would be remote code execution.
+if not WEBHOOK_SECRET:
+    raise RuntimeError("FACTORY_WEBHOOK_SECRET must be set")
+# launchd has no NVM on PATH, so default to the absolute binary.
+CLAUDE_BIN = os.environ.get("CLAUDE_BIN", "/Users/labs/.nvm/versions/node/v24.14.0/bin/claude")
 FACTORY_ROOT = Path("/Users/labs/projects/the-factory")
 LOG_DIR = FACTORY_ROOT / ".factory-logs"
 HEARTBEAT_FILE = FACTORY_ROOT / "HEARTBEAT.md"
@@ -67,8 +72,6 @@ class TriggerPayload(BaseModel):
 
 def _verify_signature(body: bytes, sig_header: str) -> bool:
     """Return True if the X-Hub-Signature-256 header matches WEBHOOK_SECRET."""
-    if not WEBHOOK_SECRET:
-        return True  # secret not configured — skip verification (dev mode)
     expected = "sha256=" + hmac.new(
         WEBHOOK_SECRET.encode(), body, hashlib.sha256
     ).hexdigest()
@@ -117,7 +120,7 @@ def _run_claude(run_id: str, prompt: str) -> None:
     try:
         with open(log_file, "w") as lf:
             result = subprocess.run(
-                ["claude", "-p", prompt],
+                [CLAUDE_BIN, "-p", "--dangerously-skip-permissions", prompt],
                 stdout=lf,
                 stderr=subprocess.STDOUT,
                 cwd=str(FACTORY_ROOT),
