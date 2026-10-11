@@ -18,7 +18,7 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 4. The adapter clones the repo into `../the-factory-runs/<run_id>` and checks out the branch.
 5. `factory/build/run_agent.py` starts a Docker container from the pinned OpenHands agent-server image. It mounts only that clone and runs Claude Code in it. The container holds no GitHub credentials.
 6. The agent implements the task and commits.
-7. The adapter fetches the branch into the main checkout, pushes it and opens the PR with `gh`. It never runs git inside the agent's clone, because git would execute hooks and config the agent wrote there.
+7. The adapter fetches the branch into the main checkout, pushes it and opens the PR with `gh`. It runs git only in the main checkout, because git run in the agent's clone would execute hooks and config the agent wrote there. The one touch is a fetch that reads objects from the clone.
 8. `HEARTBEAT.md` is updated with the run status, and logs land in `.factory-logs/<run_id>.log`.
 
 ## Task prompt
@@ -63,7 +63,7 @@ launchctl load ~/Library/LaunchAgents/com.svenson.factory-intake.plist
 |----------|---------|-------------|
 | `FACTORY_WEBHOOK_SECRET` | *(required)* | HMAC secret for signature verification |
 | `CLAUDE_CODE_OAUTH_TOKEN` | *(required for real runs)* | Pro plan token from `claude setup-token`. Forwarded into the sandbox |
-| `FACTORY_AGENT_CMD` | `uv run … python factory/build/run_agent.py` | Command that runs the agent. Called as `<command> <workdir> <prompt>` |
+| `FACTORY_AGENT_CMD` | `uv run -q --script factory/build/run_agent.py` | Command that runs the agent. Called as `<command> <workdir> <prompt> <timeout-seconds>` |
 | `GH_BIN` | `gh` | Used on the host to open the PR. Tests replace it |
 
 ## Prior art

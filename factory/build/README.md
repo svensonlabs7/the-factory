@@ -10,7 +10,7 @@ each generated diff to the minimum needed.
 Claude Code in it through the SDK's `ACPAgent`. The sandbox mounts one clone and holds no GitHub
 credentials. `CLAUDE_CODE_OAUTH_TOKEN` reaches it as a container environment variable, because the
 SDK masks `acp_env` when it sends it to the server. The Docker VM mounts only the home directory,
-so run directories live under it. SDK and image versions must match: 1.54.0.
+so run directories live under it. SDK and image versions must match: 1.54.0, set at the top of `run_agent.py`.
 
 ## To decide
 

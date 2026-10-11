@@ -34,16 +34,13 @@ from pydantic import BaseModel, Field
 # ---------------------------------------------------------------------------
 
 WEBHOOK_SECRET = os.environ.get("FACTORY_WEBHOOK_SECRET", "")
-# Agents run with --dangerously-skip-permissions, so an unsigned trigger would be remote code execution.
+# Agents run with permission prompts off, so an unsigned trigger would be remote code execution.
 if not WEBHOOK_SECRET:
     raise RuntimeError("FACTORY_WEBHOOK_SECRET must be set")
 FACTORY_ROOT = Path(os.environ.get("FACTORY_ROOT", "/Users/labs/projects/the-factory"))
-# Runs the agent in an OpenHands Docker sandbox. Called as: <command> <workdir> <prompt>.
-AGENT_CMD = shlex.split(os.environ.get(
-    "FACTORY_AGENT_CMD",
-    "uv run -q --python 3.12 --with openhands-sdk==1.54.0 --with openhands-workspace==1.54.0"
-    f" python {FACTORY_ROOT}/factory/build/run_agent.py",
-))
+# Runs the agent in an OpenHands Docker sandbox. Called as: <command> <workdir> <prompt> <timeout-seconds>.
+AGENT_CMD = shlex.split(os.environ.get("FACTORY_AGENT_CMD", f"uv run -q --script {FACTORY_ROOT}/factory/build/run_agent.py"))
+AGENT_TIMEOUT = 1800  # 30-minute cap. The agent gets a shorter limit so it can end itself and remove its container.
 GH_BIN = os.environ.get("GH_BIN", "gh")
 LOG_DIR = FACTORY_ROOT / ".factory-logs"
 # Each run gets its own clone here, under the home directory because the Docker VM mounts only that.
@@ -132,19 +129,22 @@ def _checkout(run_id: str, branch: str):
         shutil.rmtree(workdir, ignore_errors=True)
 
 
-def _publish(run_id: str, branch: str, workdir: Path) -> str:
+def _publish(branch: str, body: str, workdir: Path) -> str:
     """Push and open the PR from the trusted checkout. The sandbox holds no GitHub credentials, and git run
-    inside the agent's clone would execute whatever hooks and config the agent wrote there."""
+    inside the agent's clone would execute whatever hooks and config the agent wrote there. The fetch only
+    reads objects from that clone. Runs go one at a time, so FETCH_HEAD is safe to use."""
     _run("git", "fetch", "--quiet", "origin", "main")
-    _run("git", "fetch", "--quiet", str(workdir), f"{branch}:{branch}")
-    try:
-        if _run("git", "rev-list", "--count", f"origin/main..{branch}") == "0":
-            raise RuntimeError("agent made no commits")
-        _run("git", "push", "origin", branch)
-        body = f"Factory build {run_id}\n\nTask: {runs[run_id]['task'][:200]}"
-        return _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", branch, "--body", body)
-    finally:
-        _run("git", "branch", "-D", branch)
+    _run("git", "fetch", "--quiet", str(workdir), branch)
+    if _run("git", "rev-list", "--count", "origin/main..FETCH_HEAD") == "0":
+        raise RuntimeError("agent made no commits")
+    _run("git", "push", "origin", f"FETCH_HEAD:refs/heads/{branch}")
+    return _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", branch, "--body", body)
+
+
+def _finish(run_id: str, status: str, **fields) -> None:
+    runs[run_id].update(status=status, finished_at=time.time(), **fields)
+    _update_heartbeat(run_id, status.upper())
+    log.info("Run %s %s", run_id, status)
 
 
 def _run_agent(run_id: str, prompt: str, branch: str) -> None:
@@ -159,37 +159,21 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
     try:
         with _checkout(run_id, branch) as workdir, open(log_file, "w") as lf:
             result = subprocess.run(
-                [*AGENT_CMD, str(workdir), prompt],
+                [*AGENT_CMD, str(workdir), prompt, str(AGENT_TIMEOUT - 300)],
                 stdout=lf,
                 stderr=subprocess.STDOUT,
-                timeout=1800,  # 30-minute cap
+                timeout=AGENT_TIMEOUT,
             )
-            exit_code = result.returncode
-            if exit_code == 0:
-                runs[run_id]["pr_url"] = _publish(run_id, branch, workdir)
+            if result.returncode:
+                _finish(run_id, "failed", exit_code=result.returncode)
+            else:
+                body = f"Factory build {run_id}\n\nTask: {runs[run_id]['task'][:200]}"
+                _finish(run_id, "completed", pr_url=_publish(branch, body, workdir))
     except subprocess.TimeoutExpired:
-        log.error("Run %s timed out", run_id)
-        runs[run_id]["status"] = "timeout"
-        _update_heartbeat(run_id, "TIMEOUT")
-        return
+        _finish(run_id, "timeout")
     except Exception as exc:
         log.exception("Run %s failed with exception: %s", run_id, exc)
-        runs[run_id]["status"] = "error"
-        runs[run_id]["error"] = str(exc)
-        _update_heartbeat(run_id, "ERROR")
-        return
-
-    if exit_code == 0:
-        runs[run_id]["status"] = "completed"
-        _update_heartbeat(run_id, "COMPLETED")
-        log.info("Run %s completed successfully", run_id)
-    else:
-        runs[run_id]["status"] = "failed"
-        runs[run_id]["exit_code"] = exit_code
-        _update_heartbeat(run_id, "FAILED")
-        log.warning("Run %s failed (exit %d)", run_id, exit_code)
-
-    runs[run_id]["finished_at"] = time.time()
+        _finish(run_id, "error", error=str(exc))
 
 
 def _update_heartbeat(run_id: str, status: str) -> None:
