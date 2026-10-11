@@ -14,15 +14,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - run: npm install -g @anthropic-ai/claude-code
+      - run: npm install -g @anthropic-ai/claude-code@2.1.296
       - name: Thermo-nuclear review
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        shell: bash
         run: |
           claude -p "/thermo-nuclear-code-quality-review Review the changes in origin/${{ github.base_ref }}...HEAD." \
             --model opus \
             --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(wc:*)" \
-            | tee review.md
-          cat review.md >> "$GITHUB_STEP_SUMMARY"
+            | tee "$RUNNER_TEMP/review.md"
+          cat "$RUNNER_TEMP/review.md" >> "$GITHUB_STEP_SUMMARY"
           # The skill ends with a binary verdict line: PASS or BLOCK.
-          grep -E '^\**(PASS|BLOCK)\**' review.md | tail -n 1 | grep -q PASS
+          grep -E '^\**(PASS|BLOCK)\**( |$)' "$RUNNER_TEMP/review.md" | tail -n 1 | grep -qE '^\**PASS'
