@@ -25,7 +25,7 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 
 ## Rejected requests
 
-Every `/trigger` request refused with a 401, 422 or 429 appends one JSON line to `.factory-logs/rejected.jsonl`: time, a fixed reason, the caller's IP (`CF-Connecting-IP`, else the socket), path and the first 100 characters of the user agent. The body, the signature and the timestamp header are deliberately never logged, and neither is the pydantic error text of a 422, since it echoes the input. When 20 or more rejections fall in the last hour, `open_incidents` in `HEARTBEAT.md` reads "N rejected requests in the last hour", and returns to "none" when fewer remain.
+Every `/trigger` request refused with a 401, 422 or 429 appends one JSON line to `.factory-logs/rejected.jsonl`: time, a fixed reason, the caller's IP (`CF-Connecting-IP`, else the socket), path and the first 100 characters of the user agent. The body, the signature and the timestamp header are deliberately never logged, and neither is the pydantic error text of a 422, since it echoes the input. The file stops growing at 5 MB. Capacity refusals (429) are logged but are not counted as an attack. When 20 or more 401 or 422 rejections fall in the last hour, `open_incidents` in `HEARTBEAT.md` reads "N rejected requests in the last hour" (N as of the moment it opened). It is written only when the flag flips and returns to "none" on the first rejection after the burst has aged out. The count lives in memory, so a restart resets it.
 
 ## Run state
 

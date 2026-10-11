@@ -20,8 +20,10 @@ import shlex
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 import uuid
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from pathlib import Path
@@ -62,6 +64,7 @@ REPLAY_WINDOW = 300  # a request is valid within this many seconds of its own ti
 REPLAY_DIR = LOG_DIR / "replay"
 REJECTION_WINDOW = 3600  # seconds of rejections counted ...
 REJECTION_BURST = 20  # ... and how many of them raise an open incident in HEARTBEAT.md
+REJECTION_LOG_MAX = 5_000_000  # bytes; past this rejected.jsonl stops growing, so a flood cannot fill the disk
 # Each run gets its own clone here, under the home directory because the Docker VM mounts only that.
 RUNS_DIR = FACTORY_ROOT.parent / "the-factory-runs"
 HEARTBEAT_FILE = FACTORY_ROOT / "HEARTBEAT.md"
@@ -353,24 +356,34 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
         _finish(run_id, "error", error=str(exc))
 
 
+HEARTBEAT_LOCK = threading.Lock()  # the run worker and the request handlers both update HEARTBEAT.md
+
+
 def _set_heartbeat(**fields: str) -> None:
     """Update the HEARTBEAT.md status table in place. the-machine polls that table, so its format stays."""
     try:
-        text = HEARTBEAT_FILE.read_text()
-        for name, value in fields.items():
-            value = str(value).replace("|", "/").replace("\n", " ")[:200]
-            text, count = re.subn(rf"(\| \*\*{name}\*\* \| ).*?( \|)", lambda m: f"{m[1]}{value}{m[2]}", text, count=1)
-            if not count:
-                log.warning("HEARTBEAT.md has no %s row", name)
-        HEARTBEAT_FILE.write_text(text)
+        with HEARTBEAT_LOCK:
+            text = HEARTBEAT_FILE.read_text()
+            for name, value in fields.items():
+                value = str(value).replace("|", "/").replace("\n", " ")[:200]
+                text, count = re.subn(rf"(\| \*\*{name}\*\* \| ).*?( \|)", lambda m: f"{m[1]}{value}{m[2]}", text, count=1)
+                if not count:
+                    log.warning("HEARTBEAT.md has no %s row", name)
+            HEARTBEAT_FILE.write_text(text)
     except Exception:
         log.exception("Failed to update HEARTBEAT.md")
 
 
-def _log_rejection(request: Request, reason: str) -> None:
+_recent_rejections: deque = deque()  # times of the 401 and 422 rejections inside REJECTION_WINDOW
+_burst_open = False
+
+
+def _log_rejection(request: Request, reason: str, counts: bool) -> None:
     """Append one line to rejected.jsonl and flag a burst in HEARTBEAT. Never logs the body, signature or timestamp.
-    Rewrites HEARTBEAT only when the flag changes, because it is a tracked file. Must not turn a 4xx into a 500.
-    shortcut: rereads the whole log per rejection, so rotate it if floods get large."""
+    A capacity 429 is logged but does not count toward a burst, since its caller is valid. HEARTBEAT is a tracked file,
+    so it is rewritten only when the flag flips. Must not turn a 4xx into a 500.
+    shortcut: the count lives in memory, so a restart resets it, and a finished burst clears on the next rejection."""
+    global _burst_open
     now = time.time()
     entry = dict(
         time=now,
@@ -381,12 +394,17 @@ def _log_rejection(request: Request, reason: str) -> None:
     )
     try:
         path = LOG_DIR / "rejected.jsonl"
-        with path.open("a") as f:
-            f.write(json.dumps(entry) + "\n")
-        recent = sum(json.loads(line)["time"] > now - REJECTION_WINDOW for line in path.read_text().splitlines())
-        value = f"{recent} rejected requests in the last hour" if recent >= REJECTION_BURST else "none"
-        if f"| **open_incidents** | {value} |" not in HEARTBEAT_FILE.read_text():
-            _set_heartbeat(open_incidents=value)
+        if not path.exists() or path.stat().st_size < REJECTION_LOG_MAX:
+            with path.open("a") as f:
+                f.write(json.dumps(entry) + "\n")
+        if counts:
+            _recent_rejections.append(now)
+        while _recent_rejections and _recent_rejections[0] <= now - REJECTION_WINDOW:
+            _recent_rejections.popleft()
+        burst = len(_recent_rejections) >= REJECTION_BURST
+        if burst != _burst_open:
+            _burst_open = burst
+            _set_heartbeat(open_incidents=f"{len(_recent_rejections)} rejected requests in the last hour" if burst else "none")
     except Exception:
         log.exception("Failed to log a rejected request")
 
@@ -408,7 +426,7 @@ async def trigger(request: Request):
             raise HTTPException(status_code=422, detail=str(exc))
     except HTTPException as exc:
         # A 422's detail echoes the rejected input, so it is logged as a fixed string.
-        _log_rejection(request, "Invalid payload" if exc.status_code == 422 else exc.detail)
+        _log_rejection(request, "Invalid payload" if exc.status_code == 422 else exc.detail, exc.status_code != 429)
         raise
 
     run_id = str(uuid.uuid4())[:8]

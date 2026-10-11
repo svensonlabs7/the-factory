@@ -6,6 +6,7 @@ import json
 import re
 import subprocess
 import sys
+import threading
 import time
 
 import pytest
@@ -552,9 +553,22 @@ def test_the_twentieth_rejection_in_an_hour_opens_an_incident(adapter):
 
 def test_rejections_older_than_an_hour_do_not_count(adapter):
     module, root, client = adapter
-    old = {"time": time.time() - 3601, "reason": "Invalid signature", "ip": "", "path": "/trigger", "user_agent": ""}
-    (module.LOG_DIR / "rejected.jsonl").write_text((json.dumps(old) + "\n") * 19)
+    module._recent_rejections.extend([time.time() - 3601] * 19)
     bad_signature(client)
+    assert incidents(root) == "none"
+
+
+def test_a_burst_is_written_once_and_clears_when_it_ends(adapter, monkeypatch):
+    module, root, client = adapter
+    writes = []
+    original = module._set_heartbeat
+    monkeypatch.setattr(module, "_set_heartbeat", lambda **fields: (writes.append(fields), original(**fields)))
+    for _ in range(25):
+        bad_signature(client)
+    assert writes == [{"open_incidents": "20 rejected requests in the last hour"}]
+    module._recent_rejections.clear()
+    bad_signature(client)
+    assert writes[1:] == [{"open_incidents": "none"}]
     assert incidents(root) == "none"
 
 
@@ -566,3 +580,34 @@ def test_heartbeat_is_not_rewritten_while_the_flag_is_unchanged(adapter, monkeyp
     for _ in range(3):
         bad_signature(client)
     assert writes == []
+
+
+def test_capacity_refusals_are_logged_but_do_not_open_an_incident(idle_queue):
+    module, client = idle_queue
+    seed_runs(module, module.MAX_PENDING, "queued")
+    for i in range(25):
+        body = json.dumps({"task": f"t{i}"}).encode()
+        assert client.post("/trigger", content=body, headers=sign(body)).status_code == 429
+    assert len(rejections(module)) == 25
+    assert len(module._recent_rejections) == 0
+    assert "none" in (module.HEARTBEAT_FILE.read_text())
+
+
+def test_the_rejection_log_stops_growing_at_its_size_cap(adapter, monkeypatch):
+    module, _, client = adapter
+    monkeypatch.setattr(module, "REJECTION_LOG_MAX", 1)
+    bad_signature(client)
+    bad_signature(client)
+    assert len(rejections(module)) == 1
+    assert len(module._recent_rejections) == 2  # the burst count keeps running even when the file is full
+
+
+def test_heartbeat_updates_wait_for_the_lock(adapter):
+    module, _, _ = adapter
+    done = threading.Event()
+    with module.HEARTBEAT_LOCK:
+        worker = threading.Thread(target=lambda: (module._set_heartbeat(open_incidents="x"), done.set()))
+        worker.start()
+        assert not done.wait(0.3)
+    assert done.wait(3)
+    worker.join(3)
