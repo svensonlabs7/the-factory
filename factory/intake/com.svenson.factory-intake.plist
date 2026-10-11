@@ -12,6 +12,8 @@
         <string>fastapi</string>
         <string>--with</string>
         <string>uvicorn</string>
+        <string>--with</string>
+        <string>python-dotenv</string>
         <string>--</string>
         <string>uvicorn</string>
         <string>factory.intake.webhook_adapter:app</string>
@@ -19,6 +21,8 @@
         <string>0.0.0.0</string>
         <string>--port</string>
         <string>7654</string>
+        <string>--env-file</string>
+        <string>.env</string>
     </array>
     <key>WorkingDirectory</key>
     <string>/Users/labs/projects/the-factory</string>
@@ -28,14 +32,6 @@
         <string>/Users/labs/.nvm/versions/node/v24.14.0/bin:/Users/labs/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
         <key>HOME</key>
         <string>/Users/labs</string>
-        <key>CLAUDE_BIN</key>
-        <string>/Users/labs/.nvm/versions/node/v24.14.0/bin/claude</string>
-        <key>FACTORY_REPO</key>
-        <string>/Users/labs/projects/the-factory</string>
-        <key>GITHUB_TOKEN</key>
-        <string>REPLACE_ME</string>
-        <key>FACTORY_WEBHOOK_SECRET</key>
-        <string>REPLACE_ME</string>
     </dict>
     <key>RunAtLoad</key>
     <true/>

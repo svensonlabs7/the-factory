@@ -49,11 +49,11 @@ curl -X POST http://localhost:7654/trigger \
 
 ## Running under launchd
 
-`com.svenson.factory-intake.plist` runs the adapter on port 7654 and restarts it if it exits. Replace the `REPLACE_ME` values in the installed copy, never in this repo:
+`com.svenson.factory-intake.plist` runs the adapter on port 7654, listening on all interfaces (`0.0.0.0`) so external webhooks can reach it, and restarts it if it exits. It reads secrets from the repo's `.env`:
 
 ```bash
+echo "FACTORY_WEBHOOK_SECRET=$(openssl rand -hex 32)" >> .env
 cp factory/intake/com.svenson.factory-intake.plist ~/Library/LaunchAgents/
-chmod 600 ~/Library/LaunchAgents/com.svenson.factory-intake.plist
 launchctl load ~/Library/LaunchAgents/com.svenson.factory-intake.plist
 ```
 
@@ -63,7 +63,7 @@ launchctl load ~/Library/LaunchAgents/com.svenson.factory-intake.plist
 |----------|---------|-------------|
 | `FACTORY_WEBHOOK_SECRET` | *(required)* | HMAC secret for signature verification |
 | `CLAUDE_BIN` | `/Users/labs/.nvm/versions/node/v24.14.0/bin/claude` | Claude Code binary; launchd has no NVM on PATH |
-| `GITHUB_TOKEN` | — | Token the agent's `gh pr create` uses |
+| `GITHUB_TOKEN` | — | Optional; without it `gh` uses its keychain login |
 
 ## Prior art
 
