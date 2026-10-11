@@ -410,4 +410,14 @@ def test_a_validly_signed_junk_timestamp_is_a_401_not_a_crash(adapter):
 def test_an_unsigned_request_leaves_no_replay_record(adapter):
     module, _, client = adapter
     client.post("/trigger", content=BODY, headers={"X-Hub-Signature-256": "sha256=bad", "X-Factory-Timestamp": str(int(time.time()))})
-    assert not module.REPLAY_DIR.exists() or not list(module.REPLAY_DIR.iterdir())
+    assert not list(module.REPLAY_DIR.iterdir())
+
+
+def test_a_future_dated_request_cannot_be_replayed_after_its_first_five_minutes(adapter, monkeypatch):
+    module, _, client = adapter
+    start = time.time()
+    headers = sign(BODY, int(start) + 299)  # valid until about start + 599
+    assert client.post("/trigger", content=BODY, headers=headers).status_code == 202
+    monkeypatch.setattr(module.time, "time", lambda: start + 350)
+    replay = client.post("/trigger", content=BODY, headers=headers)
+    assert (replay.status_code, replay.json()["detail"]) == (401, "Replayed request")
