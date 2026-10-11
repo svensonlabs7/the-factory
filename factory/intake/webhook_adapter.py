@@ -102,7 +102,6 @@ app = FastAPI(title="Factory Intake", version="1.0.0")
 class TriggerPayload(BaseModel):
     task: str
     branch: Optional[str] = Field(default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
-    priority: Optional[str] = "normal"
 
 
 # ---------------------------------------------------------------------------

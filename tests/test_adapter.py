@@ -421,3 +421,8 @@ def test_a_future_dated_request_cannot_be_replayed_after_its_first_five_minutes(
     monkeypatch.setattr(module.time, "time", lambda: start + 350)
     replay = client.post("/trigger", content=BODY, headers=headers)
     assert (replay.status_code, replay.json()["detail"]) == (401, "Replayed request")
+
+
+def test_a_sender_that_still_includes_the_removed_priority_field_is_accepted(adapter):
+    _, _, client = adapter
+    assert trigger(client, priority="high").status_code == 202
