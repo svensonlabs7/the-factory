@@ -56,6 +56,8 @@ LOG_TAIL = 4000  # characters of a failed run's log kept as findings
 GATE_WORKFLOW = "qa-gate"
 REVIEW_ARTIFACT = "review-{check}"
 LOG_DIR = FACTORY_ROOT / ".factory-logs"
+MAX_PENDING = 5  # /trigger answers 429 while this many runs are queued, running or in QA
+MAX_RUNS_PER_DAY = 30  # ... or once this many were queued in the last 24 hours
 REPLAY_WINDOW = 300  # a request is valid within this many seconds of its own timestamp, before or after
 REPLAY_DIR = LOG_DIR / "replay"
 # Each run gets its own clone here, under the home directory because the Docker VM mounts only that.
@@ -92,7 +94,8 @@ RUN_EXECUTOR = ThreadPoolExecutor(max_workers=1)
 # FastAPI app
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="Factory Intake", version="1.0.0")
+# No schema means no /docs, /redoc or /openapi.json: FastAPI serves the first two only on top of the third.
+app = FastAPI(title="Factory Intake", version="1.0.0", openapi_url=None)
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +134,16 @@ def _replayed(signature: str, timestamp: int) -> bool:
         return True
     os.utime(record, (timestamp, timestamp))
     return False
+
+
+def _check_capacity() -> None:
+    """Refuse a new run when too many are in flight or too many arrived today. Run from the event loop with no
+    await before the new run is written, so two requests cannot both see room for one."""
+    runs = [json.loads(meta.read_text()) for meta in LOG_DIR.glob("*.meta.json")]
+    pending = sum(run.get("status") in ("queued", "running", "qa") for run in runs)
+    today = sum(run.get("queued_at", 0) > time.time() - 86400 for run in runs)
+    if pending >= MAX_PENDING or today >= MAX_RUNS_PER_DAY:
+        raise HTTPException(status_code=429, detail="Too many runs")
 
 
 def _authenticate(body: bytes, headers: Headers) -> None:
@@ -361,6 +374,7 @@ async def trigger(request: Request):
     body = await request.body()
 
     _authenticate(body, request.headers)
+    _check_capacity()
 
     try:
         payload_data = json.loads(body)
