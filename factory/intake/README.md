@@ -25,7 +25,7 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 
 ## QA failure loop
 
-The adapter asks `gh pr checks --required`, so it never carries its own list of checks. It first waits for the PR to reach the commit it pushed, because GitHub briefly keeps showing the previous commit's results. "No checks reported yet" means keep waiting, and any other `gh` error ends the run. The gate keeps each reviewer's text as a `review-<check>` artifact, and a failed `tests` run contributes its log tail. The findings go into the next builder's prompt as data, with dashes defanged so they cannot forge the end of their fence. A fix round that makes no commits is an error. Runs go one at a time, so a PR waiting on the gate holds the queue.
+The adapter asks `gh pr checks --required`, so it never carries its own list of checks. It first waits for the PR to reach the commit it pushed, because GitHub briefly keeps showing the previous commit's results. "No checks reported yet" means keep waiting, and any other `gh` error ends the run. The gate keeps each reviewer's text as a `review-<check>` artifact, and a failed `tests` run contributes its log tail. The findings go into the next builder's prompt as data, with dashes defanged so they cannot forge the end of their fence. A fix round that makes no commits, or that leaves the branch with no net changes against main, is an error: deleting the work is not a way to pass. Runs go one at a time, so a PR waiting on the gate holds the queue.
 
 ## Task prompt
 

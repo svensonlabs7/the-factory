@@ -25,7 +25,7 @@ FAKE_AGENT = """#!/bin/sh
 cd "$1" || exit 1
 echo "cwd=$PWD branch=$(git branch --show-current)"
 echo "prompt-start=$(printf '%s' "$2" | head -c 13)"
-case "$2" in *DUPLICATED-HELPER*) echo "retry-saw-findings";; esac
+case "$2" in *DUPLICATED-HELPER*) echo "retry-saw-findings"; [ -n "$FAKE_EMPTY_FIX" ] && { git rm -q change.txt; git commit -q -m empty; exit 0; };; esac
 echo "fence-ends=$(printf '%s' "$2" | grep -c -e '--- end findings ---')"
 if [ -n "$FAKE_HOOK_MARKER" ]; then
     printf '#!/bin/sh\\ntouch "%s"\\n' "$FAKE_HOOK_MARKER" > .git/hooks/pre-push
@@ -307,3 +307,11 @@ def test_a_hung_git_or_gh_call_is_an_error_not_an_agent_timeout(adapter, monkeyp
     monkeypatch.setenv("FAKE_GH_HANG", "1")
     run = wait_done(client, trigger(client).json()["run_id"])
     assert run["status"] == "error" and "timed out" in run["error"]
+
+
+def test_a_fix_round_that_deletes_the_work_is_an_error_not_a_pass(adapter, monkeypatch):
+    _, _, client = adapter
+    monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,pass")
+    monkeypatch.setenv("FAKE_EMPTY_FIX", "1")
+    run = wait_done(client, trigger(client).json()["run_id"])
+    assert run["status"] == "error" and "no net changes" in run["error"]
