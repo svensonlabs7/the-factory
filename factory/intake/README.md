@@ -73,11 +73,24 @@ cp factory/intake/com.svenson.factory-intake.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.svenson.factory-intake.plist
 ```
 
+## Rotating the webhook secret
+
+While `FACTORY_WEBHOOK_SECRET_PREVIOUS` is set, a request signed with either secret is accepted. An empty value counts as unset.
+
+1. Generate a new secret: `openssl rand -hex 32`.
+2. In `.env`, set `FACTORY_WEBHOOK_SECRET_PREVIOUS` to the old `FACTORY_WEBHOOK_SECRET` value and `FACTORY_WEBHOOK_SECRET` to the new one. The file must end in a newline before you append, or the last line is corrupted.
+3. Restart the agent: `launchctl kickstart -k gui/$(id -u)/com.svenson.factory-intake`.
+4. Switch the sender (Grok Bot) to the new secret.
+5. Once the sender uses only the new secret, delete `FACTORY_WEBHOOK_SECRET_PREVIOUS` from `.env` and restart again.
+
+The old secret stays valid for as long as `FACTORY_WEBHOOK_SECRET_PREVIOUS` is set, so remove it promptly.
+
 ## Environment
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `FACTORY_WEBHOOK_SECRET` | *(required)* | HMAC secret for signature verification |
+| `FACTORY_WEBHOOK_SECRET_PREVIOUS` | *(unset)* | Old secret still accepted during a rotation. Empty means none |
 | `FACTORY_ROOT` | `/Users/labs/projects/the-factory` | Checkout the service runs from. Tests point it at a temporary repo |
 | `CLAUDE_CODE_OAUTH_TOKEN` | *(required for real runs)* | Pro plan token from `claude setup-token`. Forwarded into the sandbox |
 | `FACTORY_AGENT_CMD` | `uv run -q --script factory/build/run_agent.py` | Command that runs the agent. Called as `<command> <workdir> <prompt> <timeout-seconds>` |

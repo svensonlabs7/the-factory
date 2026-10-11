@@ -21,9 +21,12 @@ def git(cwd, *args):
     return subprocess.run(["git", *GIT_ID, *args], cwd=cwd, check=True, capture_output=True, text=True).stdout.strip()
 
 
-def sign(body: bytes, timestamp=None) -> dict:
+OLD_SECRET = "old-secret"
+
+
+def sign(body: bytes, timestamp=None, secret=SECRET) -> dict:
     ts = str(int(time.time()) if timestamp is None else timestamp)
-    digest = hmac.new(SECRET.encode(), f"{ts}.".encode() + body, hashlib.sha256).hexdigest()
+    digest = hmac.new(secret.encode(), f"{ts}.".encode() + body, hashlib.sha256).hexdigest()
     return {"X-Hub-Signature-256": f"sha256={digest}", "X-Factory-Timestamp": ts}
 
 
@@ -140,6 +143,15 @@ def adapter(tmp_path, monkeypatch):
     monkeypatch.setattr(module, "CHECKS_TIMEOUT", 3)  # a regression that waits forever should fail fast
     yield module, root, TestClient(module.app)
     module.RUN_EXECUTOR.shutdown(wait=True)
+
+
+@pytest.fixture
+def previous(request, monkeypatch):
+    """Sets FACTORY_WEBHOOK_SECRET_PREVIOUS (None unsets it). Request it before `adapter`, which reads the env on import."""
+    if request.param is None:
+        monkeypatch.delenv("FACTORY_WEBHOOK_SECRET_PREVIOUS", raising=False)
+    else:
+        monkeypatch.setenv("FACTORY_WEBHOOK_SECRET_PREVIOUS", request.param)
 
 
 def trigger(client, **payload):
@@ -612,6 +624,41 @@ def test_heartbeat_updates_wait_for_the_lock(adapter):
     assert done.wait(3)
     worker.join(3)
 
+
+def post_signed_with(client, secret):
+    return client.post("/trigger", content=BODY, headers=sign(BODY, secret=secret))
+
+
+@pytest.mark.parametrize("previous", [OLD_SECRET], indirect=True)
+def test_current_secret_is_accepted_while_a_previous_one_is_configured(previous, adapter):
+    _, _, client = adapter
+    assert post_signed_with(client, SECRET).status_code == 202
+
+
+@pytest.mark.parametrize("previous", [OLD_SECRET], indirect=True)
+def test_previous_secret_is_accepted_while_it_is_configured(previous, adapter):
+    _, _, client = adapter
+    assert post_signed_with(client, OLD_SECRET).status_code == 202
+
+
+@pytest.mark.parametrize("previous", [None], indirect=True)
+def test_old_secret_is_rejected_once_the_previous_secret_is_removed(previous, adapter):
+    _, _, client = adapter
+    response = post_signed_with(client, OLD_SECRET)
+    assert (response.status_code, response.json()["detail"]) == (401, "Invalid signature")
+
+
+@pytest.mark.parametrize("previous", [""], indirect=True)
+def test_an_empty_previous_secret_is_not_an_hmac_key(previous, adapter):
+    _, _, client = adapter
+    assert post_signed_with(client, "").status_code == 401
+    assert post_signed_with(client, SECRET).status_code == 202
+
+
+@pytest.mark.parametrize("previous", [OLD_SECRET], indirect=True)
+def test_a_third_secret_is_rejected_while_both_are_configured(previous, adapter):
+    _, _, client = adapter
+    assert post_signed_with(client, "unrelated-secret").status_code == 401
 
 def test_the_heartbeat_is_updated_before_a_run_shows_as_finished(adapter, monkeypatch):
     module, root, _ = adapter
