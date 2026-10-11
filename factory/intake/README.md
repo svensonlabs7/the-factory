@@ -74,6 +74,7 @@ launchctl load ~/Library/LaunchAgents/com.svenson.factory-intake.plist
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `FACTORY_WEBHOOK_SECRET` | *(required)* | HMAC secret for signature verification |
+| `FACTORY_ROOT` | `/Users/labs/projects/the-factory` | Checkout the service runs from. Tests point it at a temporary repo |
 | `CLAUDE_CODE_OAUTH_TOKEN` | *(required for real runs)* | Pro plan token from `claude setup-token`. Forwarded into the sandbox |
 | `FACTORY_AGENT_CMD` | `uv run -q --script factory/build/run_agent.py` | Command that runs the agent. Called as `<command> <workdir> <prompt> <timeout-seconds>` |
 | `GH_BIN` | `gh` | Used on the host to open the PR. Tests replace it |

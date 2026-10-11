@@ -54,7 +54,7 @@ pstack was written for Cursor. Read its Cursor-only terms this way in Claude Cod
 
 ## QA Gate: Thermo-Nuclear
 - Skill: `.claude/skills/thermo-nuclear-code-quality-review/SKILL.md`
-- Runs on every PR before merge. It is user-invoked only
+- Runs on every PR before merge, from main's copy of the workflow, next to `ponytail-review` and `tests`. All three are required checks. It is user-invoked only
   (`disable-model-invocation: true`), so the QA pipeline invokes it explicitly:
   `/thermo-nuclear-code-quality-review`.
 - Presumptive blockers: a file pushed past 1000 lines, ad-hoc branching in existing
@@ -66,15 +66,16 @@ pstack was written for Cursor. Read its Cursor-only terms this way in Claude Cod
 
 ## Health: HEARTBEAT.md
 `HEARTBEAT.md` tracks pipeline status (last run, QA gate result, open incidents).
-Updated by the QA agent after each run; polled by `the-machine` for cross-system health.
+Updated in place by the intake adapter as each run progresses; polled by `the-machine` for cross-system health.
 
 ## Pipeline
 Intake (Grok Bot) → Planning (`/poteto-mode` orchestrate) → Build (OpenHands +
 Claude Code + Ponytail) → QA (thermo-nuclear) → CI → Deploy
 
 ## Layout
-- `factory/intake/` — Grok Bot feature-request pipeline
-- `factory/build/` — OpenHands build automation
-- `factory/qa/` — thermo-nuclear + Ponytail QA gate
-- `vendor/pstack/` — pstack reference
+- `factory/intake/` — signed webhook adapter and QA failure loop
+- `factory/build/` — OpenHands sandbox runner
+- `factory/qa/` — QA gate notes (the gate itself is `.github/workflows/qa-gate.yml`)
+- `tests/` — adapter and wiring tests
+- `vendor/` — pstack and Ponytail sources
 - `.claude/skills/`, `.claude/agents/` — Claude Code skills and subagents

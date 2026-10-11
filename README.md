@@ -18,32 +18,34 @@ Standalone: it shares no code or state with `the-machine`.
 
 | Stage | Component | Responsibility |
 |---|---|---|
-| Intake | Grok Bot (`factory/intake/`) | Take feature requests and turn them into structured work items. |
-| Planning | pstack `/poteto-mode` → `orchestrate` playbook | Split work into stacked, verifiable PRs and assign agents. |
-| Build | OpenHands + Claude Code + Ponytail (`factory/build/`) | Run agents in sandboxes. Ponytail keeps each diff to the minimum needed. |
-| QA | Thermo-Nuclear (`factory/qa/`) | Strict maintainability review. Blocking findings send the PR back to Build. |
-| CI | GitHub Actions (TBD) | Tests, lint, and type checks. |
+| Intake | Signed webhook adapter (`factory/intake/`) | Take a task over HTTP and start a run. Grok Bot, the sender, is not built yet. |
+| Planning | pstack `/poteto-mode` | Every build starts under `/poteto-mode`, which picks its own playbook. The `orchestrate` playbook for multi-PR work is not wired. |
+| Build | OpenHands + Claude Code + Ponytail (`factory/build/`) | Claude Code runs in an OpenHands Docker sandbox with no GitHub credentials, one run at a time. The adapter publishes the PR. Ponytail keeps each diff to the minimum needed. |
+| QA | Thermo-Nuclear, Ponytail review and tests (`factory/qa/`) | Run from main's copy of the workflow, so a PR cannot edit its own gate. A blocked PR goes back to a fresh builder up to twice, then to a human. |
+| CI | GitHub Actions | pytest on every PR. No lint or type checks yet. |
 | Deploy | TBD | Ship merged changes. |
 
 ## Ground rules
 
 - Claude Code is the only build environment. No Cursor.
 - Agents open PRs. They never push to the base branch.
-- A PR merges only after it passes the QA gate.
+- A PR merges only after it passes the QA gate. Branch protection requires `thermo-nuclear`, `ponytail-review` and `tests`.
 
 See [`CLAUDE.md`](./CLAUDE.md) for the rules agents follow.
 
 ## Layout
 
 ```
-.claude/skills/thermo-nuclear-code-quality-review/   QA review skill
+.github/workflows/                                   QA gate and tests
+.claude/skills/                                      pstack, Ponytail and the QA review skills
 .claude/agents/                                      Claude Code subagents
-factory/intake/                                      Grok Bot intake pipeline
-factory/build/                                       OpenHands build automation
-factory/qa/                                          QA gate
-vendor/pstack/                                       pstack reference
+factory/intake/                                      Signed webhook adapter, QA failure loop
+factory/build/                                       OpenHands sandbox runner
+factory/qa/                                          QA gate notes
+tests/                                               Adapter and wiring tests
+vendor/                                              pstack and Ponytail sources
 ```
 
 ## Status
 
-Scaffold only. Each `factory/*` directory has a stub README with the open design questions.
+Intake, Build and QA run end to end on one Mac under launchd. Grok Bot, Deploy, lint and type checks, and multi-PR planning are not built. Each `factory/*` README lists what is open.

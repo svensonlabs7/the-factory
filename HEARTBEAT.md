@@ -1,6 +1,6 @@
 # Factory Heartbeat
 
-Status snapshot for the autonomous factory pipeline. Updated by the QA gate after each run.
+Status snapshot for the autonomous factory pipeline. Updated by the intake adapter as each run progresses.
 Reports are forwarded to `the-machine` for cross-system health tracking.
 
 ---
@@ -23,7 +23,7 @@ Reports are forwarded to `the-machine` for cross-system health tracking.
 
 ## Reporting
 
-This file is the factory's health signal. After each pipeline run the QA agent writes the updated status fields above and appends a run log entry below.
+This file is the factory's health signal. As a run progresses the intake adapter updates the status fields above in place.
 
 **Cross-system reporting:** the-machine polls this file to track factory health. Do not rename or move it. If the pipeline is broken and cannot write here, report the incident directly to the-machine operator.
 
@@ -31,4 +31,4 @@ This file is the factory's health signal. After each pipeline run the QA agent w
 
 ## Run Log
 
-<!-- QA agent appends one line per run: [timestamp] status | pr | notes -->
+<!-- Per-run detail lives in .factory-logs/<run_id>.meta.json and .factory-logs/<run_id>.log -->
