@@ -13,7 +13,7 @@ GIT_ID = ["-c", "user.name=t", "-c", "user.email=t@example.com"]
 
 
 def git(cwd, *args):
-    subprocess.run(["git", *GIT_ID, *args], cwd=cwd, check=True, capture_output=True)
+    return subprocess.run(["git", *GIT_ID, *args], cwd=cwd, check=True, capture_output=True, text=True).stdout.strip()
 
 
 def sign(body: bytes) -> dict:
@@ -21,23 +21,43 @@ def sign(body: bytes) -> dict:
     return {"X-Hub-Signature-256": f"sha256={digest}"}
 
 
+FAKE_AGENT = """#!/bin/sh
+cd "$1" || exit 1
+echo "cwd=$PWD branch=$(git branch --show-current)"
+if [ -n "$FAKE_HOOK_MARKER" ]; then
+    printf '#!/bin/sh\\ntouch "%s"\\n' "$FAKE_HOOK_MARKER" > .git/hooks/pre-push
+    chmod +x .git/hooks/pre-push
+fi
+if [ "${FAKE_COMMIT:-1}" = 1 ]; then
+    echo "change $$" > change.txt
+    git add -A
+    git commit -q -m fake
+fi
+sleep "${FAKE_SLEEP:-0}"
+exit "${FAKE_EXIT:-0}"
+"""
+
+
 @pytest.fixture
 def adapter(tmp_path, monkeypatch):
     origin, root = tmp_path / "origin.git", tmp_path / "factory"
     git(tmp_path, "init", "-q", "--bare", "-b", "main", str(origin))
     git(tmp_path, "clone", "-q", str(origin), str(root))
+    git(root, "config", "user.name", "t")
+    git(root, "config", "user.email", "t@example.com")
     (root / "README.md").write_text("seed")
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "seed")
     git(root, "push", "-q", "origin", "HEAD:main")
 
-    fake = tmp_path / "fake-claude.sh"
-    fake.write_text('#!/bin/sh\necho "cwd=$PWD branch=$(git branch --show-current)"\nsleep "${FAKE_SLEEP:-0}"\nexit "${FAKE_EXIT:-0}"\n')
-    fake.chmod(0o755)
+    for name, body in (("fake-agent.sh", FAKE_AGENT), ("fake-gh.sh", '#!/bin/sh\necho "https://example.invalid/pull/1"\n')):
+        (tmp_path / name).write_text(body)
+        (tmp_path / name).chmod(0o755)
 
     monkeypatch.setenv("FACTORY_WEBHOOK_SECRET", SECRET)
     monkeypatch.setenv("FACTORY_ROOT", str(root))
-    monkeypatch.setenv("CLAUDE_BIN", str(fake))
+    monkeypatch.setenv("FACTORY_AGENT_CMD", str(tmp_path / "fake-agent.sh"))
+    monkeypatch.setenv("GH_BIN", str(tmp_path / "fake-gh.sh"))
     sys.modules.pop("factory.intake.webhook_adapter", None)
     module = importlib.import_module("factory.intake.webhook_adapter")
     yield module, root, TestClient(module.app)
@@ -85,16 +105,26 @@ def test_rejects_invalid_payloads(adapter, body):
     assert client.post("/trigger", content=body, headers=sign(body)).status_code == 422
 
 
-def test_run_executes_in_its_own_worktree_and_cleans_up(adapter):
+def test_run_publishes_from_a_private_clone_and_cleans_up(adapter):
     module, root, client = adapter
     run_id = trigger(client).json()["run_id"]
     run = wait_done(client, run_id)
 
-    assert run["status"] == "completed"
+    assert (run["status"], run["pr_url"]) == ("completed", "https://example.invalid/pull/1")
     log = (root / ".factory-logs" / f"{run_id}.log").read_text()
-    assert f"cwd={module.WORKTREE_DIR / run_id} branch=factory/{run_id}" in log
-    assert not (module.WORKTREE_DIR / run_id).exists()
-    assert subprocess.run(["git", "branch", "--show-current"], cwd=root, capture_output=True, text=True).stdout.strip() == "main"
+    assert f"cwd={module.RUNS_DIR / run_id} branch=factory/{run_id}" in log
+    assert not (module.RUNS_DIR / run_id).exists()
+    assert f"refs/heads/factory/{run_id}" in git(root, "ls-remote", "origin")
+    assert git(root, "branch", "--show-current") == "main"
+    assert git(root, "branch", "--list", "factory/*") == ""
+
+
+def test_hooks_the_agent_plants_never_run_on_the_host(adapter, tmp_path, monkeypatch):
+    _, _, client = adapter
+    marker = tmp_path / "hook-ran"
+    monkeypatch.setenv("FAKE_HOOK_MARKER", str(marker))
+    assert wait_done(client, trigger(client).json()["run_id"])["status"] == "completed"
+    assert not marker.exists()
 
 
 def test_runs_are_serialized_in_arrival_order(adapter, monkeypatch):
@@ -105,18 +135,27 @@ def test_runs_are_serialized_in_arrival_order(adapter, monkeypatch):
     assert b["started_at"] >= a["finished_at"]
 
 
-def test_failed_run_reports_exit_code(adapter, monkeypatch):
-    _, _, client = adapter
+def test_failed_agent_reports_exit_code_and_publishes_nothing(adapter, monkeypatch):
+    _, root, client = adapter
     monkeypatch.setenv("FAKE_EXIT", "3")
     run = wait_done(client, trigger(client).json()["run_id"])
     assert (run["status"], run["exit_code"]) == ("failed", 3)
+    assert "pr_url" not in run
+    assert "refs/heads/factory" not in git(root, "ls-remote", "origin")
 
 
-def test_reused_branch_reports_git_error_and_next_run_still_runs(adapter):
+def test_run_without_commits_is_an_error(adapter, monkeypatch):
+    _, _, client = adapter
+    monkeypatch.setenv("FAKE_COMMIT", "0")
+    run = wait_done(client, trigger(client).json()["run_id"])
+    assert run["status"] == "error" and "no commits" in run["error"]
+
+
+def test_reused_branch_is_rejected_and_the_next_run_still_runs(adapter):
     _, _, client = adapter
     first = wait_done(client, trigger(client, branch="factory/dupe").json()["run_id"])
     second = wait_done(client, trigger(client, branch="factory/dupe").json()["run_id"])
     third = wait_done(client, trigger(client).json()["run_id"])
     assert first["status"] == "completed"
-    assert second["status"] == "error" and "already exists" in second["error"]
+    assert second["status"] == "error" and "rejected" in second["error"]
     assert third["status"] == "completed"

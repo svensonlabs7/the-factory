@@ -1,6 +1,6 @@
 # Intake — Webhook Adapter
 
-Receives task payloads via HTTP and spawns **Claude Code** (`claude -p`) in headless mode to execute them. Uses your existing Claude Pro subscription — no API key required.
+Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenHands Docker sandbox. Uses your Claude Pro subscription through `CLAUDE_CODE_OAUTH_TOKEN`, with no API key.
 
 ## Endpoints
 
@@ -13,22 +13,21 @@ Receives task payloads via HTTP and spawns **Claude Code** (`claude -p`) in head
 ## How it works
 
 1. A webhook POST arrives at `/trigger` with a `task` string.
-2. HMAC-SHA256 signature is verified against `FACTORY_WEBHOOK_SECRET`. The adapter refuses to start without it, because agents run with `--dangerously-skip-permissions`.
-3. A `run_id` and `branch` name are generated.
-4. `$CLAUDE_BIN -p --dangerously-skip-permissions "<task + git instructions>"` is spawned as a background subprocess.
-5. Claude Code implements the task, creates a branch, commits, and opens a PR via `gh pr create`.
-6. `HEARTBEAT.md` is updated with the run status.
-7. Logs land in `.factory-logs/<run_id>.log`.
+2. HMAC-SHA256 signature is verified against `FACTORY_WEBHOOK_SECRET`. The adapter refuses to start without it, because agents run with permission prompts off.
+3. A `run_id` and `branch` name are generated, and the run waits its turn. Runs go one at a time.
+4. The adapter clones the repo into `../the-factory-runs/<run_id>` and checks out the branch.
+5. `factory/build/run_agent.py` starts a Docker container from the pinned OpenHands agent-server image. It mounts only that clone and runs Claude Code in it. The container holds no GitHub credentials.
+6. The agent implements the task and commits.
+7. The adapter fetches the branch into the main checkout, pushes it and opens the PR with `gh`. It never runs git inside the agent's clone, because git would execute hooks and config the agent wrote there.
+8. `HEARTBEAT.md` is updated with the run status, and logs land in `.factory-logs/<run_id>.log`.
 
 ## Task prompt
 
-The prompt sent to `claude -p` automatically appends:
+The prompt sent to the agent automatically appends:
 
 ```
-1. git checkout -b factory/<run_id>
-2. git add -A && git commit -m "factory: <run_id>"
-3. gh pr create --title "factory/<run_id>" --body "..." --base main
-4. Update HEARTBEAT.md with status: COMPLETED
+You are in a git repository on branch factory/<run_id>. When you are done, run: git add -A && git commit -m "factory: <run_id>"
+Do not push. The factory publishes your branch.
 ```
 
 ## Running locally
@@ -63,8 +62,9 @@ launchctl load ~/Library/LaunchAgents/com.svenson.factory-intake.plist
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `FACTORY_WEBHOOK_SECRET` | *(required)* | HMAC secret for signature verification |
-| `CLAUDE_BIN` | `/Users/labs/.nvm/versions/node/v24.14.0/bin/claude` | Claude Code binary; launchd has no NVM on PATH |
-| `GITHUB_TOKEN` | — | Optional; without it `gh` uses its keychain login |
+| `CLAUDE_CODE_OAUTH_TOKEN` | *(required for real runs)* | Pro plan token from `claude setup-token`. Forwarded into the sandbox |
+| `FACTORY_AGENT_CMD` | `uv run … python factory/build/run_agent.py` | Command that runs the agent. Called as `<command> <workdir> <prompt>` |
+| `GH_BIN` | `gh` | Used on the host to open the PR. Tests replace it |
 
 ## Prior art
 
