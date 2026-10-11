@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import subprocess
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -23,7 +24,7 @@ from typing import Optional
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
 # Config
@@ -37,6 +38,8 @@ if not WEBHOOK_SECRET:
 CLAUDE_BIN = os.environ.get("CLAUDE_BIN", "/Users/labs/.nvm/versions/node/v24.14.0/bin/claude")
 FACTORY_ROOT = Path("/Users/labs/projects/the-factory")
 LOG_DIR = FACTORY_ROOT / ".factory-logs"
+# Each run gets its own worktree here, so agents never touch the checkout the service runs from.
+WORKTREE_DIR = FACTORY_ROOT.parent / "the-factory-runs"
 HEARTBEAT_FILE = FACTORY_ROOT / "HEARTBEAT.md"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -48,6 +51,8 @@ log = logging.getLogger("factory.intake")
 # ---------------------------------------------------------------------------
 
 runs: dict[str, dict] = {}
+# One run at a time: runs share one Claude plan quota and one origin.
+RUN_LOCK = threading.Lock()
 
 # ---------------------------------------------------------------------------
 # FastAPI app
@@ -62,7 +67,7 @@ app = FastAPI(title="Factory Intake", version="1.0.0")
 
 class TriggerPayload(BaseModel):
     task: str
-    branch: Optional[str] = None
+    branch: Optional[str] = Field(default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
     priority: Optional[str] = "normal"
 
 
@@ -85,9 +90,9 @@ def _verify_signature(body: bytes, sig_header: str) -> bool:
 TASK_PROMPT_TEMPLATE = """\
 {user_task}
 
-When you are done with the implementation:
-1. Run: git checkout -b {branch}
-2. Run: git add -A && git commit -m "factory: {run_id}"
+You are in a git worktree already on branch {branch}. When you are done with the implementation:
+1. Run: git add -A && git commit -m "factory: {run_id}"
+2. Run: git push -u origin {branch}
 3. Run: gh pr create --title "{branch}" --body "Factory build {run_id}\\n\\nTask: {task_summary}" --base main
 4. Update {heartbeat_file} with status: COMPLETED
 """
@@ -108,22 +113,34 @@ def _build_prompt(user_task: str, branch: str, run_id: str) -> str:
 # Background worker
 # ---------------------------------------------------------------------------
 
-def _run_claude(run_id: str, prompt: str) -> None:
+def _git(*args: str) -> None:
+    subprocess.run(["git", *args], cwd=FACTORY_ROOT, check=True, capture_output=True, text=True)
+
+
+def _run_claude(run_id: str, prompt: str, branch: str) -> None:
+    with RUN_LOCK:
+        _run_in_worktree(run_id, prompt, branch)
+
+
+def _run_in_worktree(run_id: str, prompt: str, branch: str) -> None:
     log_file = LOG_DIR / f"{run_id}.log"
+    workdir = WORKTREE_DIR / run_id
     runs[run_id]["status"] = "running"
     runs[run_id]["started_at"] = time.time()
 
     _update_heartbeat(run_id, "RUNNING")
 
-    log.info("Starting claude -p for run %s", run_id)
+    log.info("Starting claude -p for run %s in %s", run_id, workdir)
 
     try:
+        _git("fetch", "origin", "main")
+        _git("worktree", "add", "-b", branch, str(workdir), "origin/main")
         with open(log_file, "w") as lf:
             result = subprocess.run(
                 [CLAUDE_BIN, "-p", "--dangerously-skip-permissions", prompt],
                 stdout=lf,
                 stderr=subprocess.STDOUT,
-                cwd=str(FACTORY_ROOT),
+                cwd=str(workdir),
                 timeout=1800,  # 30-minute cap
             )
         exit_code = result.returncode
@@ -138,6 +155,9 @@ def _run_claude(run_id: str, prompt: str) -> None:
         runs[run_id]["error"] = str(exc)
         _update_heartbeat(run_id, "ERROR")
         return
+    finally:
+        # The branch keeps the committed work. Uncommitted files are only in the log.
+        subprocess.run(["git", "worktree", "remove", "--force", str(workdir)], cwd=FACTORY_ROOT)
 
     if exit_code == 0:
         runs[run_id]["status"] = "completed"
@@ -192,7 +212,7 @@ async def trigger(request: Request, background_tasks: BackgroundTasks):
     }
 
     log.info("Queued run %s: branch=%s", run_id, branch)
-    background_tasks.add_task(_run_claude, run_id, prompt)
+    background_tasks.add_task(_run_claude, run_id, prompt, branch)
 
     return JSONResponse(
         status_code=202,
