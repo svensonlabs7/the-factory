@@ -19,7 +19,13 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 5. `factory/build/run_agent.py` starts a Docker container from the pinned OpenHands agent-server image. It mounts only that clone and runs Claude Code in it. The container holds no GitHub credentials.
 6. The agent implements the task and commits.
 7. The adapter fetches the branch into the main checkout, pushes it and opens the PR with `gh`. It runs git only in the main checkout, because git run in the agent's clone would execute hooks and config the agent wrote there. The one touch is a fetch that reads objects from the clone.
-8. `HEARTBEAT.md` is updated with the run status, and logs land in `.factory-logs/<run_id>.log`.
+8. The run waits for the required checks on the PR (status `qa`). If they all pass, it is `completed`.
+9. If a check fails, a fresh builder in a new container gets the reviewers' findings and the branch, and pushes a fix. This repeats up to twice. If the PR is still blocked, the run is `blocked` and HEARTBEAT.md says why.
+10. `HEARTBEAT.md`'s status table is updated at each stage, and logs land in `.factory-logs/<run_id>.log`, one section per attempt.
+
+## QA failure loop
+
+The adapter asks `gh pr checks --required`, so it never carries its own list of checks. It first waits for the PR to reach the commit it pushed, because GitHub briefly keeps showing the previous commit's results. "No checks reported yet" means keep waiting, and any other `gh` error ends the run. The gate keeps each reviewer's text as a `review-<check>` artifact, and a failed `tests` run contributes its log tail. The findings go into the next builder's prompt as data, with dashes defanged so they cannot forge the end of their fence. A fix round that makes no commits is an error. Runs go one at a time, so a PR waiting on the gate holds the queue.
 
 ## Task prompt
 

@@ -31,5 +31,5 @@ Fork PRs fail the check.
 - [x] Output: pass/fail status check, review in the job summary
 - [ ] Output: PR review comments
 - [x] Enforcement: `thermo-nuclear`, `ponytail-review` and `tests` are required checks on `main` (branch protection)
-- [ ] Failure loop: send findings back to Build, cap the retries, then escalate to a human
+- [x] Failure loop: the adapter sends findings to a fresh builder, up to 2 fix rounds, then marks the run blocked in `HEARTBEAT.md` for a human
 - [ ] Order relative to CI
