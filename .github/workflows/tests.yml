@@ -12,5 +12,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install pytest fastapi httpx
+      - run: pip install pytest fastapi httpx pyyaml
       - run: python -m pytest -q

@@ -59,6 +59,7 @@ pstack was written for Cursor. Read its Cursor-only terms this way in Claude Cod
   `/thermo-nuclear-code-quality-review`.
 - Presumptive blockers: a file pushed past 1000 lines, ad-hoc branching in existing
   flows, unnecessary wrappers/casts, logic in the wrong layer, duplicated helpers.
+- A third lane, `ux-laws` (`.claude/skills/ux-laws/SKILL.md`), reviews PRs that touch UI files and passes the rest; it is not yet a required check.
 
 ## Intake: Grok Bot
 - Grok Bot is the intake layer for feature requests once the factory is running.
@@ -71,6 +72,8 @@ Updated in place by the intake adapter as each run progresses; polled by `the-ma
 ## Pipeline
 Intake (Grok Bot) → Planning (`/poteto-mode` orchestrate) → Build (OpenHands +
 Claude Code + Ponytail) → QA (thermo-nuclear) → CI → Deploy
+
+For any task involving UI, forms, dashboards, pages, or user-facing flows — invoke the ux-laws skill before and after building for review.
 
 ## Layout
 - `factory/intake/` — signed webhook adapter and QA failure loop

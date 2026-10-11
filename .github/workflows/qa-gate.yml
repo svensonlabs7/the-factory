@@ -21,6 +21,11 @@ jobs:
           - check: ponytail-review
             skill: /ponytail-review
             model: sonnet
+          # A lane with paths reviews only PRs that change a matching file (extended regex) and passes the rest.
+          - check: ux-laws
+            skill: /ux-laws
+            model: sonnet
+            paths: '\.(html?|css|scss|jsx?|tsx?|vue|svelte)$|(^|/)templates/'
     runs-on: ubuntu-latest
     steps:
       # A skipped job satisfies a required check, so a fork PR has to fail instead.
@@ -37,7 +42,16 @@ jobs:
       - run: npm install -g @anthropic-ai/claude-code@2.1.296
       - name: Fetch the PR head as a ref
         run: git fetch -q origin "pull/${{ github.event.pull_request.number }}/head:pr-head"
+      - name: Scope
+        id: scope
+        env:
+          PATHS: ${{ matrix.paths }}
+        run: factory/qa/scope.sh "$PATHS" "origin/${{ github.base_ref }}...pr-head" >> "$GITHUB_OUTPUT"
+      - name: Skip the review
+        if: steps.scope.outputs.run == 'false'
+        run: printf 'No changed file matches this lane, so the review was skipped.\n\n**PASS**\n' > "$RUNNER_TEMP/review.md"
       - name: Review
+        if: steps.scope.outputs.run == 'true'
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         # Explicit bash adds pipefail (the default is bash -e without it), so a claude failure isn't hidden behind tee.
