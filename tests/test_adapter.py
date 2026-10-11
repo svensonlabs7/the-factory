@@ -426,3 +426,57 @@ def test_a_future_dated_request_cannot_be_replayed_after_its_first_five_minutes(
 def test_a_sender_that_still_includes_the_removed_priority_field_is_accepted(adapter):
     _, _, client = adapter
     assert trigger(client, priority="high").status_code == 202
+
+
+@pytest.mark.parametrize("path", ["/docs", "/redoc", "/openapi.json"])
+def test_the_api_docs_are_off(adapter, path):
+    _, _, client = adapter
+    assert client.get(path).status_code == 404
+
+
+@pytest.fixture
+def idle_queue(adapter, monkeypatch):
+    """Accepted runs stay queued, so the pending count is under the test's control."""
+    module, _, client = adapter
+    monkeypatch.setattr(module.RUN_EXECUTOR, "submit", lambda *args: None)
+    return module, client
+
+
+def seed_runs(module, count, status, age=0):
+    for i in range(count):
+        module._update(f"{status}{age}x{i}", run_id=f"{status}{age}x{i}", status=status, queued_at=time.time() - age)
+
+
+def test_the_sixth_pending_run_is_refused(idle_queue):
+    module, client = idle_queue
+    assert [trigger(client).status_code for _ in range(module.MAX_PENDING)] == [202] * module.MAX_PENDING
+    refused = trigger(client)
+    assert (refused.status_code, refused.json()["detail"]) == (429, "Too many runs")
+
+
+@pytest.mark.parametrize("status", ["queued", "running", "qa"])
+def test_every_in_flight_status_counts_as_pending(idle_queue, status):
+    module, client = idle_queue
+    seed_runs(module, module.MAX_PENDING, status)
+    assert trigger(client).status_code == 429
+
+
+def test_finished_runs_are_not_pending(idle_queue):
+    module, client = idle_queue
+    seed_runs(module, module.MAX_PENDING, "completed")
+    assert trigger(client).status_code == 202
+
+
+def test_the_daily_cap_counts_runs_queued_in_the_last_24_hours(idle_queue):
+    module, client = idle_queue
+    seed_runs(module, module.MAX_RUNS_PER_DAY - 1, "completed")
+    seed_runs(module, 10, "completed", age=86400 + 60)  # older runs do not count
+    assert trigger(client).status_code == 202
+    assert trigger(client).status_code == 429
+
+
+def test_an_unsigned_request_is_a_401_even_when_the_queue_is_full(idle_queue):
+    module, client = idle_queue
+    seed_runs(module, module.MAX_PENDING, "queued")
+    assert client.post("/trigger", content=BODY, headers={"X-Hub-Signature-256": "sha256=bad"}).status_code == 401
+    assert trigger(client).status_code == 429

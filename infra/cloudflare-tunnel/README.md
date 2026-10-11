@@ -31,10 +31,11 @@ but reads `/etc/cloudflared/`, not `~/.cloudflared/`, so the config and credenti
 
 ## What is public
 
-Every path on the adapter is reachable, not just `/trigger`:
+The ingress rule in `config.yml` routes only `^/(trigger|health)$`. Every other path gets the tunnel's 404, so `/status/<run_id>`
+and the API docs are not reachable from outside. The adapter has no docs routes at all.
 
-- `POST /trigger` needs a valid, fresh, unreplayed signature. Anything else is a 401.
+- `POST /trigger` needs a valid, fresh, unreplayed signature, else 401. A signed request is refused with 429 while 5 runs are
+  pending or 30 were queued in the last 24 hours.
 - `GET /health` answers `{"status":"ok"}` to anyone.
-- `GET /status/<run_id>` returns a run's task text and PR link to anyone who knows its 8-character id.
 
-To expose only what a sender needs, restrict the ingress rule in `config.yml` with `path: ^/(trigger|health)$`.
+`/status/<run_id>` still works on `127.0.0.1:7654`.
