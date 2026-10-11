@@ -72,6 +72,8 @@ Updated in place by the intake adapter as each run progresses; polled by `the-ma
 Intake (Grok Bot) → Planning (`/poteto-mode` orchestrate) → Build (OpenHands +
 Claude Code + Ponytail) → QA (thermo-nuclear) → CI → Deploy
 
+For any task involving UI, forms, dashboards, pages, or user-facing flows — invoke the ux-laws skill before and after building for review.
+
 ## Layout
 - `factory/intake/` — signed webhook adapter and QA failure loop
 - `factory/build/` — OpenHands sandbox runner
