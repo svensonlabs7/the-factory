@@ -15,6 +15,8 @@ import hmac
 import json
 import logging
 import os
+import shlex
+import shutil
 import subprocess
 import time
 import uuid
@@ -32,15 +34,17 @@ from pydantic import BaseModel, Field
 # ---------------------------------------------------------------------------
 
 WEBHOOK_SECRET = os.environ.get("FACTORY_WEBHOOK_SECRET", "")
-# Agents run with --dangerously-skip-permissions, so an unsigned trigger would be remote code execution.
+# Agents run with permission prompts off, so an unsigned trigger would be remote code execution.
 if not WEBHOOK_SECRET:
     raise RuntimeError("FACTORY_WEBHOOK_SECRET must be set")
-# launchd has no NVM on PATH, so default to the absolute binary.
-CLAUDE_BIN = os.environ.get("CLAUDE_BIN", "/Users/labs/.nvm/versions/node/v24.14.0/bin/claude")
 FACTORY_ROOT = Path(os.environ.get("FACTORY_ROOT", "/Users/labs/projects/the-factory"))
+# Runs the agent in an OpenHands Docker sandbox. Called as: <command> <workdir> <prompt> <timeout-seconds>.
+AGENT_CMD = shlex.split(os.environ.get("FACTORY_AGENT_CMD", f"uv run -q --script {FACTORY_ROOT}/factory/build/run_agent.py"))
+AGENT_TIMEOUT = 1800  # 30-minute cap. The agent gets a shorter limit so it can end itself and remove its container.
+GH_BIN = os.environ.get("GH_BIN", "gh")
 LOG_DIR = FACTORY_ROOT / ".factory-logs"
-# Each run gets its own worktree here, so agents never touch the checkout the service runs from.
-WORKTREE_DIR = FACTORY_ROOT.parent / "the-factory-runs"
+# Each run gets its own clone here, under the home directory because the Docker VM mounts only that.
+RUNS_DIR = FACTORY_ROOT.parent / "the-factory-runs"
 HEARTBEAT_FILE = FACTORY_ROOT / "HEARTBEAT.md"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -91,90 +95,85 @@ def _verify_signature(body: bytes, sig_header: str) -> bool:
 TASK_PROMPT_TEMPLATE = """\
 {user_task}
 
-You are in a git worktree already on branch {branch}. When you are done with the implementation:
-1. Run: git add -A && git commit -m "factory: {run_id}"
-2. Run: git push -u origin {branch}
-3. Run: gh pr create --title "{branch}" --body "Factory build {run_id}\\n\\nTask: {task_summary}" --base main
+You are in a git repository on branch {branch}. When you are done, run: git add -A && git commit -m "factory: {run_id}"
+Do not push. The factory publishes your branch.
 """
 
 
 def _build_prompt(user_task: str, branch: str, run_id: str) -> str:
-    task_summary = user_task[:200].replace('"', '\\"')
-    return TASK_PROMPT_TEMPLATE.format(
-        user_task=user_task,
-        branch=branch,
-        run_id=run_id,
-        task_summary=task_summary,
-    )
+    return TASK_PROMPT_TEMPLATE.format(user_task=user_task, branch=branch, run_id=run_id)
 
 
 # ---------------------------------------------------------------------------
 # Background worker
 # ---------------------------------------------------------------------------
 
-def _git(*args: str) -> None:
-    result = subprocess.run(["git", *args], cwd=FACTORY_ROOT, capture_output=True, text=True)
+def _run(*cmd: str, cwd: Path = FACTORY_ROOT) -> str:
+    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
     if result.returncode:
-        raise RuntimeError(f"git {' '.join(args)}: {result.stderr.strip()}")
+        raise RuntimeError(f"{' '.join(cmd)}: {result.stderr.strip()}")
+    return result.stdout.strip()
 
 
 @contextmanager
-def _worktree(run_id: str, branch: str):
-    workdir = WORKTREE_DIR / run_id
-    _git("fetch", "origin", "main")
-    _git("worktree", "add", "-b", branch, str(workdir), "origin/main")
+def _checkout(run_id: str, branch: str):
+    """A private clone for the sandbox, so it never sees the checkout the service runs from."""
+    workdir = RUNS_DIR / run_id
+    _run("git", "clone", "--quiet", "--branch", "main", _run("git", "remote", "get-url", "origin"), str(workdir))
+    _run("git", "checkout", "-b", branch, cwd=workdir)
+    for key in ("user.name", "user.email"):
+        _run("git", "config", key, _run("git", "config", key), cwd=workdir)
     try:
         yield workdir
     finally:
-        # Cleanup is best-effort so it cannot overwrite the run's result. The branch keeps the committed work.
-        try:
-            _git("worktree", "remove", "--force", str(workdir))
-        except RuntimeError:
-            log.exception("Failed to remove worktree for run %s", run_id)
+        shutil.rmtree(workdir, ignore_errors=True)
 
 
-def _run_claude(run_id: str, prompt: str, branch: str) -> None:
+def _publish(branch: str, body: str, workdir: Path) -> str:
+    """Push and open the PR from the trusted checkout. The sandbox holds no GitHub credentials, and git run
+    inside the agent's clone would execute whatever hooks and config the agent wrote there. The fetch only
+    reads objects from that clone. Runs go one at a time, so FETCH_HEAD is safe to use."""
+    _run("git", "fetch", "--quiet", "origin", "main")
+    _run("git", "fetch", "--quiet", str(workdir), branch)
+    if _run("git", "rev-list", "--count", "origin/main..FETCH_HEAD") == "0":
+        raise RuntimeError("agent made no commits")
+    _run("git", "push", "origin", f"FETCH_HEAD:refs/heads/{branch}")
+    return _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", branch, "--body", body)
+
+
+def _finish(run_id: str, status: str, **fields) -> None:
+    runs[run_id].update(status=status, finished_at=time.time(), **fields)
+    _update_heartbeat(run_id, status.upper())
+    log.info("Run %s %s", run_id, status)
+
+
+def _run_agent(run_id: str, prompt: str, branch: str) -> None:
     log_file = LOG_DIR / f"{run_id}.log"
     runs[run_id]["status"] = "running"
     runs[run_id]["started_at"] = time.time()
 
     _update_heartbeat(run_id, "RUNNING")
 
-    log.info("Starting claude -p for run %s", run_id)
+    log.info("Starting the sandboxed agent for run %s", run_id)
 
     try:
-        with _worktree(run_id, branch) as workdir, open(log_file, "w") as lf:
+        with _checkout(run_id, branch) as workdir, open(log_file, "w") as lf:
             result = subprocess.run(
-                [CLAUDE_BIN, "-p", "--dangerously-skip-permissions", prompt],
+                [*AGENT_CMD, str(workdir), prompt, str(AGENT_TIMEOUT - 300)],
                 stdout=lf,
                 stderr=subprocess.STDOUT,
-                cwd=str(workdir),
-                timeout=1800,  # 30-minute cap
+                timeout=AGENT_TIMEOUT,
             )
-        exit_code = result.returncode
+            if result.returncode:
+                _finish(run_id, "failed", exit_code=result.returncode)
+            else:
+                body = f"Factory build {run_id}\n\nTask: {runs[run_id]['task'][:200]}"
+                _finish(run_id, "completed", pr_url=_publish(branch, body, workdir))
     except subprocess.TimeoutExpired:
-        log.error("Run %s timed out", run_id)
-        runs[run_id]["status"] = "timeout"
-        _update_heartbeat(run_id, "TIMEOUT")
-        return
+        _finish(run_id, "timeout")
     except Exception as exc:
         log.exception("Run %s failed with exception: %s", run_id, exc)
-        runs[run_id]["status"] = "error"
-        runs[run_id]["error"] = str(exc)
-        _update_heartbeat(run_id, "ERROR")
-        return
-
-    if exit_code == 0:
-        runs[run_id]["status"] = "completed"
-        _update_heartbeat(run_id, "COMPLETED")
-        log.info("Run %s completed successfully", run_id)
-    else:
-        runs[run_id]["status"] = "failed"
-        runs[run_id]["exit_code"] = exit_code
-        _update_heartbeat(run_id, "FAILED")
-        log.warning("Run %s failed (exit %d)", run_id, exit_code)
-
-    runs[run_id]["finished_at"] = time.time()
+        _finish(run_id, "error", error=str(exc))
 
 
 def _update_heartbeat(run_id: str, status: str) -> None:
@@ -217,7 +216,7 @@ async def trigger(request: Request):
     }
 
     log.info("Queued run %s: branch=%s", run_id, branch)
-    RUN_EXECUTOR.submit(_run_claude, run_id, prompt, branch)
+    RUN_EXECUTOR.submit(_run_agent, run_id, prompt, branch)
 
     return JSONResponse(
         status_code=202,
