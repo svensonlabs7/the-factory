@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.svenson.factory-intake</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/labs/.local/bin/uv</string>
+        <string>run</string>
+        <string>--with</string>
+        <string>fastapi</string>
+        <string>--with</string>
+        <string>uvicorn</string>
+        <string>--with</string>
+        <string>python-dotenv</string>
+        <string>--</string>
+        <string>uvicorn</string>
+        <string>factory.intake.webhook_adapter:app</string>
+        <string>--host</string>
+        <string>0.0.0.0</string>
+        <string>--port</string>
+        <string>7654</string>
+        <string>--env-file</string>
+        <string>.env</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/labs/projects/the-factory</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/labs/.nvm/versions/node/v24.14.0/bin:/Users/labs/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/labs</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/labs/projects/the-factory/.factory-logs/intake.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/labs/projects/the-factory/.factory-logs/intake.err.log</string>
+</dict>
+</plist>
