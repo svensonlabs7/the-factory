@@ -6,6 +6,9 @@ Every PR passes this gate before merge. The `thermo-nuclear` check runs
 on each PR to `main` and fails unless the review ends with `PASS`. It needs the
 `CLAUDE_CODE_OAUTH_TOKEN` repo secret (from `claude setup-token`, billed to the Claude plan).
 
+The gate runs `main`'s copy of the workflow and the skill, so a PR cannot edit the gate that reviews it.
+Fork PRs fail the check.
+
 1. **Thermo-Nuclear review**: `.claude/skills/thermo-nuclear-code-quality-review/SKILL.md`.
    Strict maintainability review. Its approval bar decides pass or fail.
    The skill has `disable-model-invocation: true`, so the gate must invoke it
