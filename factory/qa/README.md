@@ -3,7 +3,7 @@
 **Status: thermo-nuclear and ponytail-review wired** (`.github/workflows/qa-gate.yml`)
 
 Every PR passes this gate before merge. The `thermo-nuclear` and `ponytail-review` checks run
-on each PR to `main` and fail unless the review ends with `PASS`. Both are required checks on `main`, alongside `tests`. It needs the
+on each PR to `main` and fail unless the review ends with `PASS`. Both are required checks on `main`, alongside `tests` and `ux-laws`. It needs the
 `CLAUDE_CODE_OAUTH_TOKEN` repo secret (from `claude setup-token`, billed to the Claude plan).
 
 The gate runs `main`'s copy of the workflow and the skill, so a PR cannot edit the gate that reviews it.
@@ -15,7 +15,7 @@ Fork PRs fail the check.
    explicitly (`/thermo-nuclear-code-quality-review`).
 2. **Ponytail review**: `.claude/skills/ponytail-review/SKILL.md`, vendored from `vendor/ponytail/`.
    Bugs, security, load, missing tests and code to cut. A must-fix finding is a BLOCK.
-3. **UX laws review**: `.claude/skills/ux-laws/SKILL.md`. Runs only when the PR touches a file matching the lane's `paths` (otherwise it passes without calling Claude); like the others it ends with PASS or BLOCK. Not yet a required check.
+3. **UX laws review**: `.claude/skills/ux-laws/SKILL.md`. Runs only when the PR touches a file matching the lane's `paths` (otherwise it passes without calling Claude); like the others it ends with PASS or BLOCK. It is a required check.
 
 ## Presumptive blockers (from the skill)
 
@@ -31,6 +31,6 @@ Fork PRs fail the check.
 - [x] Trigger: GitHub Action on PR
 - [x] Output: pass/fail status check, review in the job summary
 - [ ] Output: PR review comments
-- [x] Enforcement: `thermo-nuclear`, `ponytail-review` and `tests` are required checks on `main` (branch protection)
+- [x] Enforcement: `thermo-nuclear`, `ponytail-review`, `ux-laws` and `tests` are required checks on `main` (branch protection)
 - [x] Failure loop: the adapter sends findings to a fresh builder, up to 2 fix rounds, then marks the run blocked in `HEARTBEAT.md` for a human
 - [ ] Order relative to CI
