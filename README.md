@@ -47,3 +47,5 @@ vendor/pstack/                                       pstack reference
 ## Status
 
 Scaffold only. Each `factory/*` directory has a stub README with the open design questions.
+
+State survives restarts.
