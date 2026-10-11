@@ -26,4 +26,4 @@ jobs:
             | tee "$RUNNER_TEMP/review.md"
           cat "$RUNNER_TEMP/review.md" >> "$GITHUB_STEP_SUMMARY"
           # The skill ends with a binary verdict line: PASS or BLOCK.
-          grep -E '^\**(PASS|BLOCK)\**( |$)' "$RUNNER_TEMP/review.md" | tail -n 1 | grep -q PASS
+          grep -E '^\**(PASS|BLOCK)\**( |$)' "$RUNNER_TEMP/review.md" | tail -n 1 | grep -qE '^\**PASS'

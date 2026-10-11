@@ -2,7 +2,7 @@
 
 **Status: thermo-nuclear wired** (`.github/workflows/qa-gate.yml`)
 
-Every PR passes this gate before merge. The `qa-gate / thermo-nuclear` check runs
+Every PR passes this gate before merge. The `thermo-nuclear` check runs
 on each PR to `main` and fails unless the review ends with `PASS`. It needs the
 `CLAUDE_CODE_OAUTH_TOKEN` repo secret (from `claude setup-token`, billed to the Claude plan).
 
