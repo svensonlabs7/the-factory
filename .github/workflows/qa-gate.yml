@@ -1,9 +1,7 @@
 name: qa-gate
 
-# The follow-up PR drops `pull_request`, leaving only the trigger that runs main's copy of this file.
+# pull_request_target runs main's copy of this file, so a PR cannot edit the gate that reviews it.
 on:
-  pull_request:
-    branches: [main]
   pull_request_target:
     branches: [main]
 
