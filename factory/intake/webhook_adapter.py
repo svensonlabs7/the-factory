@@ -18,12 +18,14 @@ import os
 import subprocess
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
 # Config
@@ -37,6 +39,8 @@ if not WEBHOOK_SECRET:
 CLAUDE_BIN = os.environ.get("CLAUDE_BIN", "/Users/labs/.nvm/versions/node/v24.14.0/bin/claude")
 FACTORY_ROOT = Path("/Users/labs/projects/the-factory")
 LOG_DIR = FACTORY_ROOT / ".factory-logs"
+# Each run gets its own worktree here, so agents never touch the checkout the service runs from.
+WORKTREE_DIR = FACTORY_ROOT.parent / "the-factory-runs"
 HEARTBEAT_FILE = FACTORY_ROOT / "HEARTBEAT.md"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -48,6 +52,8 @@ log = logging.getLogger("factory.intake")
 # ---------------------------------------------------------------------------
 
 runs: dict[str, dict] = {}
+# One run at a time, in arrival order: runs share one Claude plan quota and one origin.
+RUN_EXECUTOR = ThreadPoolExecutor(max_workers=1)
 
 # ---------------------------------------------------------------------------
 # FastAPI app
@@ -62,7 +68,7 @@ app = FastAPI(title="Factory Intake", version="1.0.0")
 
 class TriggerPayload(BaseModel):
     task: str
-    branch: Optional[str] = None
+    branch: Optional[str] = Field(default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
     priority: Optional[str] = "normal"
 
 
@@ -85,11 +91,10 @@ def _verify_signature(body: bytes, sig_header: str) -> bool:
 TASK_PROMPT_TEMPLATE = """\
 {user_task}
 
-When you are done with the implementation:
-1. Run: git checkout -b {branch}
-2. Run: git add -A && git commit -m "factory: {run_id}"
+You are in a git worktree already on branch {branch}. When you are done with the implementation:
+1. Run: git add -A && git commit -m "factory: {run_id}"
+2. Run: git push -u origin {branch}
 3. Run: gh pr create --title "{branch}" --body "Factory build {run_id}\\n\\nTask: {task_summary}" --base main
-4. Update {heartbeat_file} with status: COMPLETED
 """
 
 
@@ -100,7 +105,6 @@ def _build_prompt(user_task: str, branch: str, run_id: str) -> str:
         branch=branch,
         run_id=run_id,
         task_summary=task_summary,
-        heartbeat_file=str(HEARTBEAT_FILE),
     )
 
 
@@ -108,7 +112,28 @@ def _build_prompt(user_task: str, branch: str, run_id: str) -> str:
 # Background worker
 # ---------------------------------------------------------------------------
 
-def _run_claude(run_id: str, prompt: str) -> None:
+def _git(*args: str) -> None:
+    result = subprocess.run(["git", *args], cwd=FACTORY_ROOT, capture_output=True, text=True)
+    if result.returncode:
+        raise RuntimeError(f"git {' '.join(args)}: {result.stderr.strip()}")
+
+
+@contextmanager
+def _worktree(run_id: str, branch: str):
+    workdir = WORKTREE_DIR / run_id
+    _git("fetch", "origin", "main")
+    _git("worktree", "add", "-b", branch, str(workdir), "origin/main")
+    try:
+        yield workdir
+    finally:
+        # Cleanup is best-effort so it cannot overwrite the run's result. The branch keeps the committed work.
+        try:
+            _git("worktree", "remove", "--force", str(workdir))
+        except RuntimeError:
+            log.exception("Failed to remove worktree for run %s", run_id)
+
+
+def _run_claude(run_id: str, prompt: str, branch: str) -> None:
     log_file = LOG_DIR / f"{run_id}.log"
     runs[run_id]["status"] = "running"
     runs[run_id]["started_at"] = time.time()
@@ -118,12 +143,12 @@ def _run_claude(run_id: str, prompt: str) -> None:
     log.info("Starting claude -p for run %s", run_id)
 
     try:
-        with open(log_file, "w") as lf:
+        with _worktree(run_id, branch) as workdir, open(log_file, "w") as lf:
             result = subprocess.run(
                 [CLAUDE_BIN, "-p", "--dangerously-skip-permissions", prompt],
                 stdout=lf,
                 stderr=subprocess.STDOUT,
-                cwd=str(FACTORY_ROOT),
+                cwd=str(workdir),
                 timeout=1800,  # 30-minute cap
             )
         exit_code = result.returncode
@@ -166,7 +191,7 @@ def _update_heartbeat(run_id: str, status: str) -> None:
 # ---------------------------------------------------------------------------
 
 @app.post("/trigger", status_code=202)
-async def trigger(request: Request, background_tasks: BackgroundTasks):
+async def trigger(request: Request):
     body = await request.body()
 
     sig = request.headers.get("X-Hub-Signature-256", "")
@@ -192,7 +217,7 @@ async def trigger(request: Request, background_tasks: BackgroundTasks):
     }
 
     log.info("Queued run %s: branch=%s", run_id, branch)
-    background_tasks.add_task(_run_claude, run_id, prompt)
+    RUN_EXECUTOR.submit(_run_claude, run_id, prompt, branch)
 
     return JSONResponse(
         status_code=202,
