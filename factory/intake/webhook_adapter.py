@@ -42,6 +42,8 @@ WEBHOOK_SECRET = os.environ.get("FACTORY_WEBHOOK_SECRET", "")
 # Agents run with permission prompts off, so an unsigned trigger would be remote code execution.
 if not WEBHOOK_SECRET:
     raise RuntimeError("FACTORY_WEBHOOK_SECRET must be set")
+# During a rotation the old secret stays valid. An empty value means none: "" must never become an HMAC key.
+WEBHOOK_SECRETS = [s for s in (WEBHOOK_SECRET, os.environ.get("FACTORY_WEBHOOK_SECRET_PREVIOUS", "")) if s]
 FACTORY_ROOT = Path(os.environ.get("FACTORY_ROOT", "/Users/labs/projects/the-factory"))
 # Runs the agent in an OpenHands Docker sandbox. Called as: <command> <workdir> <prompt> <timeout-seconds>.
 AGENT_CMD = shlex.split(os.environ.get("FACTORY_AGENT_CMD", f"uv run -q --script {FACTORY_ROOT}/factory/build/run_agent.py"))
@@ -117,11 +119,12 @@ class TriggerPayload(BaseModel):
 # ---------------------------------------------------------------------------
 
 def _verify_signature(body: bytes, timestamp: str, sig_header: str) -> bool:
-    """Return True if X-Hub-Signature-256 is the HMAC of "<timestamp>.<body>" under WEBHOOK_SECRET."""
-    expected = "sha256=" + hmac.new(
-        WEBHOOK_SECRET.encode(), f"{timestamp}.".encode() + body, hashlib.sha256
-    ).hexdigest()
-    return hmac.compare_digest(expected, sig_header or "")
+    """Return True if X-Hub-Signature-256 is the HMAC of "<timestamp>.<body>" under any configured secret."""
+    message = f"{timestamp}.".encode() + body
+    return any(
+        hmac.compare_digest("sha256=" + hmac.new(secret.encode(), message, hashlib.sha256).hexdigest(), sig_header or "")
+        for secret in WEBHOOK_SECRETS
+    )
 
 
 def _replayed(signature: str, timestamp: int) -> bool:
