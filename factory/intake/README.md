@@ -23,6 +23,10 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 9. If a check fails, a fresh builder in a new container gets the reviewers' findings and the branch, and pushes a fix. This repeats up to twice. If the PR is still blocked, the run is `blocked` and HEARTBEAT.md says why.
 10. `HEARTBEAT.md`'s status table is updated at each stage, and logs land in `.factory-logs/<run_id>.log`, one section per attempt.
 
+## Rejected requests
+
+Every `/trigger` request refused with a 401, 422 or 429 appends one JSON line to `.factory-logs/rejected.jsonl`: time, a fixed reason, the caller's IP (`CF-Connecting-IP`, else the socket), path and the first 100 characters of the user agent. The body, the signature and the timestamp header are deliberately never logged, and neither is the pydantic error text of a 422, since it echoes the input. When 20 or more rejections fall in the last hour, `open_incidents` in `HEARTBEAT.md` reads "N rejected requests in the last hour", and returns to "none" when fewer remain.
+
 ## Run state
 
 Each run's state is one file, `.factory-logs/<run_id>.meta.json`, and `/status/<run_id>` serves that file, so it survives a restart. A restart kills the worker, so on startup any run still `queued`, `running` or `qa` is closed out as `error` ("the service restarted during the run"), and HEARTBEAT.md follows. The PR it opened, if any, stays open and is listed as `last_pr_blocked`.

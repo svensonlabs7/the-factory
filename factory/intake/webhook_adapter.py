@@ -60,6 +60,8 @@ MAX_PENDING = 5  # /trigger answers 429 while this many runs are queued, running
 MAX_RUNS_PER_DAY = 30  # ... or once this many were queued in the last 24 hours
 REPLAY_WINDOW = 300  # a request is valid within this many seconds of its own timestamp, before or after
 REPLAY_DIR = LOG_DIR / "replay"
+REJECTION_WINDOW = 3600  # seconds of rejections counted ...
+REJECTION_BURST = 20  # ... and how many of them raise an open incident in HEARTBEAT.md
 # Each run gets its own clone here, under the home directory because the Docker VM mounts only that.
 RUNS_DIR = FACTORY_ROOT.parent / "the-factory-runs"
 HEARTBEAT_FILE = FACTORY_ROOT / "HEARTBEAT.md"
@@ -365,6 +367,30 @@ def _set_heartbeat(**fields: str) -> None:
         log.exception("Failed to update HEARTBEAT.md")
 
 
+def _log_rejection(request: Request, reason: str) -> None:
+    """Append one line to rejected.jsonl and flag a burst in HEARTBEAT. Never logs the body, signature or timestamp.
+    Rewrites HEARTBEAT only when the flag changes, because it is a tracked file. Must not turn a 4xx into a 500.
+    shortcut: rereads the whole log per rejection, so rotate it if floods get large."""
+    now = time.time()
+    entry = dict(
+        time=now,
+        reason=reason,
+        ip=request.headers.get("CF-Connecting-IP") or (request.client.host if request.client else ""),
+        path=request.url.path,
+        user_agent=request.headers.get("User-Agent", "")[:100],
+    )
+    try:
+        path = LOG_DIR / "rejected.jsonl"
+        with path.open("a") as f:
+            f.write(json.dumps(entry) + "\n")
+        recent = sum(json.loads(line)["time"] > now - REJECTION_WINDOW for line in path.read_text().splitlines())
+        value = f"{recent} rejected requests in the last hour" if recent >= REJECTION_BURST else "none"
+        if f"| **open_incidents** | {value} |" not in HEARTBEAT_FILE.read_text():
+            _set_heartbeat(open_incidents=value)
+    except Exception:
+        log.exception("Failed to log a rejected request")
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -373,14 +399,17 @@ def _set_heartbeat(**fields: str) -> None:
 async def trigger(request: Request):
     body = await request.body()
 
-    _authenticate(body, request.headers)
-    _check_capacity()
-
     try:
-        payload_data = json.loads(body)
-        payload = TriggerPayload(**payload_data)
-    except Exception as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        _authenticate(body, request.headers)
+        _check_capacity()
+        try:
+            payload = TriggerPayload(**json.loads(body))
+        except Exception as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+    except HTTPException as exc:
+        # A 422's detail echoes the rejected input, so it is logged as a fixed string.
+        _log_rejection(request, "Invalid payload" if exc.status_code == 422 else exc.detail)
+        raise
 
     run_id = str(uuid.uuid4())[:8]
     branch = payload.branch or f"factory/{run_id}"
