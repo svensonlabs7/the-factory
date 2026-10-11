@@ -19,6 +19,7 @@ import subprocess
 import threading
 import time
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -94,7 +95,6 @@ You are in a git worktree already on branch {branch}. When you are done with the
 1. Run: git add -A && git commit -m "factory: {run_id}"
 2. Run: git push -u origin {branch}
 3. Run: gh pr create --title "{branch}" --body "Factory build {run_id}\\n\\nTask: {task_summary}" --base main
-4. Update {heartbeat_file} with status: COMPLETED
 """
 
 
@@ -105,7 +105,6 @@ def _build_prompt(user_task: str, branch: str, run_id: str) -> str:
         branch=branch,
         run_id=run_id,
         task_summary=task_summary,
-        heartbeat_file=str(HEARTBEAT_FILE),
     )
 
 
@@ -114,62 +113,66 @@ def _build_prompt(user_task: str, branch: str, run_id: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _git(*args: str) -> None:
-    subprocess.run(["git", *args], cwd=FACTORY_ROOT, check=True, capture_output=True, text=True)
+    result = subprocess.run(["git", *args], cwd=FACTORY_ROOT, capture_output=True, text=True)
+    if result.returncode:
+        raise RuntimeError(f"git {' '.join(args)}: {result.stderr.strip()}")
+
+
+@contextmanager
+def _worktree(run_id: str, branch: str):
+    workdir = WORKTREE_DIR / run_id
+    _git("fetch", "origin", "main")
+    _git("worktree", "add", "-b", branch, str(workdir), "origin/main")
+    try:
+        yield workdir
+    finally:
+        # The branch keeps the committed work. Uncommitted files are only in the log.
+        _git("worktree", "remove", "--force", str(workdir))
 
 
 def _run_claude(run_id: str, prompt: str, branch: str) -> None:
-    with RUN_LOCK:
-        _run_in_worktree(run_id, prompt, branch)
-
-
-def _run_in_worktree(run_id: str, prompt: str, branch: str) -> None:
     log_file = LOG_DIR / f"{run_id}.log"
-    workdir = WORKTREE_DIR / run_id
-    runs[run_id]["status"] = "running"
-    runs[run_id]["started_at"] = time.time()
+    with RUN_LOCK:
+        runs[run_id]["status"] = "running"
+        runs[run_id]["started_at"] = time.time()
 
-    _update_heartbeat(run_id, "RUNNING")
+        _update_heartbeat(run_id, "RUNNING")
 
-    log.info("Starting claude -p for run %s in %s", run_id, workdir)
+        log.info("Starting claude -p for run %s", run_id)
 
-    try:
-        _git("fetch", "origin", "main")
-        _git("worktree", "add", "-b", branch, str(workdir), "origin/main")
-        with open(log_file, "w") as lf:
-            result = subprocess.run(
-                [CLAUDE_BIN, "-p", "--dangerously-skip-permissions", prompt],
-                stdout=lf,
-                stderr=subprocess.STDOUT,
-                cwd=str(workdir),
-                timeout=1800,  # 30-minute cap
-            )
-        exit_code = result.returncode
-    except subprocess.TimeoutExpired:
-        log.error("Run %s timed out", run_id)
-        runs[run_id]["status"] = "timeout"
-        _update_heartbeat(run_id, "TIMEOUT")
-        return
-    except Exception as exc:
-        log.exception("Run %s failed with exception: %s", run_id, exc)
-        runs[run_id]["status"] = "error"
-        runs[run_id]["error"] = str(exc)
-        _update_heartbeat(run_id, "ERROR")
-        return
-    finally:
-        # The branch keeps the committed work. Uncommitted files are only in the log.
-        subprocess.run(["git", "worktree", "remove", "--force", str(workdir)], cwd=FACTORY_ROOT)
+        try:
+            with _worktree(run_id, branch) as workdir, open(log_file, "w") as lf:
+                result = subprocess.run(
+                    [CLAUDE_BIN, "-p", "--dangerously-skip-permissions", prompt],
+                    stdout=lf,
+                    stderr=subprocess.STDOUT,
+                    cwd=str(workdir),
+                    timeout=1800,  # 30-minute cap
+                )
+            exit_code = result.returncode
+        except subprocess.TimeoutExpired:
+            log.error("Run %s timed out", run_id)
+            runs[run_id]["status"] = "timeout"
+            _update_heartbeat(run_id, "TIMEOUT")
+            return
+        except Exception as exc:
+            log.exception("Run %s failed with exception: %s", run_id, exc)
+            runs[run_id]["status"] = "error"
+            runs[run_id]["error"] = str(exc)
+            _update_heartbeat(run_id, "ERROR")
+            return
 
-    if exit_code == 0:
-        runs[run_id]["status"] = "completed"
-        _update_heartbeat(run_id, "COMPLETED")
-        log.info("Run %s completed successfully", run_id)
-    else:
-        runs[run_id]["status"] = "failed"
-        runs[run_id]["exit_code"] = exit_code
-        _update_heartbeat(run_id, "FAILED")
-        log.warning("Run %s failed (exit %d)", run_id, exit_code)
+        if exit_code == 0:
+            runs[run_id]["status"] = "completed"
+            _update_heartbeat(run_id, "COMPLETED")
+            log.info("Run %s completed successfully", run_id)
+        else:
+            runs[run_id]["status"] = "failed"
+            runs[run_id]["exit_code"] = exit_code
+            _update_heartbeat(run_id, "FAILED")
+            log.warning("Run %s failed (exit %d)", run_id, exit_code)
 
-    runs[run_id]["finished_at"] = time.time()
+        runs[run_id]["finished_at"] = time.time()
 
 
 def _update_heartbeat(run_id: str, status: str) -> None:
