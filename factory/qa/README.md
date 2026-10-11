@@ -15,7 +15,7 @@ Fork PRs fail the check.
    explicitly (`/thermo-nuclear-code-quality-review`).
 2. **Ponytail review**: `.claude/skills/ponytail-review/SKILL.md`, vendored from `vendor/ponytail/`.
    Bugs, security, load, missing tests and code to cut. A must-fix finding is a BLOCK.
-3. **UX laws review**: `.claude/skills/ux-laws/SKILL.md`. Runs only when the PR touches a file matching the lane's `paths` (otherwise it passes without calling Claude); its `VIOLATIONS` verdict counts as a BLOCK. Not yet a required check.
+3. **UX laws review**: `.claude/skills/ux-laws/SKILL.md`. Runs only when the PR touches a file matching the lane's `paths` (otherwise it passes without calling Claude); like the others it ends with PASS or BLOCK. Not yet a required check.
 
 ## Presumptive blockers (from the skill)
 

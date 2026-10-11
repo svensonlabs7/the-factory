@@ -62,7 +62,8 @@ jobs:
             --model ${{ matrix.model }} \
             --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(wc:*)" \
             | tee "$RUNNER_TEMP/review.md"
-          factory/qa/verdict.sh "$RUNNER_TEMP/review.md"
+          # Every reviewer ends with a binary verdict line: PASS or BLOCK.
+          grep -E '^\**(PASS|BLOCK)\**( |$)' "$RUNNER_TEMP/review.md" | tail -n 1 | grep -qE '^\**PASS'
       # The factory's builder downloads these to fix what a reviewer blocked.
       - name: Keep the review
         if: always()

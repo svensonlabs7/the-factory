@@ -1,6 +1,6 @@
 ---
 name: ux-laws
-description: Review or plan a user-facing change against 20 UX laws and end with a PASS or VIOLATIONS verdict. Use before and after building any UI, form, dashboard, page, or user-facing flow, and when asked for a UX review.
+description: Review or plan a user-facing change against 20 UX laws and end with a PASS or BLOCK verdict. Use before and after building any UI, form, dashboard, page, or user-facing flow, and when asked for a UX review.
 ---
 
 # UX Laws
@@ -58,6 +58,6 @@ Put clarity, accessibility, user control and task completion first. Apply the la
 End every review with one of two verdicts, on its own last line, with nothing after it:
 
 - `PASS` — no violations. Advisory notes may remain above it.
-- `VIOLATIONS` — one or more violations. List each one above the verdict, as `<law> — <file:line> — <what goes wrong> — <fix>`.
+- `BLOCK` — one or more violations. List each one above the verdict, as `<law> — <file:line> — <what goes wrong> — <fix>`.
 
 Do not use partial approvals or conditional verdicts. The verdict is binary.

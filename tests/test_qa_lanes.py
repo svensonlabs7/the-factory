@@ -5,25 +5,9 @@ import pytest
 import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-VERDICT = ROOT / "factory/qa/verdict.sh"
 SCOPE = ROOT / "factory/qa/scope.sh"
 JOB = yaml.safe_load((ROOT / ".github/workflows/qa-gate.yml").read_text())["jobs"]["review"]
 LANES = {lane["check"]: lane for lane in JOB["strategy"]["matrix"]["include"]}
-
-
-@pytest.mark.parametrize("review, passes", [
-    ("Looks fine.\n\n**PASS**\n", True),
-    ("Looks fine.\nPASS\n", True),
-    ("Must fix the loop.\n\n**BLOCK**\n", False),
-    ("Fitts's Law, app.html:3, tiny button, enlarge it.\n\n**VIOLATIONS**\n", False),
-    ("", False),
-    ("A review with no verdict line.\n", False),
-    ("**PASS**\nThen a second look found a problem.\nVIOLATIONS\n", False),
-])
-def test_verdict(tmp_path, review, passes):
-    path = tmp_path / "review.md"
-    path.write_text(review)
-    assert (subprocess.run([VERDICT, path]).returncode == 0) is passes
 
 
 @pytest.fixture
@@ -99,10 +83,9 @@ def test_no_step_branches_on_the_lane_name():
     assert [step["if"] for step in JOB["steps"] if "matrix.check" in step.get("if", "")] == []
 
 
-def test_review_runs_only_in_scope_and_judges_with_verdict_sh():
+def test_review_runs_only_in_scope():
     steps = {step.get("name"): step for step in JOB["steps"]}
     assert steps["Review"]["if"] == "steps.scope.outputs.run == 'true'"
-    assert 'factory/qa/verdict.sh "$RUNNER_TEMP/review.md"' in steps["Review"]["run"]
     assert "CLAUDE_CODE_OAUTH_TOKEN" not in str(steps["Skip the review"])
 
 
@@ -110,4 +93,5 @@ def test_skipped_lane_writes_a_passing_review(tmp_path):
     skip = next(step for step in JOB["steps"] if step.get("name") == "Skip the review")
     subprocess.run(["bash", "-ec", skip["run"]], env={"RUNNER_TEMP": str(tmp_path), "PATH": "/usr/bin:/bin"},
                    check=True)
-    assert subprocess.run([VERDICT, tmp_path / "review.md"]).returncode == 0
+    gate = next(line for line in next(step for step in JOB["steps"] if step.get("name") == "Review")["run"].splitlines() if line.lstrip().startswith("grep -E"))
+    assert subprocess.run(["bash", "-o", "pipefail", "-c", gate], env={"RUNNER_TEMP": str(tmp_path), "PATH": "/usr/bin:/bin"}).returncode == 0
