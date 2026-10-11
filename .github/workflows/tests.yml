@@ -1,0 +1,16 @@
+name: tests
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pytest fastapi httpx
+      - run: python -m pytest -q
