@@ -23,11 +23,12 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 
 ## Task prompt
 
-The prompt sent to the agent automatically appends:
+The prompt starts with `/poteto-mode`, so pstack picks a playbook. It then appends:
 
 ```
+Follow the ponytail skill: the smallest change that fully solves the task.
 You are in a git repository on branch factory/<run_id>. When you are done, run: git add -A && git commit -m "factory: <run_id>"
-Do not push. The factory publishes your branch.
+Do not push or open a PR, and skip any playbook step that does. The factory publishes your branch.
 ```
 
 ## Running locally

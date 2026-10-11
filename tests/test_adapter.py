@@ -24,6 +24,7 @@ def sign(body: bytes) -> dict:
 FAKE_AGENT = """#!/bin/sh
 cd "$1" || exit 1
 echo "cwd=$PWD branch=$(git branch --show-current)"
+echo "prompt-start=$(printf '%s' "$2" | head -c 13)"
 if [ -n "$FAKE_HOOK_MARKER" ]; then
     printf '#!/bin/sh\\ntouch "%s"\\n' "$FAKE_HOOK_MARKER" > .git/hooks/pre-push
     chmod +x .git/hooks/pre-push
@@ -113,6 +114,7 @@ def test_run_publishes_from_a_private_clone_and_cleans_up(adapter):
     assert (run["status"], run["pr_url"]) == ("completed", "https://example.invalid/pull/1")
     log = (root / ".factory-logs" / f"{run_id}.log").read_text()
     assert f"cwd={module.RUNS_DIR / run_id} branch=factory/{run_id}" in log
+    assert "prompt-start=/poteto-mode" in log
     assert not (module.RUNS_DIR / run_id).exists()
     assert f"refs/heads/factory/{run_id}" in git(root, "ls-remote", "origin")
     assert git(root, "branch", "--show-current") == "main"
