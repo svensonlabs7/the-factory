@@ -93,10 +93,11 @@ def _verify_signature(body: bytes, sig_header: str) -> bool:
 # ---------------------------------------------------------------------------
 
 TASK_PROMPT_TEMPLATE = """\
-{user_task}
+/poteto-mode {user_task}
 
+Follow the ponytail skill: the smallest change that fully solves the task.
 You are in a git repository on branch {branch}. When you are done, run: git add -A && git commit -m "factory: {run_id}"
-Do not push. The factory publishes your branch.
+Do not push or open a PR, and skip any playbook step that does. The factory publishes your branch.
 """
 
 
