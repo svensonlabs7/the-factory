@@ -144,10 +144,13 @@ class AgentFailed(Exception):
         self.code = code
 
 
-def _run(*cmd: str, cwd: Path = FACTORY_ROOT, tolerate: str = "") -> str:
-    """Run a command and return its stdout. A non-zero exit is an error unless its stderr contains `tolerate`."""
-    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=COMMAND_TIMEOUT)
-    if result.returncode and not (tolerate and tolerate in result.stderr):
+def _run(*cmd: str, cwd: Path = FACTORY_ROOT) -> str:
+    # A hung command raises RuntimeError, so it is reported as an error, never as the agent's timeout.
+    try:
+        result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=COMMAND_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"{' '.join(cmd)}: timed out after {COMMAND_TIMEOUT}s")
+    if result.returncode:
         raise RuntimeError(f"{' '.join(cmd)}: {result.stderr.strip()}")
     return result.stdout.strip()
 
@@ -185,8 +188,13 @@ def _failed_checks(pr_url: str, head: str) -> list[str]:
     deadline = time.time() + CHECKS_TIMEOUT
     while time.time() < deadline:
         if _run(GH_BIN, "pr", "view", pr_url, "--json", "headRefOid", "--jq", ".headRefOid") == head:
-            # No checks yet is the one non-zero exit that only means keep waiting.
-            checks = json.loads(_run(GH_BIN, "pr", "checks", pr_url, "--required", "--json", "name,bucket", tolerate="checks reported") or "[]")
+            try:
+                checks = json.loads(_run(GH_BIN, "pr", "checks", pr_url, "--required", "--json", "name,bucket"))
+            except RuntimeError as exc:
+                # No checks yet is the one failure that only means keep waiting.
+                if "checks reported" not in str(exc):
+                    raise
+                checks = []
             if checks and all(c["bucket"] != "pending" for c in checks):
                 return sorted(c["name"] for c in checks if c["bucket"] in ("fail", "cancel"))
         time.sleep(CHECKS_POLL)
@@ -215,12 +223,13 @@ def _fix_prompt(task: str, findings: str, branch: str, run_id: str) -> str:
     return _build_prompt(FIX_TASK_TEMPLATE.format(user_task=task, findings=findings), branch, run_id)
 
 
-def _finish(run_id: str, status: str, phase: str, **fields) -> None:
+def _finish(run_id: str, status: str, **fields) -> None:
+    build_status = "ok" if runs[run_id]["status"] == "qa" else status  # a run that reached QA had built fine
     runs[run_id].update(status=status, finished_at=time.time(), **fields)
     pipeline, qa_gate = OUTCOMES[status]
     heartbeat = dict(
         pipeline_status=pipeline,
-        build_status="ok" if phase == "qa" else status,
+        build_status=build_status,
         qa_gate_status=qa_gate,
         blocking_reason=fields.get("blocking_reason") or fields.get("error") or "—",
     )
@@ -256,30 +265,27 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
 
     log.info("Starting the sandboxed agent for run %s", run_id)
 
-    phase = "build"
     try:
         head = _build(run_id, 0, prompt, branch, since="origin/main")
         body = f"Factory build {run_id}\n\nTask: {task[:200]}"
         pr_url = runs[run_id]["pr_url"] = _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", branch, "--body", body)
         # Each pass waits on the checks for `head`. The last pass only decides, because no fix rounds are left.
         for attempt in range(1, MAX_RETRIES + 2):
-            phase = "qa"
             runs[run_id]["status"] = "qa"
             _set_heartbeat(pipeline_status="qa", build_status="ok", qa_gate_status="waiting")
             failed = _failed_checks(pr_url, head)
             if not failed:
-                return _finish(run_id, "completed", phase)
+                return _finish(run_id, "completed")
             if attempt > MAX_RETRIES:
-                return _finish(run_id, "blocked", phase, blocking_reason=f"{', '.join(failed)} still failing after {MAX_RETRIES} fix rounds")
-            phase = "build"
+                return _finish(run_id, "blocked", blocking_reason=f"{', '.join(failed)} still failing after {MAX_RETRIES} fix rounds")
             head = _build(run_id, attempt, _fix_prompt(task, _findings(head, failed), branch, run_id), branch, since=head)
     except AgentFailed as exc:
-        _finish(run_id, "failed", phase, exit_code=exc.code)
+        _finish(run_id, "failed", exit_code=exc.code)
     except subprocess.TimeoutExpired:
-        _finish(run_id, "timeout", phase)
+        _finish(run_id, "timeout")
     except Exception as exc:
         log.exception("Run %s failed with exception: %s", run_id, exc)
-        _finish(run_id, "error", phase, error=str(exc))
+        _finish(run_id, "error", error=str(exc))
 
 
 def _set_heartbeat(**fields: str) -> None:

@@ -63,6 +63,9 @@ def call_number(name):
 
 
 if args[:2] == ["pr", "create"]:
+    if os.environ.get("FAKE_GH_HANG"):
+        import time
+        time.sleep(5)
     (state / "branch").write_text(args[args.index("--head") + 1])
     (state / "pr-creates").open("a").write("x")
     print("https://example.invalid/pull/1")
@@ -296,3 +299,11 @@ def test_findings_cannot_forge_the_end_of_their_fence(adapter, monkeypatch):
     log = (root / ".factory-logs" / f"{run_id}.log").read_text()
     # The prompt has its own closing line. A second one would mean reviewer text forged an early end.
     assert "fence-ends=0" in log and "fence-ends=1" in log and "fence-ends=2" not in log
+
+
+def test_a_hung_git_or_gh_call_is_an_error_not_an_agent_timeout(adapter, monkeypatch):
+    module, _, client = adapter
+    monkeypatch.setattr(module, "COMMAND_TIMEOUT", 1)
+    monkeypatch.setenv("FAKE_GH_HANG", "1")
+    run = wait_done(client, trigger(client).json()["run_id"])
+    assert run["status"] == "error" and "timed out" in run["error"]
