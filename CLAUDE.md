@@ -9,7 +9,7 @@ Standalone — no code or state shared with `the-machine`.
 - **Claude Code only. No Cursor.** pstack and the thermo-nuclear skill come from
   Cursor's plugin repo; use them through Claude Code, not Cursor.
 - **Nothing merges without passing the QA gate** (`factory/qa/`).
-- **PR-only.** Agents never push directly to a base branch.
+- Agents may push directly to any branch, including `main`.
 - Secrets live in `.env` (never committed).
 
 ## Engineering Mode: pstack / poteto-mode
