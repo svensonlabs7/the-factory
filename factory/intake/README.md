@@ -13,7 +13,7 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 ## How it works
 
 1. A webhook POST arrives at `/trigger` with a `task` string.
-2. HMAC-SHA256 signature is verified against `FACTORY_WEBHOOK_SECRET`. The adapter refuses to start without it, because agents run with permission prompts off.
+2. The request must be signed, fresh and new: an HMAC-SHA256 over `<timestamp>.<body>` under `FACTORY_WEBHOOK_SECRET`, a timestamp within 5 minutes, and a signature not seen before. A replay returns 401, and the replay memory survives a restart. The adapter refuses to start without it, because agents run with permission prompts off.
 3. A `run_id` and `branch` name are generated, and the run waits its turn. Runs go one at a time.
 4. The adapter clones the repo into `../the-factory-runs/<run_id>` and checks out the branch.
 5. `factory/build/run_agent.py` starts a Docker container from the pinned OpenHands agent-server image. It mounts only that clone and runs Claude Code in it. The container holds no GitHub credentials.
@@ -48,18 +48,19 @@ export FACTORY_WEBHOOK_SECRET=$(openssl rand -hex 32)
 uv run --with fastapi --with uvicorn -- uvicorn factory.intake.webhook_adapter:app --port 7654
 ```
 
-Requests must carry an `X-Hub-Signature-256` header, or they get 401:
+Requests must carry `X-Factory-Timestamp` (Unix seconds) and `X-Hub-Signature-256` (the HMAC of `<timestamp>.<body>`), or they get 401. Sending the same signed request twice also gets 401:
 
 ```bash
 BODY='{"task": "Add a health-check endpoint to the intake service"}'
-SIG="sha256=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$FACTORY_WEBHOOK_SECRET" | awk '{print $NF}')"
+TS=$(date +%s)
+SIG="sha256=$(printf '%s.%s' "$TS" "$BODY" | openssl dgst -sha256 -hmac "$FACTORY_WEBHOOK_SECRET" | awk '{print $NF}')"
 curl -X POST http://localhost:7654/trigger \
-  -H "Content-Type: application/json" -H "X-Hub-Signature-256: $SIG" -d "$BODY"
+  -H "Content-Type: application/json" -H "X-Factory-Timestamp: $TS" -H "X-Hub-Signature-256: $SIG" -d "$BODY"
 ```
 
 ## Running under launchd
 
-`com.svenson.factory-intake.plist` runs the adapter on port 7654, listening on all interfaces (`0.0.0.0`) so external webhooks can reach it, and restarts it if it exits. It reads secrets from the repo's `.env`:
+`com.svenson.factory-intake.plist` runs the adapter on port 7654, listening on `127.0.0.1` only, and restarts it if it exits. An external sender such as Grok Bot reaches it through a tunnel that forwards to localhost. It reads secrets from the repo's `.env`:
 
 ```bash
 echo "FACTORY_WEBHOOK_SECRET=$(openssl rand -hex 32)" >> .env

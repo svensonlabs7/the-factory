@@ -18,7 +18,7 @@
         <string>uvicorn</string>
         <string>factory.intake.webhook_adapter:app</string>
         <string>--host</string>
-        <string>0.0.0.0</string>
+        <string>127.0.0.1</string>
         <string>--port</string>
         <string>7654</string>
         <string>--env-file</string>

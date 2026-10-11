@@ -1,6 +1,8 @@
 import hashlib
 import hmac
 import importlib
+import itertools
+import json
 import subprocess
 import sys
 import time
@@ -9,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 SECRET = "test-secret"
+TASK_NUMBER = itertools.count()
 GIT_ID = ["-c", "user.name=t", "-c", "user.email=t@example.com"]
 
 
@@ -16,9 +19,10 @@ def git(cwd, *args):
     return subprocess.run(["git", *GIT_ID, *args], cwd=cwd, check=True, capture_output=True, text=True).stdout.strip()
 
 
-def sign(body: bytes) -> dict:
-    digest = hmac.new(SECRET.encode(), body, hashlib.sha256).hexdigest()
-    return {"X-Hub-Signature-256": f"sha256={digest}"}
+def sign(body: bytes, timestamp=None) -> dict:
+    ts = str(int(time.time()) if timestamp is None else timestamp)
+    digest = hmac.new(SECRET.encode(), f"{ts}.".encode() + body, hashlib.sha256).hexdigest()
+    return {"X-Hub-Signature-256": f"sha256={digest}", "X-Factory-Timestamp": ts}
 
 
 FAKE_AGENT = """#!/bin/sh
@@ -136,9 +140,8 @@ def adapter(tmp_path, monkeypatch):
 
 
 def trigger(client, **payload):
-    import json
-
-    body = json.dumps({"task": "t", **payload}).encode()
+    # A fresh task each time: two identical requests in the same second are a replay.
+    body = json.dumps({"task": f"t{next(TASK_NUMBER)}", **payload}).encode()
     return client.post("/trigger", content=body, headers=sign(body))
 
 
@@ -355,3 +358,56 @@ def test_a_leftover_file_without_a_status_does_not_stop_the_service_starting(ada
 def test_status_of_an_unknown_run_is_404(adapter, run_id):
     _, _, client = adapter
     assert client.get(f"/status/{run_id}").status_code == 404
+
+
+BODY = b'{"task": "t"}'
+
+
+@pytest.mark.parametrize("age", [-299, 299])
+def test_a_request_inside_the_window_is_accepted(adapter, age):
+    _, _, client = adapter
+    assert client.post("/trigger", content=BODY, headers=sign(BODY, int(time.time()) - age)).status_code == 202
+
+
+@pytest.mark.parametrize("age", [-301, 301])
+def test_a_stale_or_future_request_is_rejected_even_when_validly_signed(adapter, age):
+    _, _, client = adapter
+    response = client.post("/trigger", content=BODY, headers=sign(BODY, int(time.time()) - age))
+    assert (response.status_code, response.json()["detail"]) == (401, "Stale request")
+
+
+def test_a_replayed_request_is_rejected(adapter):
+    _, _, client = adapter
+    headers = sign(BODY)
+    assert client.post("/trigger", content=BODY, headers=headers).status_code == 202
+    replay = client.post("/trigger", content=BODY, headers=headers)
+    assert (replay.status_code, replay.json()["detail"]) == (401, "Replayed request")
+
+
+def test_a_replay_is_still_rejected_after_a_restart(adapter):
+    module, root, client = adapter
+    headers = sign(BODY)
+    assert client.post("/trigger", content=BODY, headers=headers).status_code == 202
+    module.RUN_EXECUTOR.shutdown(wait=True)  # a real restart kills the old worker
+    _, restarted = restart(root)
+    assert restarted.post("/trigger", content=BODY, headers=headers).status_code == 401
+
+
+def test_the_timestamp_must_be_covered_by_the_signature(adapter):
+    _, _, client = adapter
+    old_scheme = hmac.new(SECRET.encode(), BODY, hashlib.sha256).hexdigest()
+    forged = {"X-Hub-Signature-256": f"sha256={old_scheme}", "X-Factory-Timestamp": str(int(time.time()))}
+    assert client.post("/trigger", content=BODY, headers=forged).status_code == 401
+    swapped = {**sign(BODY, int(time.time()) - 400), "X-Factory-Timestamp": str(int(time.time()))}
+    assert client.post("/trigger", content=BODY, headers=swapped).status_code == 401
+
+
+def test_a_validly_signed_junk_timestamp_is_a_401_not_a_crash(adapter):
+    _, _, client = adapter
+    assert client.post("/trigger", content=BODY, headers=sign(BODY, "soon")).status_code == 401
+
+
+def test_an_unsigned_request_leaves_no_replay_record(adapter):
+    module, _, client = adapter
+    client.post("/trigger", content=BODY, headers={"X-Hub-Signature-256": "sha256=bad", "X-Factory-Timestamp": str(int(time.time()))})
+    assert not module.REPLAY_DIR.exists() or not list(module.REPLAY_DIR.iterdir())
