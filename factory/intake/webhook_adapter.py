@@ -16,14 +16,14 @@ import json
 import logging
 import os
 import subprocess
-import threading
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -52,8 +52,8 @@ log = logging.getLogger("factory.intake")
 # ---------------------------------------------------------------------------
 
 runs: dict[str, dict] = {}
-# One run at a time: runs share one Claude plan quota and one origin.
-RUN_LOCK = threading.Lock()
+# One run at a time, in arrival order: runs share one Claude plan quota and one origin.
+RUN_EXECUTOR = ThreadPoolExecutor(max_workers=1)
 
 # ---------------------------------------------------------------------------
 # FastAPI app
@@ -126,53 +126,55 @@ def _worktree(run_id: str, branch: str):
     try:
         yield workdir
     finally:
-        # The branch keeps the committed work. Uncommitted files are only in the log.
-        _git("worktree", "remove", "--force", str(workdir))
+        # Cleanup is best-effort so it cannot overwrite the run's result. The branch keeps the committed work.
+        try:
+            _git("worktree", "remove", "--force", str(workdir))
+        except RuntimeError:
+            log.exception("Failed to remove worktree for run %s", run_id)
 
 
 def _run_claude(run_id: str, prompt: str, branch: str) -> None:
     log_file = LOG_DIR / f"{run_id}.log"
-    with RUN_LOCK:
-        runs[run_id]["status"] = "running"
-        runs[run_id]["started_at"] = time.time()
+    runs[run_id]["status"] = "running"
+    runs[run_id]["started_at"] = time.time()
 
-        _update_heartbeat(run_id, "RUNNING")
+    _update_heartbeat(run_id, "RUNNING")
 
-        log.info("Starting claude -p for run %s", run_id)
+    log.info("Starting claude -p for run %s", run_id)
 
-        try:
-            with _worktree(run_id, branch) as workdir, open(log_file, "w") as lf:
-                result = subprocess.run(
-                    [CLAUDE_BIN, "-p", "--dangerously-skip-permissions", prompt],
-                    stdout=lf,
-                    stderr=subprocess.STDOUT,
-                    cwd=str(workdir),
-                    timeout=1800,  # 30-minute cap
-                )
-            exit_code = result.returncode
-        except subprocess.TimeoutExpired:
-            log.error("Run %s timed out", run_id)
-            runs[run_id]["status"] = "timeout"
-            _update_heartbeat(run_id, "TIMEOUT")
-            return
-        except Exception as exc:
-            log.exception("Run %s failed with exception: %s", run_id, exc)
-            runs[run_id]["status"] = "error"
-            runs[run_id]["error"] = str(exc)
-            _update_heartbeat(run_id, "ERROR")
-            return
+    try:
+        with _worktree(run_id, branch) as workdir, open(log_file, "w") as lf:
+            result = subprocess.run(
+                [CLAUDE_BIN, "-p", "--dangerously-skip-permissions", prompt],
+                stdout=lf,
+                stderr=subprocess.STDOUT,
+                cwd=str(workdir),
+                timeout=1800,  # 30-minute cap
+            )
+        exit_code = result.returncode
+    except subprocess.TimeoutExpired:
+        log.error("Run %s timed out", run_id)
+        runs[run_id]["status"] = "timeout"
+        _update_heartbeat(run_id, "TIMEOUT")
+        return
+    except Exception as exc:
+        log.exception("Run %s failed with exception: %s", run_id, exc)
+        runs[run_id]["status"] = "error"
+        runs[run_id]["error"] = str(exc)
+        _update_heartbeat(run_id, "ERROR")
+        return
 
-        if exit_code == 0:
-            runs[run_id]["status"] = "completed"
-            _update_heartbeat(run_id, "COMPLETED")
-            log.info("Run %s completed successfully", run_id)
-        else:
-            runs[run_id]["status"] = "failed"
-            runs[run_id]["exit_code"] = exit_code
-            _update_heartbeat(run_id, "FAILED")
-            log.warning("Run %s failed (exit %d)", run_id, exit_code)
+    if exit_code == 0:
+        runs[run_id]["status"] = "completed"
+        _update_heartbeat(run_id, "COMPLETED")
+        log.info("Run %s completed successfully", run_id)
+    else:
+        runs[run_id]["status"] = "failed"
+        runs[run_id]["exit_code"] = exit_code
+        _update_heartbeat(run_id, "FAILED")
+        log.warning("Run %s failed (exit %d)", run_id, exit_code)
 
-        runs[run_id]["finished_at"] = time.time()
+    runs[run_id]["finished_at"] = time.time()
 
 
 def _update_heartbeat(run_id: str, status: str) -> None:
@@ -189,7 +191,7 @@ def _update_heartbeat(run_id: str, status: str) -> None:
 # ---------------------------------------------------------------------------
 
 @app.post("/trigger", status_code=202)
-async def trigger(request: Request, background_tasks: BackgroundTasks):
+async def trigger(request: Request):
     body = await request.body()
 
     sig = request.headers.get("X-Hub-Signature-256", "")
@@ -215,7 +217,7 @@ async def trigger(request: Request, background_tasks: BackgroundTasks):
     }
 
     log.info("Queued run %s: branch=%s", run_id, branch)
-    background_tasks.add_task(_run_claude, run_id, prompt, branch)
+    RUN_EXECUTOR.submit(_run_claude, run_id, prompt, branch)
 
     return JSONResponse(
         status_code=202,
