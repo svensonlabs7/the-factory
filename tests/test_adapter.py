@@ -659,3 +659,16 @@ def test_an_empty_previous_secret_is_not_an_hmac_key(previous, adapter):
 def test_a_third_secret_is_rejected_while_both_are_configured(previous, adapter):
     _, _, client = adapter
     assert post_signed_with(client, "unrelated-secret").status_code == 401
+
+def test_the_heartbeat_is_updated_before_a_run_shows_as_finished(adapter, monkeypatch):
+    module, root, _ = adapter
+    seen = []
+    original = module._update
+    def spy(run_id, /, **fields):
+        if fields.get("status") == "blocked":
+            seen.append(re.search(r"\| \*\*pipeline_status\*\* \| (.*?) \|", (root / "HEARTBEAT.md").read_text())[1])
+        return original(run_id, **fields)
+    monkeypatch.setattr(module, "_update", spy)
+    module._update("abc12345", status="qa")
+    module._finish("abc12345", "blocked", blocking_reason="x")
+    assert seen == ["blocked"]

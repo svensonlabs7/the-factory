@@ -294,7 +294,6 @@ def _fix_prompt(task: str, findings: str, branch: str, run_id: str) -> str:
 
 def _finish(run_id: str, status: str, **fields) -> None:
     build_status = "ok" if _load(run_id)["status"] == "qa" else status  # a run that reached QA had built fine
-    _update(run_id, status=status, finished_at=time.time(), **fields)
     pipeline, qa_gate = OUTCOMES[status]
     heartbeat = dict(
         pipeline_status=pipeline,
@@ -306,6 +305,7 @@ def _finish(run_id: str, status: str, **fields) -> None:
     if pr_url and status != "completed":
         heartbeat["last_pr_blocked"] = pr_url
     _set_heartbeat(**heartbeat)
+    _update(run_id, status=status, finished_at=time.time(), **fields)  # last, so a poller that sees the final status sees the heartbeat too
     log.info("Run %s %s", run_id, status)
 
 
