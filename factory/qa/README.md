@@ -1,8 +1,10 @@
 # QA Gate — Thermo-Nuclear + Ponytail
 
-**Status: stub**
+**Status: thermo-nuclear wired** (`.github/workflows/qa-gate.yml`)
 
-Every PR passes this gate before merge.
+Every PR passes this gate before merge. The `qa-gate / thermo-nuclear` check runs
+on each PR to `main` and fails unless the review ends with `PASS`. It needs the
+`CLAUDE_CODE_OAUTH_TOKEN` repo secret (from `claude setup-token`, billed to the Claude plan).
 
 1. **Thermo-Nuclear review**: `.claude/skills/thermo-nuclear-code-quality-review/SKILL.md`.
    Strict maintainability review. Its approval bar decides pass or fail.
@@ -21,7 +23,9 @@ Every PR passes this gate before merge.
 
 ## To decide
 
-- [ ] Trigger: GitHub Action on PR, or a step in the build pipeline
-- [ ] Output: PR review comments plus a pass/fail status check
+- [x] Trigger: GitHub Action on PR
+- [ ] Output: pass/fail status check done (review in the job summary); PR comments not yet
+- [ ] Enforcement: make `qa-gate / thermo-nuclear` a required check on `main`
+  (needs GitHub Pro or a public repo)
 - [ ] Failure loop: send findings back to Build, cap the retries, then escalate to a human
 - [ ] Order relative to CI
