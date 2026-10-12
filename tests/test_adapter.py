@@ -585,6 +585,15 @@ def test_a_burst_is_written_once_and_clears_when_it_ends(adapter, monkeypatch):
     assert incidents(root) == "none"
 
 
+def test_heartbeat_endpoint_matches_the_table_and_follows_an_update(adapter):
+    module, root, client = adapter
+    table = dict(re.findall(r"\| \*\*(\w+)\*\* \| (.*?) \|", (root / "HEARTBEAT.md").read_text()))
+    assert client.get("/heartbeat").json() == table
+
+    module._set_heartbeat(pipeline_status="running")
+    assert client.get("/heartbeat").json()["pipeline_status"] == "running"
+
+
 def test_heartbeat_is_not_rewritten_while_the_flag_is_unchanged(adapter, monkeypatch):
     module, _, client = adapter
     writes = []

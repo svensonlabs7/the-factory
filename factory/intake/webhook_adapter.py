@@ -479,6 +479,15 @@ async def health():
     return {"status": "ok"}
 
 
+@app.get("/heartbeat")
+async def heartbeat():
+    """HEARTBEAT.md's status table as JSON, field name to current value. Grok Bot polls this to watch factory
+    health. Reads under the same lock _set_heartbeat writes under, so no reader sees a half-written table."""
+    with HEARTBEAT_LOCK:
+        text = HEARTBEAT_FILE.read_text()
+    return dict(re.findall(r"\| \*\*(\w+)\*\* \| (.*?) \|", text))
+
+
 def _recover() -> None:
     """A restart kills the worker thread, so any run still in flight can never finish. Close it out."""
     for meta in LOG_DIR.glob("*.meta.json"):
