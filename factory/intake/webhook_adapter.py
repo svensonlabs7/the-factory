@@ -25,7 +25,7 @@ import time
 import uuid
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from typing import Optional
 
@@ -70,7 +70,11 @@ REJECTION_LOG_MAX = 5_000_000  # bytes; past this rejected.jsonl stops growing, 
 # Each run gets its own clone here, under the home directory because the Docker VM mounts only that.
 RUNS_DIR = FACTORY_ROOT.parent / "the-factory-runs"
 HEARTBEAT_FILE = FACTORY_ROOT / "HEARTBEAT.md"
+ALIVE_INTERVAL = 60  # seconds between alive_at stamps, so the-machine can tell idle from dead
 REPLAY_DIR.mkdir(parents=True, exist_ok=True)
+# HEARTBEAT.md is untracked (the adapter rewrites it constantly), so a fresh checkout starts from the template.
+if not HEARTBEAT_FILE.exists():
+    shutil.copy(FACTORY_ROOT / "HEARTBEAT.template.md", HEARTBEAT_FILE)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("factory.intake")
@@ -101,8 +105,23 @@ RUN_EXECUTOR = ThreadPoolExecutor(max_workers=1)
 # FastAPI app
 # ---------------------------------------------------------------------------
 
+def _stamp_alive(stop: threading.Event) -> None:
+    while True:
+        _set_heartbeat(alive_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+        if stop.wait(ALIVE_INTERVAL):
+            return
+
+
+@asynccontextmanager
+async def _lifespan(_app):
+    stop = threading.Event()
+    threading.Thread(target=_stamp_alive, args=(stop,), daemon=True).start()
+    yield
+    stop.set()
+
+
 # No schema means no /docs, /redoc or /openapi.json: FastAPI serves the first two only on top of the third.
-app = FastAPI(title="Factory Intake", version="1.0.0", openapi_url=None)
+app = FastAPI(title="Factory Intake", version="1.0.0", openapi_url=None, lifespan=_lifespan)
 
 
 # ---------------------------------------------------------------------------

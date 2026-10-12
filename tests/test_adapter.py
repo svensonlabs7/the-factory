@@ -110,6 +110,7 @@ HEARTBEAT = """| Field | Value |
 | **last_pr_blocked** | — |
 | **blocking_reason** | — |
 | **open_incidents** | none |
+| **alive_at** | — |
 """
 
 
@@ -679,3 +680,27 @@ def test_a_requested_branch_must_be_under_factory(idle_queue, branch, code):
     module, client = idle_queue
     body = json.dumps({"task": "t", "branch": branch}).encode()
     assert client.post("/trigger", content=body, headers=sign(body)).status_code == code
+
+def test_a_fresh_checkout_gets_its_heartbeat_from_the_template(tmp_path, monkeypatch):
+    root = tmp_path / "factory"
+    root.mkdir()
+    (root / "HEARTBEAT.template.md").write_text(HEARTBEAT)
+    monkeypatch.setenv("FACTORY_WEBHOOK_SECRET", SECRET)
+    monkeypatch.setenv("FACTORY_ROOT", str(root))
+    sys.modules.pop("factory.intake.webhook_adapter", None)
+    importlib.import_module("factory.intake.webhook_adapter")
+    assert (root / "HEARTBEAT.md").read_text() == HEARTBEAT
+
+
+def test_alive_at_is_stamped_while_the_service_runs_and_stops_after(adapter, monkeypatch):
+    module, root, _ = adapter
+    monkeypatch.setattr(module, "ALIVE_INTERVAL", 0.05)
+    alive = lambda: re.search(r"\| \*\*alive_at\*\* \| (.*?) \|", (root / "HEARTBEAT.md").read_text())[1]
+    with TestClient(module.app):
+        deadline = time.time() + 3
+        while alive() == "—" and time.time() < deadline:
+            time.sleep(0.02)
+        assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", alive())
+    (root / "HEARTBEAT.md").write_text(HEARTBEAT)
+    time.sleep(0.2)
+    assert alive() == "—"  # the stamping thread ended with the service

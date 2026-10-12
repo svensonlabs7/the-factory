@@ -67,7 +67,9 @@ pstack was written for Cursor. Read its Cursor-only terms this way in Claude Cod
 
 ## Health: HEARTBEAT.md
 `HEARTBEAT.md` tracks pipeline status (last run, QA gate result, open incidents).
-Updated in place by the intake adapter as each run progresses; polled by `the-machine` for cross-system health.
+The intake adapter creates it from `HEARTBEAT.template.md` (it is untracked), updates it in place as each run
+progresses, and stamps `alive_at` every minute so a watcher can tell idle from dead. Grok Bot is the intended
+watcher; that link is not wired yet.
 
 ## Pipeline
 Intake (Grok Bot) → Planning (`/poteto-mode` orchestrate) → Build (OpenHands +
