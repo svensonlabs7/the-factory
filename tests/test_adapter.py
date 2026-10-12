@@ -428,11 +428,12 @@ def test_prune_keeps_a_run_finished_within_the_retention_window(adapter):
 
 
 @pytest.mark.parametrize("status", ["queued", "running", "qa"])
-def test_prune_never_touches_an_in_flight_run_no_matter_its_age(adapter, status):
+def test_an_old_in_flight_run_is_closed_out_on_restart_and_kept(adapter, status):
     module, root, _ = adapter
     meta, log = seed_finished_run(module, "live1234", status, mtime_age=module.RUN_RETENTION_DAYS * 86400 + 3600)
-    restart(root)
+    restarted, _ = restart(root)
     assert meta.exists() and log.exists()
+    assert restarted._load("live1234")["status"] == "error"
 
 
 def test_prune_judges_age_by_mtime_when_finished_at_is_missing(adapter):
