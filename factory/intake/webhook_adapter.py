@@ -67,6 +67,8 @@ REPLAY_DIR = LOG_DIR / "replay"
 REJECTION_WINDOW = 3600  # seconds of rejections counted ...
 REJECTION_BURST = 20  # ... and how many of them raise an open incident in HEARTBEAT.md
 REJECTION_LOG_MAX = 5_000_000  # bytes; past this rejected.jsonl stops growing, so a flood cannot fill the disk
+RUN_RETENTION_DAYS = 30  # at startup, a finished run's .meta.json and .log are pruned once older than this
+IN_FLIGHT = ("queued", "running", "qa")
 # Each run gets its own clone here, under the home directory because the Docker VM mounts only that.
 RUNS_DIR = FACTORY_ROOT.parent / "the-factory-runs"
 HEARTBEAT_FILE = FACTORY_ROOT / "HEARTBEAT.md"
@@ -173,7 +175,7 @@ def _check_capacity() -> None:
     """Refuse a new run when too many are in flight or too many arrived today. Run from the event loop with no
     await before the new run is written, so two requests cannot both see room for one."""
     runs = [json.loads(meta.read_text()) for meta in LOG_DIR.glob("*.meta.json")]
-    pending = sum(run.get("status") in ("queued", "running", "qa") for run in runs)
+    pending = sum(run.get("status") in IN_FLIGHT for run in runs)
     today = sum(run.get("queued_at", 0) > time.time() - 86400 for run in runs)
     if pending >= MAX_PENDING or today >= MAX_RUNS_PER_DAY:
         raise HTTPException(status_code=429, detail="Too many runs")
@@ -495,11 +497,18 @@ async def heartbeat():
 
 
 def _recover() -> None:
-    """A restart kills the worker thread, so any run still in flight can never finish. Close it out."""
+    """A restart kills the worker thread, so close out any run still in flight, and prune finished runs older than
+    RUN_RETENTION_DAYS (by finished_at, else the file's mtime). The glob matches only "<run_id>.meta.json" directly
+    under LOG_DIR, so rejected.jsonl, the replay dir and the archive are untouched."""
+    cutoff = time.time() - RUN_RETENTION_DAYS * 86400
     for meta in LOG_DIR.glob("*.meta.json"):
         run_id = meta.name.removesuffix(".meta.json")
-        if _load(run_id).get("status") in ("queued", "running", "qa"):
+        run = _load(run_id)
+        if run.get("status") in IN_FLIGHT:
             _finish(run_id, "error", error="the service restarted during the run")
+        elif run.get("finished_at", meta.stat().st_mtime) < cutoff:
+            meta.unlink(missing_ok=True)
+            (LOG_DIR / f"{run_id}.log").unlink(missing_ok=True)
 
 
 _recover()

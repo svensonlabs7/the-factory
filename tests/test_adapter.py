@@ -3,6 +3,7 @@ import hmac
 import importlib
 import itertools
 import json
+import os
 import re
 import subprocess
 import sys
@@ -394,6 +395,65 @@ def test_a_leftover_file_without_a_status_does_not_stop_the_service_starting(ada
     module, root, _ = adapter
     (root / ".factory-logs" / "cafef00d.meta.json").write_text("{}")
     restart(root)
+
+
+def seed_finished_run(module, run_id, status, finished_age=None, mtime_age=None):
+    """A completed run's meta and log file. `finished_age` sets finished_at; `mtime_age` backdates both files'
+    mtime, for runs (or leftover files) that carry no finished_at of their own."""
+    fields = dict(run_id=run_id, status=status)
+    if finished_age is not None:
+        fields["finished_at"] = time.time() - finished_age
+    module._update(run_id, **fields)
+    log = module.LOG_DIR / f"{run_id}.log"
+    log.write_text("log")
+    if mtime_age is not None:
+        mtime = time.time() - mtime_age
+        os.utime(module._meta(run_id), (mtime, mtime))
+        os.utime(log, (mtime, mtime))
+    return module._meta(run_id), log
+
+
+def test_prune_deletes_a_run_finished_more_than_the_retention_window_ago(adapter):
+    module, root, _ = adapter
+    meta, log = seed_finished_run(module, "old12345", "completed", finished_age=module.RUN_RETENTION_DAYS * 86400 + 3600)
+    restart(root)
+    assert not meta.exists() and not log.exists()
+
+
+def test_prune_keeps_a_run_finished_within_the_retention_window(adapter):
+    module, root, _ = adapter
+    meta, log = seed_finished_run(module, "new12345", "completed", finished_age=module.RUN_RETENTION_DAYS * 86400 - 3600)
+    restart(root)
+    assert meta.exists() and log.exists()
+
+
+@pytest.mark.parametrize("status", ["queued", "running", "qa"])
+def test_an_old_in_flight_run_is_closed_out_on_restart_and_kept(adapter, status):
+    module, root, _ = adapter
+    meta, log = seed_finished_run(module, "live1234", status, mtime_age=module.RUN_RETENTION_DAYS * 86400 + 3600)
+    restarted, _ = restart(root)
+    assert meta.exists() and log.exists()
+    assert restarted._load("live1234")["status"] == "error"
+
+
+def test_prune_judges_age_by_mtime_when_finished_at_is_missing(adapter):
+    module, root, _ = adapter
+    meta, log = seed_finished_run(module, "nofin123", "completed", mtime_age=module.RUN_RETENTION_DAYS * 86400 + 3600)
+    restart(root)
+    assert not meta.exists() and not log.exists()
+
+
+def test_prune_never_touches_rejected_jsonl_or_the_replay_dir(adapter):
+    module, root, _ = adapter
+    old = time.time() - (module.RUN_RETENTION_DAYS * 86400 + 3600)
+    rejected = module.LOG_DIR / "rejected.jsonl"
+    rejected.write_text('{"reason": "x"}\n')
+    os.utime(rejected, (old, old))
+    replay_file = module.REPLAY_DIR / "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+    replay_file.touch()
+    os.utime(replay_file, (old, old))
+    restart(root)
+    assert rejected.exists() and replay_file.exists()
 
 
 @pytest.mark.parametrize("run_id", ["unknown1", "../etc/passwd"])
