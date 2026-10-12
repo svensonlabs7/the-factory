@@ -1,7 +1,7 @@
 # Factory Heartbeat
 
 Status snapshot for the autonomous factory pipeline. Updated by the intake adapter as each run progresses.
-Reports are forwarded to `the-machine` for cross-system health tracking.
+Grok Bot is the intended watcher.
 
 ---
 
@@ -10,6 +10,7 @@ Reports are forwarded to `the-machine` for cross-system health tracking.
 | Field | Value |
 |---|---|
 | **last_run** | — |
+| **alive_at** | — |
 | **pipeline_status** | idle |
 | **intake_queue_depth** | 0 |
 | **build_status** | — |
@@ -25,7 +26,7 @@ Reports are forwarded to `the-machine` for cross-system health tracking.
 
 This file is the factory's health signal. As a run progresses the intake adapter updates the status fields above in place.
 
-**Cross-system reporting:** the-machine polls this file to track factory health. Do not rename or move it. If the pipeline is broken and cannot write here, report the incident directly to the-machine operator.
+**Cross-system reporting:** Grok Bot is meant to watch this status (not wired yet). `alive_at` is rewritten every minute while the adapter runs, so a stale value means the factory is down, not idle. Do not rename or move it. If the pipeline is broken and cannot write here, report the incident directly to the operator.
 
 ---
 
