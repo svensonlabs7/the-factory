@@ -393,7 +393,9 @@ def _set_heartbeat(**fields: str) -> None:
                 text, count = re.subn(rf"(\| \*\*{name}\*\* \| ).*?( \|)", lambda m: f"{m[1]}{value}{m[2]}", text, count=1)
                 if not count:
                     log.warning("HEARTBEAT.md has no %s row", name)
-            HEARTBEAT_FILE.write_text(text)
+            tmp = HEARTBEAT_FILE.with_suffix(".tmp")
+            tmp.write_text(text)
+            tmp.replace(HEARTBEAT_FILE)  # atomic, so a concurrent reader never sees a half-written file
     except Exception:
         log.exception("Failed to update HEARTBEAT.md")
 
