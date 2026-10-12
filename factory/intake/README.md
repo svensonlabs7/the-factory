@@ -8,6 +8,7 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 |--------|------|-------------|
 | `POST` | `/trigger` | Queue a new factory run |
 | `GET` | `/status/:run_id` | Poll run state |
+| `GET` | `/heartbeat` | `HEARTBEAT.md`'s status table as JSON, field name to current value |
 | `GET` | `/health` | Liveness check |
 
 ## How it works
@@ -21,7 +22,7 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 7. The adapter fetches the branch into the main checkout, pushes it and opens the PR with `gh`. It runs git only in the main checkout, because git run in the agent's clone would execute hooks and config the agent wrote there. The one touch is a fetch that reads objects from the clone.
 8. The run waits for the required checks on the PR (status `qa`). If they all pass, it is `completed`.
 9. If a check fails, a fresh builder in a new container gets the reviewers' findings and the branch, and pushes a fix. This repeats up to twice. If the PR is still blocked, the run is `blocked` and HEARTBEAT.md says why.
-10. `HEARTBEAT.md`'s status table (untracked, created from `HEARTBEAT.template.md`, with `alive_at` stamped every minute) is updated at each stage, and logs land in `.factory-logs/<run_id>.log`, one section per attempt.
+10. `HEARTBEAT.md`'s status table (untracked, created from `HEARTBEAT.template.md`, with `alive_at` stamped every minute) is updated at each stage, and logs land in `.factory-logs/<run_id>.log`, one section per attempt. `/heartbeat` serves that table as JSON, but the tunnel (`infra/cloudflare-tunnel/`) does not route it yet, so Grok Bot cannot reach it from outside the host until that is wired.
 
 ## Rejected requests
 
