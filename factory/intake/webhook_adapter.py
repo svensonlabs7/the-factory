@@ -358,7 +358,7 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
     try:
         head = _build(run_id, 0, prompt, branch, since="origin/main")
         body = f"Factory build {run_id}\n\nTask: {task[:200]}"
-        title = task.splitlines()[0][:72]
+        title = next((line.strip() for line in task.splitlines() if line.strip()), branch)[:72]
         pr_url = _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", title, "--body", body)
         _update(run_id, pr_url=pr_url)
         # Each pass waits on the checks for `head`. The last pass only decides, because no fix rounds are left.

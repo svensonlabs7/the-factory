@@ -220,6 +220,22 @@ def test_the_pr_title_is_the_first_line_of_the_task_trimmed_to_72_chars(adapter)
     assert (root.parent / "gh-state" / "title").read_text() == first_line[:72]
 
 
+def test_a_leading_blank_line_does_not_crash_the_run(adapter):
+    _, root, client = adapter
+    run_id = trigger(client, task="\nthe real task title").json()["run_id"]
+    run = wait_done(client, run_id)
+    assert run["status"] == "completed"
+    assert (root.parent / "gh-state" / "title").read_text() == "the real task title"
+
+
+def test_a_whitespace_only_task_falls_back_to_the_branch_name(adapter):
+    _, root, client = adapter
+    run_id = trigger(client, task="   \n\t\n  ").json()["run_id"]
+    run = wait_done(client, run_id)
+    assert run["status"] == "completed"
+    assert (root.parent / "gh-state" / "title").read_text() == f"factory/{run_id}"
+
+
 def test_hooks_the_agent_plants_never_run_on_the_host(adapter, tmp_path, monkeypatch):
     _, _, client = adapter
     marker = tmp_path / "hook-ran"
