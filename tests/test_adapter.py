@@ -672,3 +672,10 @@ def test_the_heartbeat_is_updated_before_a_run_shows_as_finished(adapter, monkey
     module._update("abc12345", status="qa")
     module._finish("abc12345", "blocked", blocking_reason="x")
     assert seen == ["blocked"]
+
+
+@pytest.mark.parametrize("branch, code", [("main", 422), ("feature/x", 422), ("factory/", 422), ("factory/-x", 422), ("factory/fix-login", 202)])
+def test_a_requested_branch_must_be_under_factory(idle_queue, branch, code):
+    module, client = idle_queue
+    body = json.dumps({"task": "t", "branch": branch}).encode()
+    assert client.post("/trigger", content=body, headers=sign(body)).status_code == code
