@@ -81,6 +81,8 @@ header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content:
 #runs li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
 #runs li:first-child { border-top: 0; }
 .pick { all: unset; cursor: pointer; display: block; min-height: 24px; border-radius: 3px; }
+.pick:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }  /* all: unset wiped the global one */
+.pick[aria-pressed="true"] b { color: var(--accent); }
 .pick b { font-family: var(--mono); margin-right: 8px; }
 .meta { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-self: end; font: 13px var(--mono); }
 .reason { grid-column: 1 / -1; margin: 0; color: var(--bad); font-weight: 600; overflow-wrap: anywhere; }
@@ -110,7 +112,7 @@ header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content:
       <ul class="legend" id="legend" aria-label="Legend"></ul>
       <p class="counter" id="counter">—</p>
     </div>
-    <aside id="detail" aria-live="polite"><h2>[ selected run ]</h2><p class="muted">Loading…</p></aside>
+    <aside id="detail"><h2>[ selected run ]</h2><p class="muted">Loading…</p></aside>
   </section>
 
   <div class="lower">
@@ -260,7 +262,7 @@ function renderRuns() {
   const items = data.runs.slice(0, LIST_SIZE).map(run => {
     const key = stageOf(run), reason = run.blocking_reason || run.error;
     const li = el("li", { className: run.run_id === selected ? "selected" : "" },
-      el("button", { className: "pick", type: "button", onclick: () => select(run.run_id) }, el("b", { textContent: run.run_id }), run.task),
+      el("button", { className: "pick", type: "button", ariaPressed: String(run.run_id === selected), onclick: () => select(run.run_id) }, el("b", { textContent: run.run_id }), run.task),
       el("div", { className: "meta" },
         chip(stageLabel(run), key === "blocked" || key === "failed" ? "bad" : key === "merged" ? "ok" : ""),
         el("span", { textContent: "fix " + (run.attempt || 0), title: "fix rounds" }),
