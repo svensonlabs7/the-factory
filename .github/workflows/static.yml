@@ -1,0 +1,32 @@
+name: static
+
+# Deterministic checks: they cost no Claude quota and cannot be argued with. Neither job runs the PR's code.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install ruff==0.17.0 mypy==2.4.0 fastapi pydantic
+      # Errors only (undefined names, unused imports, syntax): style findings would block work for nothing.
+      - run: ruff check --isolated --select F,E9 factory tests
+      - run: mypy --ignore-missing-imports factory/intake/webhook_adapter.py
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks 8.30.1 (checksum pinned)
+        run: |
+          curl -sSL -o gitleaks.tgz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tgz" | sha256sum -c -
+          tar -xzf gitleaks.tgz gitleaks
+      # The whole history, so a secret added and then deleted in the same PR is still caught.
+      - run: ./gitleaks git --no-banner --redact .
