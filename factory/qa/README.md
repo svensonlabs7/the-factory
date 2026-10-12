@@ -32,5 +32,6 @@ Fork PRs fail the check.
 - [x] Output: pass/fail status check, review in the job summary
 - [ ] Output: PR review comments
 - [x] Enforcement: `thermo-nuclear`, `ponytail-review`, `ux-laws` and `tests` are required checks on `main` (branch protection)
+- [x] Deterministic lanes (`.github/workflows/static.yml`): `lint` (ruff errors only, mypy on the adapter) and `secrets` (gitleaks over the whole history). No Claude quota.
 - [x] Failure loop: the adapter sends findings to a fresh builder, up to 2 fix rounds, then marks the run blocked in `HEARTBEAT.md` for a human
 - [ ] Order relative to CI
