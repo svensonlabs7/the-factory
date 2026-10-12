@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Factory Command</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #f3f2ee; --panel: #ffffff; --ink: #17171a; --muted: #66666c; --line: #e4e2dc; --faint: #e9e7e1;
+  --queued: #b4b2ab; --accent: #2a55d9; --ok: #1d7347; --bad: #b8321c; --on-bad: #ffffff;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111113; --panel: #1b1b1e; --ink: #ececea; --muted: #a0a0a6; --line: #2d2d31; --faint: #26262a;
+    --queued: #5c5c62; --accent: #7d9cff; --ok: #5fc48e; --bad: #ff7a63; --on-bad: #1b1b1e;
+    color-scheme: dark;  /* scrollbars and controls follow the theme */
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 var(--sans); }
+main { max-width: 1160px; margin: 0 auto; padding: 20px 16px 40px; display: grid; gap: 16px; }
+h1 { font: 600 20px/1.2 var(--mono); margin: 0; }
+h2, .caption { font: 400 12px/1.3 var(--mono); color: var(--muted); text-transform: lowercase; letter-spacing: .04em; margin: 0 0 12px; }
+a { color: var(--accent); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; min-width: 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.muted { color: var(--muted); }
+
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+#strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 0; }
+#strip div { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+#strip dt { font: 12px var(--mono); color: var(--muted); }
+#strip dd { margin: 2px 0 0; font: 600 18px var(--mono); }
+#strip .down { background: var(--bad); border-color: var(--bad); color: var(--on-bad); }
+#strip .down dt { color: inherit; }
+#banner { background: var(--bad); color: var(--on-bad); border-radius: 6px; padding: 10px 14px; font-weight: 600; }
+
+.fig { display: grid; gap: 16px; }
+@media (min-width: 1000px) { .fig { grid-template-columns: minmax(0, 1fr) 300px; } }
+.scroller { overflow-x: auto; padding: 4px 0 8px; }
+.week { display: grid; gap: 4px; width: max-content; }
+.day { display: flex; gap: 4px; align-items: center; }
+.day > span:first-child { position: sticky; left: 0; z-index: 1; width: 76px; flex: none; background: var(--panel); font: 12px var(--mono); color: var(--muted); }
+.cell { width: 20px; height: 20px; flex: none; border-radius: 3px; padding: 0; border: 2px solid transparent; background: none; color: var(--panel);
+  font: 600 13px/16px var(--mono); text-align: center; cursor: pointer; }
+.cell.empty { border: 1px dashed var(--line); cursor: default; }
+.cell.queued { background: var(--queued); }
+.cell.building { background: var(--ink); }
+.cell.fixing { background: linear-gradient(135deg, var(--ink) 50%, transparent 50%); border-color: var(--ink); }
+.cell.qa { border-color: var(--ink); background: repeating-linear-gradient(45deg, var(--ink) 0 2px, transparent 2px 5px); }
+.cell.passed { border-color: var(--ink); }
+.cell.merged { border-color: var(--ok); background: radial-gradient(var(--ok) 0 3px, transparent 3.5px); }
+.cell.blocked, .cell.failed { background: var(--bad); }
+.cell[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--accent); }
+@media (prefers-reduced-motion: no-preference) {
+  .cell.building, .cell.fixing { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .55; } }
+}
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 0; padding: 0; list-style: none; font-size: 13px; }
+.legend li { display: flex; gap: 6px; align-items: center; }
+.legend .cell { cursor: default; }
+.counter { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font: 600 13px var(--mono); letter-spacing: .06em; }
+
+#detail dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 12px 0 0; font-size: 14px; }
+#detail dt { color: var(--muted); font: 12px/20px var(--mono); }
+#detail dd { margin: 0; overflow-wrap: anywhere; }
+.task { font-size: 15px; overflow-wrap: anywhere; margin: 0; }
+
+.chip { display: inline-block; font: 12px/20px var(--mono); padding: 0 6px; border: 1px solid var(--line); border-radius: 4px; white-space: nowrap; }
+.chip.bad { border-color: var(--bad); color: var(--bad); font-weight: 600; }
+.chip.ok { color: var(--ok); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+
+#runs ol { list-style: none; margin: 0; padding: 0; }
+#runs li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+#runs li:first-child { border-top: 0; }
+.pick { all: unset; cursor: pointer; display: block; min-height: 24px; border-radius: 3px; }
+.pick:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }  /* all: unset wiped the global one */
+.pick[aria-pressed="true"] b { color: var(--accent); }
+.pick b { font-family: var(--mono); margin-right: 8px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-self: end; font: 13px var(--mono); }
+.reason { grid-column: 1 / -1; margin: 0; color: var(--bad); font-weight: 600; overflow-wrap: anywhere; }
+#runs li .chips { grid-column: 1 / -1; }
+#runs li.selected { background: linear-gradient(90deg, var(--faint), transparent); }
+
+.side { display: grid; gap: 16px; }
+@media (min-width: 1000px) { .lower { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; } }
+.rows { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; font-size: 14px; }
+.rows dd { margin: 0; font: 600 14px var(--mono); text-align: right; }
+@media (max-width: 999px) { .lower { display: grid; gap: 16px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Factory Command</h1>
+    <span class="caption" id="updated" aria-live="polite">[ loading ]</span>
+  </header>
+  <div id="banner" role="alert" hidden>Can't reach the factory. Retrying every 15 seconds; the figures below are from the last good update.</div>
+  <dl id="strip" aria-label="Factory status"></dl>
+
+  <section class="panel fig" aria-labelledby="fig-title">
+    <div style="min-width:0">
+      <h2 id="fig-title">[ fig. 1 — the week: one row per day, one square per daily run slot ]</h2>
+      <div class="scroller" tabindex="0" aria-label="Run slots for the last 7 days, scrolls sideways"><div class="week" id="week"></div></div>
+      <ul class="legend" id="legend" aria-label="Legend"></ul>
+      <p class="counter" id="counter">—</p>
+    </div>
+    <aside id="detail"><h2>[ selected run ]</h2><p class="muted">Loading…</p></aside>
+  </section>
+
+  <div class="lower">
+    <section class="panel" id="runs" aria-labelledby="runs-title"><h2 id="runs-title">[ latest runs ]</h2><p class="muted">Loading…</p></section>
+    <div class="side">
+      <section class="panel" id="rejected" aria-labelledby="rej-title"><h2 id="rej-title">[ rejected in 24 h ]</h2></section>
+      <section class="panel" id="limits" aria-labelledby="lim-title"><h2 id="lim-title">[ limits ]</h2></section>
+    </div>
+  </div>
+</main>
+<script>
+"use strict";
+const REFRESH_MS = 15000, STALE_S = 180, LIST_SIZE = 12;
+const LANES = ["thermo-nuclear", "ponytail-review", "ux-laws", "tests", "lint", "secrets"];
+const RESULT = { pass: ["ok", "✓", "passed"], fail: ["bad", "×", "failed"], pending: ["", "…", "pending"] };
+const STAGES = {
+  queued: { label: "queued" },
+  building: { label: "building" },
+  fixing: { label: "fixing" },
+  qa: { label: "in QA" },
+  passed: { label: "passed gate" },
+  merged: { label: "merged" },
+  blocked: { label: "blocked", mark: "!" },
+  failed: { label: "failed", mark: "×" },
+};
+let data = null, fetchedAt = 0, selected = null;
+
+function el(tag, props, ...children) {
+  const node = Object.assign(document.createElement(tag), props);
+  for (const child of children) if (child != null) node.append(child);
+  return node;
+}
+function stageOf(run) {
+  if (run.status === "running") return run.attempt >= 1 ? "fixing" : "building";
+  if (run.status === "completed") return run.pr && run.pr.state === "MERGED" ? "merged" : "passed";
+  return run.status === "queued" || run.status === "qa" || run.status === "blocked" ? run.status : "failed";
+}
+function stageLabel(run) {
+  const key = stageOf(run);
+  if (key === "failed") return run.status || "unknown";
+  if (key === "passed" && run.pr && run.pr.state === "CLOSED") return "PR closed";
+  return STAGES[key].label;
+}
+function nowS() { return data.now + (Date.now() - fetchedAt) / 1000; }
+function ago(seconds) {
+  seconds = Math.max(0, Math.round(seconds));
+  if (seconds < 60) return seconds + "s ago";
+  if (seconds < 3600) return Math.floor(seconds / 60) + " min ago";
+  return Math.floor(seconds / 3600) + " h " + Math.floor(seconds % 3600 / 60) + " min ago";
+}
+function duration(run) {
+  const start = run.started_at || run.queued_at;
+  if (!start) return "—";
+  const s = Math.round((run.finished_at || nowS()) - start);
+  return s < 60 ? s + "s" : s < 3600 ? Math.floor(s / 60) + "m " + s % 60 + "s" : Math.floor(s / 3600) + "h " + Math.floor(s % 3600 / 60) + "m";
+}
+function clock(t) { return t ? new Date(t * 1000).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "—"; }
+function chip(text, cls) { return el("span", { className: "chip " + (cls || ""), textContent: text }); }
+function prLink(run) {
+  if (!run.pr_url || !/^https:\/\//.test(run.pr_url)) return null;
+  return el("a", { href: run.pr_url, textContent: "PR #" + (run.pr_url.match(/(\d+)\/?$/) || ["", "?"])[1], target: "_blank", rel: "noopener" });
+}
+function lanes(run) {
+  if (!run.pr) return "";  // also passed to replaceChildren, which would print a null
+  return el("div", { className: "chips" }, ...LANES.map(name => {
+    const check = run.pr.checks.find(c => c.name === name);
+    if (!check) return null;
+    const [cls, glyph, word] = RESULT[check.result];
+    return el("span", { className: "chip " + cls, title: name + ": " + word },
+      el("span", { textContent: glyph + " ", ariaHidden: "true" }), name, el("span", { className: "sr", textContent: " " + word }));
+  }));
+}
+function select(runId) { selected = runId; render(); }
+
+function renderStrip() {
+  const hb = data.heartbeat, lim = data.limits;
+  const alive = Date.parse(hb.alive_at);
+  const age = isNaN(alive) ? Infinity : nowS() - alive / 1000;
+  const down = age > STALE_S;
+  document.title = (down ? "DOWN · " : "") + "Factory Command";
+  const items = [
+    ["Factory", down ? "DOWN" : "alive", down ? (isFinite(age) ? "last alive " + ago(age) : "never stamped alive") : "stamped " + ago(age)],
+    ["Pipeline", hb.pipeline_status || "—"],
+    ["Queue", lim.pending + " / " + lim.max_pending],
+    ["Runs, last 24 h", lim.runs_24h + " / " + lim.max_runs_per_day],
+    ["Rejected, last hour", String(data.rejections.last_hour)],
+  ];
+  document.getElementById("strip").replaceChildren(...items.map(([label, value, note], i) =>
+    el("div", { className: i === 0 && down ? "down" : "" }, el("dt", { textContent: label }),
+      el("dd", { textContent: value }), note ? el("dt", { textContent: note }) : null)));
+}
+
+function renderWeek() {
+  const byDay = new Map();
+  for (const run of [...data.runs].reverse()) {
+    if (!run.queued_at) continue;
+    const key = new Date(run.queued_at * 1000).toDateString();
+    byDay.set(key, [...(byDay.get(key) || []), run]);
+  }
+  const slots = Math.max(data.limits.max_runs_per_day, ...[...byDay.values()].map(r => r.length));
+  const rows = [];
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(); day.setDate(day.getDate() - i);
+    const name = i === 0 ? "Today" : i === 1 ? "Yesterday" : day.toLocaleDateString([], { weekday: "short", day: "numeric" });
+    const runs = byDay.get(day.toDateString()) || [];
+    const cells = [];
+    for (let s = 0; s < slots; s++) {
+      const run = runs[s];
+      if (!run) { cells.push(el("span", { className: "cell empty", ariaHidden: "true" })); continue; }
+      const key = stageOf(run), when = new Date(run.queued_at * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      cells.push(el("button", {
+        className: "cell " + key, type: "button", textContent: STAGES[key].mark || "",
+        title: run.run_id + " · " + stageLabel(run) + " · " + when + "\n" + run.task,
+        ariaLabel: name + " " + when + ", run " + run.run_id + ", " + stageLabel(run) + ": " + run.task,
+        ariaPressed: String(run.run_id === selected), onclick: () => select(run.run_id),
+      }));
+      cells[cells.length - 1].dataset.run = run.run_id;
+    }
+    rows.push(el("div", { className: "day" }, el("span", { textContent: name }), ...cells));
+  }
+  document.getElementById("week").replaceChildren(...rows);
+  const merged = new Set(data.runs.filter(r => r.pr && r.pr.state === "MERGED").map(r => r.pr_url)).size;
+  document.getElementById("counter").textContent =
+    `${data.runs.length.toLocaleString()} RUNS · ${data.limits.pending} ACTIVE · ${merged.toLocaleString()} PRS MERGED`;
+}
+
+function renderDetail() {
+  const box = document.getElementById("detail");
+  const run = data.runs.find(r => r.run_id === selected);
+  if (!run) return box.replaceChildren(el("h2", { textContent: "[ selected run ]" }), el("p", { className: "muted", textContent: "No runs yet. New requests appear here as soon as they are queued." }));
+  const reason = run.blocking_reason || run.error;
+  const rows = [
+    ["run", run.run_id], ["stage", stageLabel(run)], ["fix rounds", (run.attempt || 0) + " / " + data.limits.max_retries],
+    ["queued", clock(run.queued_at)], ["started", clock(run.started_at)], ["finished", clock(run.finished_at)],
+    ["duration", duration(run)], ["branch", run.branch || "—"],
+  ];
+  box.replaceChildren(
+    el("h2", { textContent: "[ selected run ]" }),
+    el("p", { className: "task", textContent: run.task }),
+    reason ? el("p", { className: "reason", textContent: reason }) : "",  // replaceChildren would print a null
+    el("dl", {}, ...rows.flatMap(([k, v]) => [el("dt", { textContent: k }), el("dd", { textContent: v })]),
+      ...(run.pr_url ? [el("dt", { textContent: "pr" }), el("dd", {}, prLink(run) || run.pr_url)] : [])),
+    lanes(run));
+}
+
+function renderRuns() {
+  const items = data.runs.slice(0, LIST_SIZE).map(run => {
+    const key = stageOf(run), reason = run.blocking_reason || run.error;
+    const li = el("li", { className: run.run_id === selected ? "selected" : "" },
+      el("button", { className: "pick", type: "button", ariaPressed: String(run.run_id === selected), onclick: () => select(run.run_id) }, el("b", { textContent: run.run_id }), run.task),
+      el("div", { className: "meta" },
+        chip(stageLabel(run), key === "blocked" || key === "failed" ? "bad" : key === "merged" ? "ok" : ""),
+        el("span", { textContent: "fix " + (run.attempt || 0), title: "fix rounds" }),
+        el("span", { textContent: duration(run), title: "duration" }), prLink(run)),
+      lanes(run),
+      (key === "blocked" || key === "failed") && reason ? el("p", { className: "reason", textContent: reason }) : null);
+    li.querySelector(".pick").dataset.run = run.run_id;
+    return li;
+  });
+  document.getElementById("runs").replaceChildren(el("h2", { textContent: "[ latest runs ]" }),
+    items.length ? el("ol", {}, ...items) : el("p", { className: "muted", textContent: "No runs yet." }));
+}
+
+function renderSide() {
+  const reasons = Object.entries(data.rejections.last_24h).sort((a, b) => b[1] - a[1]);
+  document.getElementById("rejected").replaceChildren(el("h2", { textContent: "[ rejected in 24 h ]" }),
+    reasons.length ? el("dl", { className: "rows" }, ...reasons.flatMap(([r, n]) => [el("dt", { textContent: r }), el("dd", { textContent: String(n) })]))
+      : el("p", { className: "muted", textContent: "No rejected requests in the last 24 hours." }));
+  const lim = data.limits;
+  const rows = [["In flight (queued, building, in QA)", lim.pending + " / " + lim.max_pending],
+    ["Queued in any 24 h", lim.runs_24h + " / " + lim.max_runs_per_day], ["Fix rounds per PR", String(lim.max_retries)]];
+  document.getElementById("limits").replaceChildren(el("h2", { textContent: "[ limits ]" }),
+    el("dl", { className: "rows" }, ...rows.flatMap(([k, v]) => [el("dt", { textContent: k }), el("dd", { textContent: v })])),
+    el("p", { className: "muted", textContent: "New requests get “too many runs” while either cap is reached." }));
+}
+
+function render() {
+  if (!data) return;
+  const focused = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.run;
+  const focusedKind = focused && document.activeElement.className;
+  if (!data.runs.some(r => r.run_id === selected)) selected = data.runs.length ? data.runs[0].run_id : null;
+  renderStrip(); renderWeek(); renderDetail(); renderRuns(); renderSide();
+  if (focused) {
+    const again = [...document.querySelectorAll("[data-run]")].find(n => n.dataset.run === focused && n.className === focusedKind);
+    if (again) again.focus();
+  }
+}
+function tick() {
+  if (!data) return;
+  document.getElementById("updated").textContent = "[ updated " + ago((Date.now() - fetchedAt) / 1000) + " ]";
+  renderStrip();
+}
+async function refresh() {
+  try {
+    const response = await fetch("/command/data", { cache: "no-store" });
+    if (!response.ok) throw new Error(response.status);
+    data = await response.json();
+    fetchedAt = Date.now();
+    document.getElementById("banner").hidden = true;
+    render();
+  } catch (_) {
+    document.getElementById("banner").hidden = false;
+  }
+  tick();
+  setTimeout(refresh, REFRESH_MS);
+}
+document.getElementById("legend").replaceChildren(
+  ...Object.entries(STAGES).map(([key, s]) => el("li", {}, el("span", { className: "cell " + key, textContent: s.mark || "", ariaHidden: "true" }), s.label)),
+  el("li", {}, el("span", { className: "cell empty", ariaHidden: "true" }), "free slot"));
+setInterval(tick, 1000);
+refresh();
+</script>
+</body>
+</html>

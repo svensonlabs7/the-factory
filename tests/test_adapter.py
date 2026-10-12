@@ -799,3 +799,110 @@ def test_alive_at_is_stamped_while_the_service_runs_and_stops_after(adapter, mon
     (root / "HEARTBEAT.md").write_text(HEARTBEAT)
     time.sleep(0.2)
     assert alive() == "—"  # the stamping thread ended with the service
+
+
+def test_command_serves_the_dashboard_and_root_redirects_to_it(adapter):
+    _, _, client = adapter
+    page = client.get("/command")
+    assert (page.status_code, page.headers["content-type"].split(";")[0]) == (200, "text/html")
+    assert "<title>Factory Command</title>" in page.text
+    root = client.get("/", follow_redirects=False)
+    assert (root.status_code, root.headers["location"]) == (307, "/command")
+
+
+@pytest.fixture
+def gh_view(adapter, monkeypatch):
+    """Replaces the one gh call /command/data makes. Set `views[url]` to the JSON gh prints, or an exception to raise."""
+    module, _, _ = adapter
+    views, calls, original = {}, [], module._run
+
+    def fake(*cmd, **kwargs):
+        if cmd[:3] != (module.GH_BIN, "pr", "view"):
+            return original(*cmd, **kwargs)
+        calls.append(cmd[3])
+        if isinstance(views[cmd[3]], Exception):
+            raise views[cmd[3]]
+        return json.dumps(views[cmd[3]])
+
+    monkeypatch.setattr(module, "_run", fake)
+    return views, calls
+
+
+PR = "https://example.invalid/pull/7"
+CHECKS = [
+    {"__typename": "CheckRun", "name": "thermo-nuclear", "status": "COMPLETED", "conclusion": "SUCCESS"},
+    {"__typename": "CheckRun", "name": "tests", "status": "COMPLETED", "conclusion": "FAILURE"},
+    {"__typename": "CheckRun", "name": "ux-laws", "status": "IN_PROGRESS", "conclusion": ""},
+    {"__typename": "StatusContext", "context": "lint", "state": "PENDING"},
+]
+
+
+def test_command_data_lists_runs_newest_first_with_their_pr(adapter, gh_view):
+    module, _, client = adapter
+    views, _ = gh_view
+    views[PR] = {"state": "OPEN", "statusCheckRollup": CHECKS}
+    module._update("old00001", run_id="old00001", status="completed", task="x" * 300, queued_at=1000.0, pr_url=PR)
+    module._update("new00002", run_id="new00002", status="blocked", task="short", queued_at=2000.0, blocking_reason="tests still failing")
+    runs = client.get("/command/data").json()["runs"]
+    assert [r["run_id"] for r in runs] == ["new00002", "old00001"]
+    assert runs[0]["blocking_reason"] == "tests still failing" and runs[0]["pr"] is None
+    assert runs[1]["task"] == "x" * 140
+    assert runs[1]["pr"] == {"state": "OPEN", "checks": [
+        {"name": "thermo-nuclear", "result": "pass"}, {"name": "tests", "result": "fail"},
+        {"name": "ux-laws", "result": "pending"}, {"name": "lint", "result": "pending"},
+    ]}
+
+
+def test_command_data_survives_gh_failing(adapter, gh_view):
+    module, _, client = adapter
+    views, _ = gh_view
+    views[PR] = RuntimeError("gh: authentication required")
+    module._update("abc00001", run_id="abc00001", status="qa", task="t", queued_at=time.time(), pr_url=PR)
+    response = client.get("/command/data")
+    assert response.status_code == 200
+    assert (response.json()["runs"][0]["run_id"], response.json()["runs"][0]["pr"]) == ("abc00001", None)
+
+
+def test_command_data_fetches_an_open_pr_once_a_minute_and_a_merged_one_only_once(adapter, gh_view, monkeypatch):
+    module, _, client = adapter
+    views, calls = gh_view
+    merged = "https://example.invalid/pull/8"
+    views[PR] = {"state": "OPEN", "statusCheckRollup": []}
+    views[merged] = {"state": "MERGED", "statusCheckRollup": []}
+    module._update("a0000001", run_id="a0000001", status="qa", task="t", queued_at=1.0, pr_url=PR)
+    module._update("b0000002", run_id="b0000002", status="completed", task="t", queued_at=2.0, pr_url=merged)
+    start = time.time()
+    client.get("/command/data")
+    client.get("/command/data")
+    assert sorted(calls) == [PR, merged]
+    monkeypatch.setattr(module.time, "time", lambda: start + 61)
+    assert client.get("/command/data").json()["runs"][0]["pr"]["state"] == "MERGED"
+    assert sorted(calls) == [PR, PR, merged]
+
+
+def test_command_data_carries_the_heartbeat_table(adapter):
+    module, root, client = adapter
+    module._set_heartbeat(pipeline_status="qa")
+    heartbeat = client.get("/command/data").json()["heartbeat"]
+    assert heartbeat == dict(re.findall(r"\| \*\*(\w+)\*\* \| (.*?) \|", (root / "HEARTBEAT.md").read_text()))
+    assert heartbeat["pipeline_status"] == "qa"
+
+
+def test_command_data_counts_rejections_by_reason(adapter):
+    module, _, client = adapter
+    assert client.get("/command/data").json()["rejections"] == {"last_24h": {}, "last_hour": 0}
+    now = time.time()
+    lines = [(now - 60, "Invalid signature"), (now - 7200, "Invalid signature"), (now - 7200, "Too many runs"), (now - 90000, "Stale request")]
+    (module.LOG_DIR / "rejected.jsonl").write_text("".join(json.dumps({"time": t, "reason": r}) + "\n" for t, r in lines) + '{"time": ')
+    assert client.get("/command/data").json()["rejections"] == {"last_24h": {"Invalid signature": 2, "Too many runs": 1}, "last_hour": 1}
+
+
+def test_command_data_limits_agree_with_what_trigger_enforces(idle_queue):
+    module, client = idle_queue
+    seed_runs(module, module.MAX_PENDING, "queued")
+    seed_runs(module, 3, "completed", age=3600)
+    seed_runs(module, 4, "completed", age=86400 + 60)
+    assert trigger(client).status_code == 429
+    assert client.get("/command/data").json()["limits"] == {
+        "max_pending": 5, "max_runs_per_day": 30, "max_retries": 2, "pending": 5, "runs_24h": 8,
+    }

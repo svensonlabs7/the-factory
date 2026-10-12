@@ -5,4 +5,7 @@ ingress:
   - hostname: factory.svensonlabs.dev
     path: ^/(trigger|health)$
     service: http://localhost:7654
+  - hostname: dash.svensonlabs.dev
+    path: ^/(command(/data)?)?$
+    service: http://localhost:7654
   - service: http_status:404
