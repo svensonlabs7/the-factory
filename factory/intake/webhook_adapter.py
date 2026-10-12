@@ -8,6 +8,7 @@ Endpoints:
   POST /trigger   — start a new factory run
   GET  /status/:run_id — poll run state
   GET  /health    — liveness check
+  GET  /command   — the operations dashboard, fed by GET /command/data
 """
 
 import hashlib
@@ -23,14 +24,14 @@ import tempfile
 import threading
 import time
 import uuid
-from collections import deque
+from collections import Counter, deque
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.datastructures import Headers
 from pydantic import BaseModel, Field
 
@@ -171,12 +172,21 @@ def _replayed(signature: str, timestamp: int) -> bool:
     return False
 
 
+def _runs() -> list[dict]:
+    return [json.loads(meta.read_text()) for meta in LOG_DIR.glob("*.meta.json")]
+
+
+def _capacity(runs: list[dict]) -> tuple[int, int]:
+    """Runs in flight, and runs queued in the last 24 hours: what /trigger enforces and /command/data shows."""
+    pending = sum(run.get("status") in IN_FLIGHT for run in runs)
+    today = sum(run.get("queued_at", 0) > time.time() - 86400 for run in runs)
+    return pending, today
+
+
 def _check_capacity() -> None:
     """Refuse a new run when too many are in flight or too many arrived today. Run from the event loop with no
     await before the new run is written, so two requests cannot both see room for one."""
-    runs = [json.loads(meta.read_text()) for meta in LOG_DIR.glob("*.meta.json")]
-    pending = sum(run.get("status") in IN_FLIGHT for run in runs)
-    today = sum(run.get("queued_at", 0) > time.time() - 86400 for run in runs)
+    pending, today = _capacity(_runs())
     if pending >= MAX_PENDING or today >= MAX_RUNS_PER_DAY:
         raise HTTPException(status_code=429, detail="Too many runs")
 
@@ -487,13 +497,93 @@ async def health():
     return {"status": "ok"}
 
 
-@app.get("/heartbeat")
-async def heartbeat():
-    """HEARTBEAT.md's status table as JSON, field name to current value. Grok Bot polls this to watch factory
-    health. Reads under the same lock _set_heartbeat writes under, so no reader sees a half-written table."""
+def _heartbeat_fields() -> dict[str, str]:
+    """Reads under the same lock _set_heartbeat writes under, so no reader sees a half-written table."""
     with HEARTBEAT_LOCK:
         text = HEARTBEAT_FILE.read_text()
     return dict(re.findall(r"\| \*\*(\w+)\*\* \| (.*?) \|", text))
+
+
+@app.get("/heartbeat")
+async def heartbeat():
+    """HEARTBEAT.md's status table as JSON, field name to current value. Grok Bot polls this to watch factory health."""
+    return _heartbeat_fields()
+
+
+RUN_FIELDS = ("run_id", "status", "attempt", "branch", "pr_url", "queued_at", "started_at", "finished_at", "blocking_reason", "error")
+PR_CACHE_TTL = 60  # seconds an open PR's state is reused; a merged or closed PR never changes, so it is kept for good
+_pr_cache: dict[str, tuple[float, dict]] = {}
+
+
+def _check_result(check: dict) -> str:
+    # A check run reports `conclusion` (empty until it finishes), a commit status reports `state`.
+    result = check.get("conclusion") or check.get("state") or ""
+    if result in ("SUCCESS", "NEUTRAL", "SKIPPED"):
+        return "pass"
+    return "pending" if result in ("", "PENDING", "EXPECTED") else "fail"
+
+
+def _pr(url: str) -> Optional[dict]:
+    """The PR's state and its checks, from one gh call. None if gh fails, so one bad PR cannot sink the dashboard."""
+    cached = _pr_cache.get(url)
+    if cached and (cached[1]["state"] != "OPEN" or time.time() - cached[0] < PR_CACHE_TTL):
+        return cached[1]
+    try:
+        view = json.loads(_run(GH_BIN, "pr", "view", url, "--json", "state,statusCheckRollup"))
+        pr = {"state": view["state"], "checks": [
+            {"name": c.get("name") or c.get("context"), "result": _check_result(c)} for c in view["statusCheckRollup"]
+        ]}
+    except Exception as exc:
+        log.warning("gh pr view %s failed: %s", url, exc)
+        return None
+    _pr_cache[url] = (time.time(), pr)
+    return pr
+
+
+def _rejection_counts() -> dict:
+    now, entries = time.time(), []
+    path = LOG_DIR / "rejected.jsonl"
+    for line in path.read_text().splitlines() if path.exists() else []:
+        try:
+            entries.append(json.loads(line))
+        except ValueError:  # a line still being appended
+            pass
+    day = [e for e in entries if e["time"] > now - 86400]
+    return {"last_24h": dict(Counter(e["reason"] for e in day)), "last_hour": sum(e["time"] > now - 3600 for e in day)}
+
+
+@app.get("/command")
+async def command():
+    return HTMLResponse(Path(__file__).with_name("command.html").read_text())
+
+
+@app.get("/")
+async def root():
+    return RedirectResponse("/command")
+
+
+@app.get("/command/data")
+def command_data():
+    """Everything the dashboard shows. A plain def, so FastAPI runs it in a worker thread and gh never blocks the loop."""
+    runs = sorted(_runs(), key=lambda run: run.get("queued_at", 0), reverse=True)
+    pending, today = _capacity(runs)
+    urls = {run["pr_url"] for run in runs if run.get("pr_url")}
+    # Parallel, because after a restart the cache is empty and every PR needs its own gh call.
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        prs = dict(zip(urls, pool.map(_pr, urls)))
+    return {
+        "now": time.time(),
+        "runs": [
+            {**{key: run.get(key) for key in RUN_FIELDS}, "task": run.get("task", "")[:140], "pr": prs.get(run.get("pr_url"))}
+            for run in runs
+        ],
+        "heartbeat": _heartbeat_fields(),
+        "rejections": _rejection_counts(),
+        "limits": {
+            "max_pending": MAX_PENDING, "max_runs_per_day": MAX_RUNS_PER_DAY, "max_retries": MAX_RETRIES,
+            "pending": pending, "runs_24h": today,
+        },
+    }
 
 
 def _recover() -> None:

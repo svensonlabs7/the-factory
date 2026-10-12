@@ -10,6 +10,8 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 | `GET` | `/status/:run_id` | Poll run state |
 | `GET` | `/heartbeat` | `HEARTBEAT.md`'s status table as JSON, field name to current value |
 | `GET` | `/health` | Liveness check |
+| `GET` | `/command` | Command, the operations dashboard (`command.html`, read from disk per request). `/` redirects here |
+| `GET` | `/command/data` | The dashboard's JSON: every run (newest first, task cut to 140 characters), each PR's state and checks, the heartbeat table, rejections by reason over 24 h, and the limits with the same pending and 24 h counts `/trigger` enforces |
 
 ## How it works
 
@@ -23,6 +25,10 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 8. The run waits for the required checks on the PR (status `qa`). If they all pass, it is `completed`.
 9. If a check fails, a fresh builder in a new container gets the reviewers' findings and the branch, and pushes a fix. This repeats up to twice. If the PR is still blocked, the run is `blocked` and HEARTBEAT.md says why.
 10. `HEARTBEAT.md`'s status table (untracked, created from `HEARTBEAT.template.md`, with `alive_at` stamped every minute) is updated at each stage, and logs land in `.factory-logs/<run_id>.log`, one section per attempt. `/heartbeat` serves that table as JSON, but the tunnel (`infra/cloudflare-tunnel/`) does not route it yet, so Grok Bot cannot reach it from outside the host until that is wired.
+
+## Command dashboard
+
+`/command` refreshes `/command/data` every 15 seconds. The grid has one row per day for the last 7 days and one square per daily run slot (30). PR state and checks come from one `gh pr view --json state,statusCheckRollup` per PR, cached for 60 seconds, and for good once the PR is merged or closed. If `gh` fails, that run is shown without PR detail. The cache lives in memory, so after a restart the first load calls `gh` once per PR, eight at a time. The tunnel serves the dashboard at `https://dash.svensonlabs.dev` (see `infra/cloudflare-tunnel/`).
 
 ## Rejected requests
 

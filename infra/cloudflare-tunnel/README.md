@@ -1,6 +1,6 @@
-# Cloudflare Tunnel: factory.svensonlabs.dev
+# Cloudflare Tunnel: factory.svensonlabs.dev and dash.svensonlabs.dev
 
-Exposes the intake adapter, which listens on `127.0.0.1:7654`, at `https://factory.svensonlabs.dev`.
+Exposes the intake adapter, which listens on `127.0.0.1:7654`, at `https://factory.svensonlabs.dev` (intake) and `https://dash.svensonlabs.dev` (the Command dashboard).
 The adapter stays bound to localhost. Only the tunnel reaches the internet.
 
 | File | Installed at |
@@ -17,6 +17,7 @@ cloudflared tunnel login                                    # authorize in a bro
 cloudflared tunnel create the-factory                       # prints the tunnel id
 # put the id in config.yml, then copy it to ~/.cloudflared/
 cloudflared tunnel route dns the-factory factory.svensonlabs.dev
+cloudflared tunnel route dns the-factory dash.svensonlabs.dev
 cp com.cloudflare.cloudflared.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.cloudflare.cloudflared.plist
 ```
@@ -46,7 +47,7 @@ Three layers, outermost first:
 3. **The adapter's signature** on `/trigger`: every call also needs the HMAC headers (`X-Hub-Signature-256`, `X-Factory-Timestamp`),
    which the Access token does not replace.
 
-The ingress rule in `config.yml` routes only `^/(trigger|health)$`. Every other path gets the tunnel's 404. The adapter has no docs
+The ingress rule in `config.yml` routes only `^/(trigger|health)$` on this hostname. Every other path gets the tunnel's 404. The adapter has no docs
 routes, and `/status/<run_id>` works only on `127.0.0.1:7654`.
 
 `POST /trigger` needs a valid, fresh, unreplayed signature, else 401. A signed request is refused with 429 while 5 runs are pending
@@ -63,6 +64,10 @@ Measured on 2026-10-11 against the live host (status codes):
 | `GET /` | 401 | 401 | 404 |
 
 Twelve unsigned `POST /trigger` calls in a row with the token gave 401 five times, then 429 seven times.
+
+## dash.svensonlabs.dev
+
+The operator's dashboard. Cloudflare Access application `command` covers the whole hostname with an email login policy for the operator. The ingress rule routes only `^/(command(/data)?)?$`, so `/`, `/command` and `/command/data` reach the adapter. `/trigger`, `/status/<id>`, `/heartbeat` and every other path get the tunnel's 404 on this hostname, and `/command` gets a 404 on `factory.svensonlabs.dev`. Checked with `cloudflared tunnel --config config.yml ingress rule <url>`.
 
 Rotate the `grok-bot` token in the Cloudflare dashboard (Zero Trust, Access, Service credentials). Rotating the webhook secret is a separate
 step, described in `factory/intake/README.md`.
