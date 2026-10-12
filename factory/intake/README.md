@@ -14,7 +14,7 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 
 1. A webhook POST arrives at `/trigger` with a `task` string.
 2. The request must be signed, fresh and new: an HMAC-SHA256 over `<timestamp>.<body>` under `FACTORY_WEBHOOK_SECRET`, a timestamp within 5 minutes, and a signature not seen before. A replay returns 401, and the replay memory survives a restart. The adapter refuses to start without it, because agents run with permission prompts off.
-3. A `run_id` and `branch` name are generated, and the run waits its turn. Runs go one at a time.
+3. A `run_id` and `branch` name are generated (a requested branch must start with `factory/`), and the run waits its turn. Runs go one at a time.
 4. The adapter clones the repo into `../the-factory-runs/<run_id>` and checks out the branch.
 5. `factory/build/run_agent.py` starts a Docker container from the pinned OpenHands agent-server image. It mounts only that clone and runs Claude Code in it. The container holds no GitHub credentials.
 6. The agent implements the task and commits.

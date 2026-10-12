@@ -111,7 +111,8 @@ app = FastAPI(title="Factory Intake", version="1.0.0", openapi_url=None)
 
 class TriggerPayload(BaseModel):
     task: str
-    branch: Optional[str] = Field(default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9._/-]*$")
+    # Only factory/ branches, so a request can never name main or another branch someone is working on.
+    branch: Optional[str] = Field(default=None, pattern=r"^factory/[A-Za-z0-9][A-Za-z0-9._/-]*$")
 
 
 # ---------------------------------------------------------------------------
