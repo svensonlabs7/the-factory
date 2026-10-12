@@ -67,6 +67,7 @@ REPLAY_DIR = LOG_DIR / "replay"
 REJECTION_WINDOW = 3600  # seconds of rejections counted ...
 REJECTION_BURST = 20  # ... and how many of them raise an open incident in HEARTBEAT.md
 REJECTION_LOG_MAX = 5_000_000  # bytes; past this rejected.jsonl stops growing, so a flood cannot fill the disk
+RUN_RETENTION_DAYS = 30  # a finished run's .meta.json and .log are pruned once older than this, so logs don't grow forever
 # Each run gets its own clone here, under the home directory because the Docker VM mounts only that.
 RUNS_DIR = FACTORY_ROOT.parent / "the-factory-runs"
 HEARTBEAT_FILE = FACTORY_ROOT / "HEARTBEAT.md"
@@ -502,4 +503,20 @@ def _recover() -> None:
             _finish(run_id, "error", error="the service restarted during the run")
 
 
+def _prune_old_runs() -> None:
+    """Delete a finished run's .meta.json and .log once older than RUN_RETENTION_DAYS, judged by finished_at
+    (or the file's mtime if it has none). Never an in-flight run. The glob only matches "<run_id>.meta.json"
+    directly under LOG_DIR, so rejected.jsonl and the replay dir are untouched."""
+    cutoff = time.time() - RUN_RETENTION_DAYS * 86400
+    for meta in LOG_DIR.glob("*.meta.json"):
+        run_id = meta.name.removesuffix(".meta.json")
+        run = _load(run_id)
+        if run.get("status") in ("queued", "running", "qa"):
+            continue
+        if run.get("finished_at", meta.stat().st_mtime) < cutoff:
+            meta.unlink(missing_ok=True)
+            (LOG_DIR / f"{run_id}.log").unlink(missing_ok=True)
+
+
 _recover()
+_prune_old_runs()
