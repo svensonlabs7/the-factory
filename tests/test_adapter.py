@@ -76,6 +76,7 @@ if args[:2] == ["pr", "create"]:
         import time
         time.sleep(5)
     (state / "branch").write_text(args[args.index("--head") + 1])
+    (state / "title").write_text(args[args.index("--title") + 1])
     (state / "pr-creates").open("a").write("x")
     print("https://example.invalid/pull/1")
 elif args[:2] == ["pr", "view"]:
@@ -208,6 +209,31 @@ def test_run_publishes_from_a_private_clone_and_cleans_up(adapter):
     assert f"refs/heads/factory/{run_id}" in git(root, "ls-remote", "origin")
     assert git(root, "branch", "--show-current") == "main"
     assert git(root, "branch", "--list", "factory/*") == ""
+
+
+def test_the_pr_title_is_the_first_line_of_the_task_trimmed_to_72_chars(adapter):
+    _, root, client = adapter
+    first_line = "x" * 80
+    task = f"{first_line}\nsecond line should not affect the title"
+    run = wait_done(client, trigger(client, task=task).json()["run_id"])
+    assert run["status"] == "completed"
+    assert (root.parent / "gh-state" / "title").read_text() == first_line[:72]
+
+
+def test_a_leading_blank_line_does_not_crash_the_run(adapter):
+    _, root, client = adapter
+    run_id = trigger(client, task="\nthe real task title").json()["run_id"]
+    run = wait_done(client, run_id)
+    assert run["status"] == "completed"
+    assert (root.parent / "gh-state" / "title").read_text() == "the real task title"
+
+
+def test_a_whitespace_only_task_falls_back_to_the_branch_name(adapter):
+    _, root, client = adapter
+    run_id = trigger(client, task="   \n\t\n  ").json()["run_id"]
+    run = wait_done(client, run_id)
+    assert run["status"] == "completed"
+    assert (root.parent / "gh-state" / "title").read_text() == f"factory/{run_id}"
 
 
 def test_hooks_the_agent_plants_never_run_on_the_host(adapter, tmp_path, monkeypatch):

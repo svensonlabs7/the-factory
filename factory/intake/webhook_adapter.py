@@ -91,11 +91,16 @@ def _load(run_id: str) -> dict:
     return json.loads(_meta(run_id).read_text())
 
 
+def _write_atomic(path: Path, text: str) -> None:
+    """Write via a temp file and rename, so a concurrent reader never sees a half-written file."""
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(text)
+    tmp.replace(path)
+
+
 def _update(run_id: str, /, **fields) -> None:
     run = {**(_load(run_id) if _meta(run_id).exists() else {}), **fields}
-    tmp = _meta(run_id).with_suffix(".tmp")
-    tmp.write_text(json.dumps(run, indent=2))
-    tmp.replace(_meta(run_id))  # atomic, so /status never reads a half-written file
+    _write_atomic(_meta(run_id), json.dumps(run, indent=2))
 
 
 # One run at a time, in arrival order: runs share one Claude plan quota and one origin.
@@ -358,7 +363,8 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
     try:
         head = _build(run_id, 0, prompt, branch, since="origin/main")
         body = f"Factory build {run_id}\n\nTask: {task[:200]}"
-        pr_url = _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", branch, "--body", body)
+        title = next((line.strip() for line in task.splitlines() if line.strip()), branch)[:72]
+        pr_url = _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", title, "--body", body)
         _update(run_id, pr_url=pr_url)
         # Each pass waits on the checks for `head`. The last pass only decides, because no fix rounds are left.
         for attempt in range(1, MAX_RETRIES + 2):
@@ -392,7 +398,7 @@ def _set_heartbeat(**fields: str) -> None:
                 text, count = re.subn(rf"(\| \*\*{name}\*\* \| ).*?( \|)", lambda m: f"{m[1]}{value}{m[2]}", text, count=1)
                 if not count:
                     log.warning("HEARTBEAT.md has no %s row", name)
-            HEARTBEAT_FILE.write_text(text)
+            _write_atomic(HEARTBEAT_FILE, text)
     except Exception:
         log.exception("Failed to update HEARTBEAT.md")
 
