@@ -1,3 +1,4 @@
+import datetime as dt
 import hashlib
 import hmac
 import importlib
@@ -40,6 +41,15 @@ echo "fence-ends=$(printf '%s' "$2" | grep -c -e '--- end findings ---')"
 if [ -n "$FAKE_HOOK_MARKER" ]; then
     printf '#!/bin/sh\\ntouch "%s"\\n' "$FAKE_HOOK_MARKER" > .git/hooks/pre-push
     chmod +x .git/hooks/pre-push
+fi
+if [ -n "$FAKE_USAGE_LIMIT" ]; then
+    count_file="$FAKE_AGENT_STATE/usage-limit-calls"
+    printf x >> "$count_file"
+    count=$(wc -c < "$count_file")
+    if [ "$count" -le "${FAKE_USAGE_LIMIT_TIMES:-1}" ]; then
+        printf '%s\\n' "$FAKE_USAGE_LIMIT"
+        exit 1
+    fi
 fi
 if [ "${FAKE_COMMIT:-1}" = 1 ]; then
     echo "change $$" > change.txt
@@ -130,6 +140,7 @@ def adapter(tmp_path, monkeypatch):
 
     (root / "HEARTBEAT.md").write_text(HEARTBEAT)
     (tmp_path / "gh-state").mkdir()
+    (tmp_path / "agent-state").mkdir()
     for name, body in (("fake-agent.sh", FAKE_AGENT), ("fake-gh.py", FAKE_GH)):
         (tmp_path / name).write_text(body)
         (tmp_path / name).chmod(0o755)
@@ -139,6 +150,7 @@ def adapter(tmp_path, monkeypatch):
     monkeypatch.setenv("FACTORY_AGENT_CMD", str(tmp_path / "fake-agent.sh"))
     monkeypatch.setenv("GH_BIN", str(tmp_path / "fake-gh.py"))
     monkeypatch.setenv("FAKE_GH_STATE", str(tmp_path / "gh-state"))
+    monkeypatch.setenv("FAKE_AGENT_STATE", str(tmp_path / "agent-state"))
     monkeypatch.setenv("FAKE_ORIGIN", str(origin))
     sys.modules.pop("factory.intake.webhook_adapter", None)
     module = importlib.import_module("factory.intake.webhook_adapter")
@@ -261,6 +273,83 @@ def test_failed_agent_reports_exit_code_and_publishes_nothing(adapter, monkeypat
     assert "| **build_status** | failed |" in (root / "HEARTBEAT.md").read_text()
     assert "pr_url" not in run
     assert "refs/heads/factory" not in git(root, "ls-remote", "origin")
+
+
+USAGE_LIMIT_MESSAGE = "You’ve hit your session limit · resets 5:40am (UTC)"
+
+
+def test_usage_limit_pauses_then_retries_the_same_round_without_counting_as_a_fix_round(adapter, monkeypatch):
+    module, root, client = adapter
+    monkeypatch.setenv("FAKE_USAGE_LIMIT", USAGE_LIMIT_MESSAGE)
+    sleeps, heartbeats = [], []
+
+    def fake_sleep(seconds):
+        sleeps.append(seconds)
+        heartbeats.append((root / "HEARTBEAT.md").read_text())
+
+    monkeypatch.setattr(module, "_SLEEP", fake_sleep)
+
+    run = wait_done(client, trigger(client).json()["run_id"])
+
+    assert (run["status"], run["attempt"]) == ("completed", 0)  # the retry did not consume a fix round
+    assert len(sleeps) == 1 and 0 < sleeps[0] <= module.USAGE_LIMIT_MAX_WAIT
+    assert re.search(r"\| \*\*pipeline_status\*\* \| paused: usage limit, resumes \d{2}:\d{2} UTC \|", heartbeats[0])
+    log = (root / ".factory-logs" / f"{run['run_id']}.log").read_text()
+    assert log.count("===== attempt 0 =====") == 2
+    assert git(root, "rev-list", "--count", f"origin/main..origin/factory/{run['run_id']}") == "1"
+
+
+def test_usage_limit_hit_again_on_the_retry_fails_as_a_normal_failure(adapter, monkeypatch):
+    module, root, client = adapter
+    monkeypatch.setenv("FAKE_USAGE_LIMIT", USAGE_LIMIT_MESSAGE)
+    monkeypatch.setenv("FAKE_USAGE_LIMIT_TIMES", "2")
+    sleeps = []
+    monkeypatch.setattr(module, "_SLEEP", sleeps.append)
+
+    run = wait_done(client, trigger(client).json()["run_id"])
+
+    assert (run["status"], run["exit_code"]) == ("failed", 1)
+    assert len(sleeps) == 1  # one retry only, no blind looping
+    assert "pr_url" not in run
+
+
+def test_an_unrelated_agent_failure_is_not_treated_as_a_usage_limit(adapter, monkeypatch):
+    module, root, client = adapter
+    monkeypatch.setenv("FAKE_EXIT", "3")
+    sleeps = []
+    monkeypatch.setattr(module, "_SLEEP", sleeps.append)
+
+    run = wait_done(client, trigger(client).json()["run_id"])
+
+    assert (run["status"], run["exit_code"]) == ("failed", 3)
+    assert sleeps == []
+
+
+@pytest.mark.parametrize("apostrophe", ["'", "’"])
+def test_usage_limit_wait_parses_the_reset_time_and_caps_the_wait(adapter, apostrophe):
+    module, _, _ = adapter
+    now = dt.datetime(2026, 10, 14, 5, 0, tzinfo=dt.timezone.utc)
+
+    message = f"You{apostrophe}ve hit your session limit · resets 5:40am (UTC)"
+    wait, resume = module._usage_limit_wait(message, now=now)
+    assert (wait, resume) == (2400, "05:40")
+
+    # Already past 5:40am: the reset is tomorrow, which the 5-hour cap cuts short.
+    later = now.replace(hour=6)
+    wait, resume = module._usage_limit_wait(message, now=later)
+    assert wait == module.USAGE_LIMIT_MAX_WAIT and resume == "11:00"
+
+
+def test_usage_limit_wait_falls_back_to_the_default_without_a_parseable_reset_time(adapter):
+    module, _, _ = adapter
+    now = dt.datetime(2026, 10, 14, 5, 0, tzinfo=dt.timezone.utc)
+    wait, resume = module._usage_limit_wait("You have hit your session limit, try again later", now=now)
+    assert (wait, resume) == (module.USAGE_LIMIT_DEFAULT_WAIT, "05:30")
+
+
+def test_usage_limit_wait_is_none_for_an_unrelated_failure(adapter):
+    module, _, _ = adapter
+    assert module._usage_limit_wait("some other crash\ntraceback...") is None
 
 
 def test_run_without_commits_is_an_error(adapter, monkeypatch):

@@ -11,6 +11,7 @@ Endpoints:
   GET  /command   — the operations dashboard, fed by GET /command/data
 """
 
+import datetime as dt
 import hashlib
 import hmac
 import json
@@ -52,6 +53,10 @@ AGENT_TIMEOUT = 1800  # 30-minute cap. The agent gets a shorter limit so it can 
 GH_BIN = os.environ.get("GH_BIN", "gh")
 # A blocked PR gets this many fix rounds, each by a fresh builder, before the run escalates to HEARTBEAT.
 MAX_RETRIES = 2
+# A build that fails because the agent hit its Claude plan's usage limit is paused and retried once instead of
+# failing the run. The wait is the parsed reset time if the log has one, else this default, capped at this much.
+USAGE_LIMIT_DEFAULT_WAIT = 1800
+USAGE_LIMIT_MAX_WAIT = 5 * 3600
 CHECKS_TIMEOUT = 1200  # seconds to wait for the required checks, per round
 CHECKS_POLL = 15
 COMMAND_TIMEOUT = 300  # seconds for any single git or gh call, so a hang cannot hold the queue
@@ -276,8 +281,9 @@ def _build_prompt(user_task: str, branch: str, run_id: str) -> str:
 # ---------------------------------------------------------------------------
 
 class AgentFailed(Exception):
-    def __init__(self, code: int):
+    def __init__(self, code: int, output: str = ""):
         self.code = code
+        self.output = output
 
 
 def _run(*cmd: str, cwd: Path = FACTORY_ROOT) -> str:
@@ -386,8 +392,10 @@ def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> s
     _log_action(run_id, "round_started", attempt=attempt)
     _set_heartbeat(pipeline_status="running", build_status="building", qa_gate_status="—")
     started = time.time()
+    log_path = LOG_DIR / f"{run_id}.log"
+    start = len(log_path.read_text()) if log_path.exists() else 0
     with _checkout(f"{run_id}-{attempt}", branch, base="main" if attempt == 0 else branch) as workdir, \
-            open(LOG_DIR / f"{run_id}.log", "a") as lf:
+            open(log_path, "a") as lf:
         lf.write(f"===== attempt {attempt} =====\n")
         lf.flush()
         result = subprocess.run(
@@ -398,10 +406,51 @@ def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> s
         )
         _log_action(run_id, "round_finished", attempt=attempt, exit_code=result.returncode, seconds=round(time.time() - started, 1))
         if result.returncode:
-            raise AgentFailed(result.returncode)
+            raise AgentFailed(result.returncode, output=log_path.read_text()[start:][-LOG_TAIL:])
         head = _push(branch, workdir, since)
         _log_action(run_id, "pushed", head=head)
         return head
+
+
+_SLEEP = time.sleep  # swapped by tests, so waiting out a usage-limit pause takes no real time
+
+USAGE_LIMIT_RE = re.compile(r"session limit|usage limit", re.IGNORECASE)
+RESET_TIME_RE = re.compile(r"resets?\s+(\d{1,2}):(\d{2})\s*([ap]m)\s*\(utc\)", re.IGNORECASE)
+
+
+def _usage_limit_wait(log_tail: str, now: Optional[dt.datetime] = None) -> Optional[tuple[float, str]]:
+    """None unless `log_tail` shows the agent hit its Claude plan's usage limit. Else the seconds to wait and
+    the resume time ("HH:MM") in UTC: the log's own reset time if it parses one, else USAGE_LIMIT_DEFAULT_WAIT,
+    both capped at USAGE_LIMIT_MAX_WAIT."""
+    if not USAGE_LIMIT_RE.search(log_tail):
+        return None
+    now = now or dt.datetime.now(dt.timezone.utc)
+    wait: float = USAGE_LIMIT_DEFAULT_WAIT
+    match = RESET_TIME_RE.search(log_tail)
+    if match:
+        hour, minute, meridiem = int(match[1]) % 12, int(match[2]), match[3].lower()
+        reset = now.replace(hour=hour + (12 if meridiem == "pm" else 0), minute=minute, second=0, microsecond=0)
+        if reset <= now:
+            reset += dt.timedelta(days=1)
+        wait = (reset - now).total_seconds()
+    wait = min(wait, USAGE_LIMIT_MAX_WAIT)
+    return wait, (now + dt.timedelta(seconds=wait)).strftime("%H:%M")
+
+
+def _build_round(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> str:
+    """One build round. A failure that shows the agent hit its plan's usage limit pauses until it resets and
+    retries this same round once; that retry does not consume a fix round. Any other failure, or a second
+    failure during the retry, propagates like a bare `_build` failure."""
+    try:
+        return _build(run_id, attempt, prompt, branch, since)
+    except AgentFailed as exc:
+        paused = _usage_limit_wait(exc.output)
+        if paused is None:
+            raise
+        wait, resume = paused
+        _set_heartbeat(pipeline_status=f"paused: usage limit, resumes {resume} UTC")
+        _SLEEP(wait)
+        return _build(run_id, attempt, prompt, branch, since)
 
 
 def _run_agent(run_id: str, prompt: str, branch: str) -> None:
@@ -412,7 +461,7 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
     log.info("Starting the sandboxed agent for run %s", run_id)
 
     try:
-        head = _build(run_id, 0, prompt, branch, since="origin/main")
+        head = _build_round(run_id, 0, prompt, branch, since="origin/main")
         body = f"Factory build {run_id}\n\nTask: {task[:200]}"
         title = next((line.strip() for line in task.splitlines() if line.strip()), branch)[:72]
         pr_url = _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", title, "--body", body)
@@ -429,7 +478,7 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
                 return _finish(run_id, "completed")
             if attempt > MAX_RETRIES:
                 return _finish(run_id, "blocked", blocking_reason=f"{', '.join(failed)} still failing after {MAX_RETRIES} fix rounds")
-            head = _build(run_id, attempt, _fix_prompt(task, _findings(head, failed), branch, run_id), branch, since=head)
+            head = _build_round(run_id, attempt, _fix_prompt(task, _findings(head, failed), branch, run_id), branch, since=head)
     except AgentFailed as exc:
         _finish(run_id, "failed", exit_code=exc.code)
     except subprocess.TimeoutExpired:
