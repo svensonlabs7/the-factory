@@ -986,6 +986,88 @@ def test_command_data_counts_rejections_by_reason(adapter):
     assert client.get("/command/data").json()["rejections"] == {"last_24h": {"Invalid signature": 2, "Too many runs": 1}, "last_hour": 1}
 
 
+def read_actions(module, run_id):
+    return module._read_jsonl(module._actions_log(run_id))
+
+
+def test_actions_log_records_the_run_lifecycle(adapter):
+    module, _, client = adapter
+    run_id = trigger(client).json()["run_id"]
+    run = wait_done(client, run_id)
+    assert run["status"] == "completed"
+
+    lines = read_actions(module, run_id)
+    assert [line["event"] for line in lines] == ["queued", "round_started", "round_finished", "pushed", "pr_opened", "gate_result", "finished"]
+    assert all(isinstance(line["time"], float) for line in lines)
+    by_event = {line["event"]: line for line in lines}
+    assert by_event["round_started"]["attempt"] == 0
+    assert by_event["round_finished"]["exit_code"] == 0 and by_event["round_finished"]["seconds"] >= 0
+    assert by_event["pushed"]["head"]
+    assert by_event["pr_opened"]["url"] == run["pr_url"]
+    assert by_event["gate_result"]["attempt"] == 1
+    assert by_event["gate_result"]["checks"] == {"thermo-nuclear": "pass", "tests": "pass", "ponytail-review": "pass"}
+    assert by_event["finished"]["status"] == "completed"
+
+
+def test_actions_log_reports_each_failing_check_through_a_fix_round(adapter, monkeypatch):
+    module, _, client = adapter
+    monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,pass")
+    run_id = trigger(client).json()["run_id"]
+    run = wait_done(client, run_id)
+    assert run["status"] == "completed"
+
+    lines = read_actions(module, run_id)
+    gate_results = [line for line in lines if line["event"] == "gate_result"]
+    assert [g["attempt"] for g in gate_results] == [1, 2]
+    assert gate_results[0]["checks"]["thermo-nuclear"] == "fail"
+    assert gate_results[1]["checks"]["thermo-nuclear"] == "pass"
+    assert [line["event"] for line in lines if line["event"] in ("round_started", "pushed")] == ["round_started", "pushed", "round_started", "pushed"]
+
+
+def test_a_failed_round_logs_its_exit_code_with_no_pushed_event(adapter, monkeypatch):
+    module, _, client = adapter
+    monkeypatch.setenv("FAKE_EXIT", "3")
+    run_id = trigger(client).json()["run_id"]
+    run = wait_done(client, run_id)
+    assert run["status"] == "failed"
+
+    lines = read_actions(module, run_id)
+    assert [line["event"] for line in lines] == ["queued", "round_started", "round_finished", "finished"]
+    assert lines[2]["exit_code"] == 3
+    assert lines[3]["status"] == "failed"
+
+
+def test_a_logging_failure_is_swallowed_not_raised(adapter, monkeypatch):
+    module, _, _ = adapter
+    monkeypatch.setattr(module, "_actions_log", lambda run_id: 1 / 0)
+    module._log_action("some-run", "queued")  # must not raise
+
+
+def test_status_includes_an_actions_summary(adapter):
+    _, _, client = adapter
+    run_id = trigger(client).json()["run_id"]
+    run = wait_done(client, run_id)
+    assert run["actions"]["last"] == "finished"
+    assert run["actions"]["counts"] == {
+        "queued": 1, "round_started": 1, "round_finished": 1, "pushed": 1, "pr_opened": 1, "gate_result": 1, "finished": 1,
+    }
+
+
+def test_status_of_a_run_with_no_actions_yet_has_an_empty_summary(adapter):
+    module, _, client = adapter
+    module._update("noactions", run_id="noactions", status="queued")
+    assert client.get("/status/noactions").json()["actions"] == {"counts": {}, "last": None}
+
+
+def test_prune_deletes_the_actions_log_with_the_run(adapter):
+    module, root, _ = adapter
+    meta, log = seed_finished_run(module, "old12346", "completed", finished_age=module.RUN_RETENTION_DAYS * 86400 + 3600)
+    actions = module._actions_log("old12346")
+    actions.write_text('{"event": "finished"}\n')
+    restart(root)
+    assert not meta.exists() and not log.exists() and not actions.exists()
+
+
 def test_command_data_limits_agree_with_what_trigger_enforces(idle_queue):
     module, client = idle_queue
     seed_runs(module, module.MAX_PENDING, "queued")

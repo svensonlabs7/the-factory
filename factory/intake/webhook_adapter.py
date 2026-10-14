@@ -73,7 +73,7 @@ REPLAY_DIR = LOG_DIR / "replay"
 REJECTION_WINDOW = 3600  # seconds of rejections counted ...
 REJECTION_BURST = 20  # ... and how many of them raise an open incident in HEARTBEAT.md
 REJECTION_LOG_MAX = 5_000_000  # bytes; past this rejected.jsonl stops growing, so a flood cannot fill the disk
-RUN_RETENTION_DAYS = 30  # at startup, a finished run's .meta.json and .log are pruned once older than this
+RUN_RETENTION_DAYS = 30  # at startup, a finished run's .meta.json, .log and .actions.jsonl are pruned once older than this
 IN_FLIGHT = ("queued", "running", "qa")
 # Each run gets its own clone here, under the home directory because the Docker VM mounts only that.
 RUNS_DIR = FACTORY_ROOT.parent / "the-factory-runs"
@@ -106,9 +106,42 @@ def _write_atomic(path: Path, text: str) -> None:
     tmp.replace(path)
 
 
+def _read_jsonl(path: Path) -> list[dict]:
+    entries = []
+    for line in path.read_text().splitlines() if path.exists() else []:
+        try:
+            entries.append(json.loads(line))
+        except ValueError:  # a line still being appended
+            pass
+    return entries
+
+
+def _append_jsonl(path: Path, entry: dict) -> None:
+    with path.open("a") as f:
+        f.write(json.dumps(entry) + "\n")
+
+
 def _update(run_id: str, /, **fields) -> None:
     run = {**(_load(run_id) if _meta(run_id).exists() else {}), **fields}
     _write_atomic(_meta(run_id), json.dumps(run, indent=2))
+
+
+def _actions_log(run_id: str) -> Path:
+    return LOG_DIR / f"{run_id}.actions.jsonl"
+
+
+def _log_action(run_id: str, event: str, **detail) -> None:
+    """Append one JSON line to the run's action log. Never raises: a logging failure must never break a run."""
+    try:
+        _append_jsonl(_actions_log(run_id), {"time": time.time(), "event": event, **detail})
+    except Exception:
+        log.exception("Failed to log action %s for run %s", event, run_id)
+
+
+def _actions_summary(run_id: str) -> dict:
+    """The count of each event logged for a run, and the name of the last one."""
+    events = [event for entry in _read_jsonl(_actions_log(run_id)) if (event := entry.get("event"))]
+    return {"counts": dict(Counter(events)), "last": events[-1] if events else None}
 
 
 # One run at a time, in arrival order: runs share one Claude plan quota and one origin.
@@ -294,8 +327,8 @@ def _push(branch: str, workdir: Path, since: str) -> str:
     return head
 
 
-def _failed_checks(pr_url: str, head: str) -> list[str]:
-    """Wait until the PR is at `head` and its required checks have all finished, then return the failed ones.
+def _gate_results(pr_url: str, head: str) -> dict[str, str]:
+    """Wait until the PR is at `head` and its required checks have all finished, then return each one's result.
     Until the PR moves to `head`, gh still reports the previous commit's results."""
     deadline = time.time() + CHECKS_TIMEOUT
     while time.time() < deadline:
@@ -308,7 +341,7 @@ def _failed_checks(pr_url: str, head: str) -> list[str]:
                     raise
                 checks = []
             if checks and all(c["bucket"] != "pending" for c in checks):
-                return sorted(c["name"] for c in checks if c["bucket"] in ("fail", "cancel"))
+                return {c["name"]: "fail" if c["bucket"] in ("fail", "cancel") else "pass" for c in checks}
         time.sleep(CHECKS_POLL)
     raise RuntimeError("timed out waiting for checks")
 
@@ -348,14 +381,17 @@ def _finish(run_id: str, status: str, **fields) -> None:
     if pr_url and status != "completed":
         heartbeat["last_pr_blocked"] = pr_url
     _set_heartbeat(**heartbeat)
-    _update(run_id, status=status, finished_at=time.time(), **fields)  # last, so a poller that sees the final status sees the heartbeat too
+    _log_action(run_id, "finished", status=status)
+    _update(run_id, status=status, finished_at=time.time(), **fields)  # last, so a poller that sees the final status sees the heartbeat and action log too
     log.info("Run %s %s", run_id, status)
 
 
 def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> str:
     """One builder round in a fresh sandbox. Returns the head it pushed, or raises AgentFailed."""
     _update(run_id, status="running", attempt=attempt)
+    _log_action(run_id, "round_started", attempt=attempt)
     _set_heartbeat(pipeline_status="running", build_status="building", qa_gate_status="—")
+    started = time.time()
     log_path = LOG_DIR / f"{run_id}.log"
     start = len(log_path.read_text()) if log_path.exists() else 0
     with _checkout(f"{run_id}-{attempt}", branch, base="main" if attempt == 0 else branch) as workdir, \
@@ -368,9 +404,12 @@ def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> s
             stderr=subprocess.STDOUT,
             timeout=AGENT_TIMEOUT,
         )
+        _log_action(run_id, "round_finished", attempt=attempt, exit_code=result.returncode, seconds=round(time.time() - started, 1))
         if result.returncode:
             raise AgentFailed(result.returncode, output=log_path.read_text()[start:][-LOG_TAIL:])
-        return _push(branch, workdir, since)
+        head = _push(branch, workdir, since)
+        _log_action(run_id, "pushed", head=head)
+        return head
 
 
 _SLEEP = time.sleep  # swapped by tests, so waiting out a usage-limit pause takes no real time
@@ -427,11 +466,14 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
         title = next((line.strip() for line in task.splitlines() if line.strip()), branch)[:72]
         pr_url = _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", title, "--body", body)
         _update(run_id, pr_url=pr_url)
+        _log_action(run_id, "pr_opened", url=pr_url)
         # Each pass waits on the checks for `head`. The last pass only decides, because no fix rounds are left.
         for attempt in range(1, MAX_RETRIES + 2):
             _update(run_id, status="qa")
             _set_heartbeat(pipeline_status="qa", build_status="ok", qa_gate_status="waiting")
-            failed = _failed_checks(pr_url, head)
+            results = _gate_results(pr_url, head)
+            _log_action(run_id, "gate_result", attempt=attempt, checks=results)
+            failed = sorted(name for name, result in results.items() if result == "fail")
             if not failed:
                 return _finish(run_id, "completed")
             if attempt > MAX_RETRIES:
@@ -485,8 +527,7 @@ def _log_rejection(request: Request, reason: str, counts: bool) -> None:
     try:
         path = LOG_DIR / "rejected.jsonl"
         if not path.exists() or path.stat().st_size < REJECTION_LOG_MAX:
-            with path.open("a") as f:
-                f.write(json.dumps(entry) + "\n")
+            _append_jsonl(path, entry)
         if counts:
             _recent_rejections.append(now)
         while _recent_rejections and _recent_rejections[0] <= now - REJECTION_WINDOW:
@@ -524,6 +565,7 @@ async def trigger(request: Request):
     prompt = _build_prompt(payload.task, branch, run_id)
 
     _update(run_id, run_id=run_id, status="queued", branch=branch, task=payload.task, queued_at=time.time())
+    _log_action(run_id, "queued")
 
     log.info("Queued run %s: branch=%s", run_id, branch)
     RUN_EXECUTOR.submit(_run_agent, run_id, prompt, branch)
@@ -538,7 +580,7 @@ async def trigger(request: Request):
 async def status(run_id: str):
     if not _meta(run_id).exists():
         raise HTTPException(status_code=404, detail="Run not found")
-    return _load(run_id)
+    return {**_load(run_id), "actions": _actions_summary(run_id)}
 
 
 @app.get("/health")
@@ -590,14 +632,8 @@ def _pr(url: str) -> Optional[dict]:
 
 
 def _rejection_counts() -> dict:
-    now, entries = time.time(), []
-    path = LOG_DIR / "rejected.jsonl"
-    for line in path.read_text().splitlines() if path.exists() else []:
-        try:
-            entries.append(json.loads(line))
-        except ValueError:  # a line still being appended
-            pass
-    day = [e for e in entries if e["time"] > now - 86400]
+    now = time.time()
+    day = [e for e in _read_jsonl(LOG_DIR / "rejected.jsonl") if e["time"] > now - 86400]
     return {"last_24h": dict(Counter(e["reason"] for e in day)), "last_hour": sum(e["time"] > now - 3600 for e in day)}
 
 
@@ -637,8 +673,9 @@ def command_data():
 
 def _recover() -> None:
     """A restart kills the worker thread, so close out any run still in flight, and prune finished runs older than
-    RUN_RETENTION_DAYS (by finished_at, else the file's mtime). The glob matches only "<run_id>.meta.json" directly
-    under LOG_DIR, so rejected.jsonl, the replay dir and the archive are untouched."""
+    RUN_RETENTION_DAYS (by finished_at, else the file's mtime), along with each pruned run's log and action log.
+    The glob matches only "<run_id>.meta.json" directly under LOG_DIR, so rejected.jsonl, the replay dir and the
+    archive are untouched."""
     cutoff = time.time() - RUN_RETENTION_DAYS * 86400
     for meta in LOG_DIR.glob("*.meta.json"):
         run_id = meta.name.removesuffix(".meta.json")
@@ -648,6 +685,7 @@ def _recover() -> None:
         elif run.get("finished_at", meta.stat().st_mtime) < cutoff:
             meta.unlink(missing_ok=True)
             (LOG_DIR / f"{run_id}.log").unlink(missing_ok=True)
+            _actions_log(run_id).unlink(missing_ok=True)
 
 
 _recover()
