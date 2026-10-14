@@ -106,6 +106,31 @@ def _update(run_id: str, /, **fields) -> None:
     _write_atomic(_meta(run_id), json.dumps(run, indent=2))
 
 
+def _actions_log(run_id: str) -> Path:
+    return LOG_DIR / f"{run_id}.actions.jsonl"
+
+
+def _log_action(run_id: str, event: str, **detail) -> None:
+    """Append one JSON line to the run's action log. Never raises: a logging failure must never break a run."""
+    try:
+        with _actions_log(run_id).open("a") as f:
+            f.write(json.dumps({"time": time.time(), "event": event, **detail}) + "\n")
+    except Exception:
+        log.exception("Failed to log action %s for run %s", event, run_id)
+
+
+def _actions_summary(run_id: str) -> dict:
+    """The count of each event logged for a run, and the name of the last one."""
+    path = _actions_log(run_id)
+    events = []
+    for line in path.read_text().splitlines() if path.exists() else []:
+        try:
+            events.append(json.loads(line)["event"])
+        except ValueError:  # a line still being appended
+            pass
+    return {"counts": dict(Counter(events)), "last": events[-1] if events else None}
+
+
 # One run at a time, in arrival order: runs share one Claude plan quota and one origin.
 RUN_EXECUTOR = ThreadPoolExecutor(max_workers=1)
 
@@ -288,7 +313,7 @@ def _push(branch: str, workdir: Path, since: str) -> str:
     return head
 
 
-def _failed_checks(pr_url: str, head: str) -> list[str]:
+def _failed_checks(run_id: str, attempt: int, pr_url: str, head: str) -> list[str]:
     """Wait until the PR is at `head` and its required checks have all finished, then return the failed ones.
     Until the PR moves to `head`, gh still reports the previous commit's results."""
     deadline = time.time() + CHECKS_TIMEOUT
@@ -302,7 +327,9 @@ def _failed_checks(pr_url: str, head: str) -> list[str]:
                     raise
                 checks = []
             if checks and all(c["bucket"] != "pending" for c in checks):
-                return sorted(c["name"] for c in checks if c["bucket"] in ("fail", "cancel"))
+                failed = sorted(c["name"] for c in checks if c["bucket"] in ("fail", "cancel"))
+                _log_action(run_id, "gate_result", attempt=attempt, checks={c["name"]: "fail" if c["name"] in failed else "pass" for c in checks})
+                return failed
         time.sleep(CHECKS_POLL)
     raise RuntimeError("timed out waiting for checks")
 
@@ -343,13 +370,16 @@ def _finish(run_id: str, status: str, **fields) -> None:
         heartbeat["last_pr_blocked"] = pr_url
     _set_heartbeat(**heartbeat)
     _update(run_id, status=status, finished_at=time.time(), **fields)  # last, so a poller that sees the final status sees the heartbeat too
+    _log_action(run_id, "finished", status=status)
     log.info("Run %s %s", run_id, status)
 
 
 def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> str:
     """One builder round in a fresh sandbox. Returns the head it pushed, or raises AgentFailed."""
     _update(run_id, status="running", attempt=attempt)
+    _log_action(run_id, "round_started", attempt=attempt)
     _set_heartbeat(pipeline_status="running", build_status="building", qa_gate_status="—")
+    started = time.time()
     with _checkout(f"{run_id}-{attempt}", branch, base="main" if attempt == 0 else branch) as workdir, \
             open(LOG_DIR / f"{run_id}.log", "a") as lf:
         lf.write(f"===== attempt {attempt} =====\n")
@@ -360,9 +390,12 @@ def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> s
             stderr=subprocess.STDOUT,
             timeout=AGENT_TIMEOUT,
         )
+        _log_action(run_id, "round_finished", attempt=attempt, exit_code=result.returncode, seconds=round(time.time() - started, 1))
         if result.returncode:
             raise AgentFailed(result.returncode)
-        return _push(branch, workdir, since)
+        head = _push(branch, workdir, since)
+        _log_action(run_id, "pushed", head=head)
+        return head
 
 
 def _run_agent(run_id: str, prompt: str, branch: str) -> None:
@@ -378,11 +411,12 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
         title = next((line.strip() for line in task.splitlines() if line.strip()), branch)[:72]
         pr_url = _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", title, "--body", body)
         _update(run_id, pr_url=pr_url)
+        _log_action(run_id, "pr_opened", url=pr_url)
         # Each pass waits on the checks for `head`. The last pass only decides, because no fix rounds are left.
         for attempt in range(1, MAX_RETRIES + 2):
             _update(run_id, status="qa")
             _set_heartbeat(pipeline_status="qa", build_status="ok", qa_gate_status="waiting")
-            failed = _failed_checks(pr_url, head)
+            failed = _failed_checks(run_id, attempt, pr_url, head)
             if not failed:
                 return _finish(run_id, "completed")
             if attempt > MAX_RETRIES:
@@ -475,6 +509,7 @@ async def trigger(request: Request):
     prompt = _build_prompt(payload.task, branch, run_id)
 
     _update(run_id, run_id=run_id, status="queued", branch=branch, task=payload.task, queued_at=time.time())
+    _log_action(run_id, "queued")
 
     log.info("Queued run %s: branch=%s", run_id, branch)
     RUN_EXECUTOR.submit(_run_agent, run_id, prompt, branch)
@@ -489,7 +524,7 @@ async def trigger(request: Request):
 async def status(run_id: str):
     if not _meta(run_id).exists():
         raise HTTPException(status_code=404, detail="Run not found")
-    return _load(run_id)
+    return {**_load(run_id), "actions": _actions_summary(run_id)}
 
 
 @app.get("/health")
@@ -599,6 +634,7 @@ def _recover() -> None:
         elif run.get("finished_at", meta.stat().st_mtime) < cutoff:
             meta.unlink(missing_ok=True)
             (LOG_DIR / f"{run_id}.log").unlink(missing_ok=True)
+            _actions_log(run_id).unlink(missing_ok=True)
 
 
 _recover()
