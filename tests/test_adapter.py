@@ -329,6 +329,7 @@ def test_a_second_fix_round_sees_both_rounds_findings_newest_first(adapter, monk
     round_2_prompt = (root / ".factory-logs" / f"{run_id}.log").read_text().split("===== attempt 2 =====")[1]
     assert "ROUND-1-ONLY" in round_2_prompt and "ROUND-2-ONLY" in round_2_prompt
     assert round_2_prompt.index("ROUND-2-ONLY") < round_2_prompt.index("ROUND-1-ONLY")
+    assert "follow the latest" in round_2_prompt and "commit message" in round_2_prompt
 
 
 def test_findings_history_is_persisted_newest_last(adapter, monkeypatch):
@@ -355,11 +356,6 @@ def test_combined_findings_past_the_limit_trim_the_oldest_round_first(adapter, m
     round_2_prompt = (root / ".factory-logs" / f"{run_id}.log").read_text().split("===== attempt 2 =====")[1]
     assert "ROUND-2-ONLY" in round_2_prompt
     assert "ROUND-1-ONLY" not in round_2_prompt
-
-
-def test_fix_task_template_tells_the_builder_to_follow_the_latest_round(adapter):
-    module, _, _ = adapter
-    assert "latest" in module.FIX_TASK_TEMPLATE and "commit message" in module.FIX_TASK_TEMPLATE
 
 
 def test_a_pr_that_passes_first_time_is_not_retried(adapter):
