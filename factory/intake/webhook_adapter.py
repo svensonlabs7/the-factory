@@ -135,7 +135,7 @@ def _log_action(run_id: str, event: str, **detail) -> None:
 
 def _actions_summary(run_id: str) -> dict:
     """The count of each event logged for a run, and the name of the last one."""
-    events = [entry["event"] for entry in _read_jsonl(_actions_log(run_id))]
+    events = [event for entry in _read_jsonl(_actions_log(run_id)) if (event := entry.get("event"))]
     return {"counts": dict(Counter(events)), "last": events[-1] if events else None}
 
 
@@ -375,8 +375,8 @@ def _finish(run_id: str, status: str, **fields) -> None:
     if pr_url and status != "completed":
         heartbeat["last_pr_blocked"] = pr_url
     _set_heartbeat(**heartbeat)
-    _update(run_id, status=status, finished_at=time.time(), **fields)  # last, so a poller that sees the final status sees the heartbeat too
     _log_action(run_id, "finished", status=status)
+    _update(run_id, status=status, finished_at=time.time(), **fields)  # last, so a poller that sees the final status sees the heartbeat and action log too
     log.info("Run %s %s", run_id, status)
 
 
