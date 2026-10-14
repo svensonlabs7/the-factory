@@ -386,7 +386,7 @@ def _usage_limit_wait(log_tail: str, now: Optional[dt.datetime] = None) -> Optio
     if not USAGE_LIMIT_RE.search(log_tail):
         return None
     now = now or dt.datetime.now(dt.timezone.utc)
-    wait = USAGE_LIMIT_DEFAULT_WAIT
+    wait: float = USAGE_LIMIT_DEFAULT_WAIT
     match = RESET_TIME_RE.search(log_tail)
     if match:
         hour, minute, meridiem = int(match[1]) % 12, int(match[2]), match[3].lower()
