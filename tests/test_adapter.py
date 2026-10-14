@@ -897,13 +897,17 @@ def test_command_data_counts_rejections_by_reason(adapter):
     assert client.get("/command/data").json()["rejections"] == {"last_24h": {"Invalid signature": 2, "Too many runs": 1}, "last_hour": 1}
 
 
+def read_actions(module, run_id):
+    return module._read_jsonl(module._actions_log(run_id))
+
+
 def test_actions_log_records_the_run_lifecycle(adapter):
-    module, root, client = adapter
+    module, _, client = adapter
     run_id = trigger(client).json()["run_id"]
     run = wait_done(client, run_id)
     assert run["status"] == "completed"
 
-    lines = [json.loads(line) for line in (root / ".factory-logs" / f"{run_id}.actions.jsonl").read_text().splitlines()]
+    lines = read_actions(module, run_id)
     assert [line["event"] for line in lines] == ["queued", "round_started", "round_finished", "pushed", "pr_opened", "gate_result", "finished"]
     assert all(isinstance(line["time"], float) for line in lines)
     by_event = {line["event"]: line for line in lines}
@@ -917,13 +921,13 @@ def test_actions_log_records_the_run_lifecycle(adapter):
 
 
 def test_actions_log_reports_each_failing_check_through_a_fix_round(adapter, monkeypatch):
-    module, root, client = adapter
+    module, _, client = adapter
     monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,pass")
     run_id = trigger(client).json()["run_id"]
     run = wait_done(client, run_id)
     assert run["status"] == "completed"
 
-    lines = [json.loads(line) for line in (root / ".factory-logs" / f"{run_id}.actions.jsonl").read_text().splitlines()]
+    lines = read_actions(module, run_id)
     gate_results = [line for line in lines if line["event"] == "gate_result"]
     assert [g["attempt"] for g in gate_results] == [1, 2]
     assert gate_results[0]["checks"]["thermo-nuclear"] == "fail"
@@ -932,13 +936,13 @@ def test_actions_log_reports_each_failing_check_through_a_fix_round(adapter, mon
 
 
 def test_a_failed_round_logs_its_exit_code_with_no_pushed_event(adapter, monkeypatch):
-    module, root, client = adapter
+    module, _, client = adapter
     monkeypatch.setenv("FAKE_EXIT", "3")
     run_id = trigger(client).json()["run_id"]
     run = wait_done(client, run_id)
     assert run["status"] == "failed"
 
-    lines = [json.loads(line) for line in (root / ".factory-logs" / f"{run_id}.actions.jsonl").read_text().splitlines()]
+    lines = read_actions(module, run_id)
     assert [line["event"] for line in lines] == ["queued", "round_started", "round_finished", "finished"]
     assert lines[2]["exit_code"] == 3
     assert lines[3]["status"] == "failed"
@@ -951,7 +955,7 @@ def test_a_logging_failure_is_swallowed_not_raised(adapter, monkeypatch):
 
 
 def test_status_includes_an_actions_summary(adapter):
-    module, root, client = adapter
+    _, _, client = adapter
     run_id = trigger(client).json()["run_id"]
     run = wait_done(client, run_id)
     assert run["actions"]["last"] == "finished"
@@ -961,7 +965,7 @@ def test_status_includes_an_actions_summary(adapter):
 
 
 def test_status_of_a_run_with_no_actions_yet_has_an_empty_summary(adapter):
-    module, root, client = adapter
+    module, _, client = adapter
     module._update("noactions", run_id="noactions", status="queued")
     assert client.get("/status/noactions").json()["actions"] == {"counts": {}, "last": None}
 
