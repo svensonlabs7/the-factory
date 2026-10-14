@@ -248,8 +248,9 @@ def _build_prompt(user_task: str, branch: str, run_id: str) -> str:
 # ---------------------------------------------------------------------------
 
 class AgentFailed(Exception):
-    def __init__(self, code: int):
+    def __init__(self, code: int, output: str = ""):
         self.code = code
+        self.output = output
 
 
 def _run(*cmd: str, cwd: Path = FACTORY_ROOT) -> str:
@@ -355,8 +356,10 @@ def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> s
     """One builder round in a fresh sandbox. Returns the head it pushed, or raises AgentFailed."""
     _update(run_id, status="running", attempt=attempt)
     _set_heartbeat(pipeline_status="running", build_status="building", qa_gate_status="—")
+    log_path = LOG_DIR / f"{run_id}.log"
+    start = len(log_path.read_text()) if log_path.exists() else 0
     with _checkout(f"{run_id}-{attempt}", branch, base="main" if attempt == 0 else branch) as workdir, \
-            open(LOG_DIR / f"{run_id}.log", "a") as lf:
+            open(log_path, "a") as lf:
         lf.write(f"===== attempt {attempt} =====\n")
         lf.flush()
         result = subprocess.run(
@@ -366,7 +369,7 @@ def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> s
             timeout=AGENT_TIMEOUT,
         )
         if result.returncode:
-            raise AgentFailed(result.returncode)
+            raise AgentFailed(result.returncode, output=log_path.read_text()[start:][-LOG_TAIL:])
         return _push(branch, workdir, since)
 
 
@@ -401,8 +404,8 @@ def _build_round(run_id: str, attempt: int, prompt: str, branch: str, since: str
     failure during the retry, propagates like a bare `_build` failure."""
     try:
         return _build(run_id, attempt, prompt, branch, since)
-    except AgentFailed:
-        paused = _usage_limit_wait((LOG_DIR / f"{run_id}.log").read_text().rsplit("===== attempt", 1)[-1])
+    except AgentFailed as exc:
+        paused = _usage_limit_wait(exc.output)
         if paused is None:
             raise
         wait, resume = paused
