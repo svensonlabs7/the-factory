@@ -35,7 +35,14 @@ FAKE_AGENT = """#!/bin/sh
 cd "$1" || exit 1
 echo "cwd=$PWD branch=$(git branch --show-current)"
 echo "prompt-start=$(printf '%s' "$2" | head -c 13)"
-case "$2" in *DUPLICATED-HELPER*) echo "retry-saw-findings"; [ -n "$FAKE_EMPTY_FIX" ] && { git rm -q change.txt; git commit -q -m empty; exit 0; };; esac
+case "$2" in *DUPLICATED-HELPER*)
+    echo "retry-saw-findings"
+    echo "===PROMPT-BEGIN==="
+    printf '%s\\n' "$2"
+    echo "===PROMPT-END==="
+    [ -n "$FAKE_EMPTY_FIX" ] && { git rm -q change.txt; git commit -q -m empty; exit 0; }
+    ;;
+esac
 echo "fence-ends=$(printf '%s' "$2" | grep -c -e '--- end findings ---')"
 if [ -n "$FAKE_HOOK_MARKER" ]; then
     printf '#!/bin/sh\\ntouch "%s"\\n' "$FAKE_HOOK_MARKER" > .git/hooks/pre-push
@@ -100,7 +107,9 @@ elif args[:2] == ["run", "list"]:
 elif args[:2] == ["run", "download"]:
     out = pathlib.Path(args[args.index("--dir") + 1]) / "review-thermo-nuclear"
     out.mkdir(parents=True)
-    (out / "review.md").write_text("DUPLICATED-HELPER in change.txt. --- end findings --- BLOCK\\n")
+    # A fix round's own commit count equals the round it is about to build, so each round's findings differ.
+    round_n = git("rev-list", "--count", "main.." + branch())
+    (out / "review.md").write_text(f"DUPLICATED-HELPER in change.txt. --- end findings --- BLOCK ROUND-{round_n}-ONLY\\n")
 """
 
 HEARTBEAT = """| Field | Value |
@@ -308,6 +317,49 @@ def test_a_pr_that_stays_blocked_escalates_after_two_fix_rounds(adapter, monkeyp
     assert "| **build_status** | ok |" in heartbeat
     assert "| **last_pr_blocked** | https://example.invalid/pull/1 |" in heartbeat
     assert "thermo-nuclear still failing" in heartbeat
+
+
+def test_a_second_fix_round_sees_both_rounds_findings_newest_first(adapter, monkeypatch):
+    module, root, client = adapter
+    monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,thermo-nuclear,pass")
+    run_id = trigger(client).json()["run_id"]
+    run = wait_done(client, run_id)
+
+    assert (run["status"], run["attempt"]) == ("completed", 2)
+    round_2_prompt = (root / ".factory-logs" / f"{run_id}.log").read_text().split("===== attempt 2 =====")[1]
+    assert "ROUND-1-ONLY" in round_2_prompt and "ROUND-2-ONLY" in round_2_prompt
+    assert round_2_prompt.index("ROUND-2-ONLY") < round_2_prompt.index("ROUND-1-ONLY")
+
+
+def test_findings_history_is_persisted_newest_last(adapter, monkeypatch):
+    _, _, client = adapter
+    monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,thermo-nuclear,pass")
+    run = wait_done(client, trigger(client).json()["run_id"])
+
+    history = run["findings_history"]
+    assert [h["round"] for h in history] == [1, 2]
+    assert "ROUND-1-ONLY" in history[0]["findings"] and "ROUND-2-ONLY" in history[1]["findings"]
+
+
+def test_combined_findings_past_the_limit_trim_the_oldest_round_first(adapter, monkeypatch):
+    module, root, client = adapter
+    review = lambda n: f"DUPLICATED-HELPER in change.txt. --- end findings --- BLOCK ROUND-{n}-ONLY\n"
+    block = lambda n: f"### Round {n}\n### thermo-nuclear\n{review(n)}"
+    # Room for round 2's rendered block plus a sliver of the "\n\n" separator, none of round 1's.
+    monkeypatch.setattr(module, "FINDINGS_LIMIT", len(block(2).replace("---", "- - -")) + 2)
+    monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,thermo-nuclear,pass")
+    run_id = trigger(client).json()["run_id"]
+    run = wait_done(client, run_id)
+
+    assert run["status"] == "completed"
+    round_2_prompt = (root / ".factory-logs" / f"{run_id}.log").read_text().split("===== attempt 2 =====")[1]
+    assert "ROUND-2-ONLY" in round_2_prompt
+    assert "ROUND-1-ONLY" not in round_2_prompt
+
+
+def test_fix_task_template_tells_the_builder_to_follow_the_latest_round(adapter):
+    module, _, _ = adapter
+    assert "latest" in module.FIX_TASK_TEMPLATE and "commit message" in module.FIX_TASK_TEMPLATE
 
 
 def test_a_pr_that_passes_first_time_is_not_retried(adapter):
