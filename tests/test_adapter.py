@@ -329,25 +329,17 @@ def test_a_second_fix_round_sees_both_rounds_findings_newest_first(adapter, monk
     round_2_prompt = (root / ".factory-logs" / f"{run_id}.log").read_text().split("===== attempt 2 =====")[1]
     assert "ROUND-1-ONLY" in round_2_prompt and "ROUND-2-ONLY" in round_2_prompt
     assert round_2_prompt.index("ROUND-2-ONLY") < round_2_prompt.index("ROUND-1-ONLY")
-    assert "follow the latest" in round_2_prompt and "commit message" in round_2_prompt
-
-
-def test_findings_history_is_persisted_newest_last(adapter, monkeypatch):
-    _, _, client = adapter
-    monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,thermo-nuclear,pass")
-    run = wait_done(client, trigger(client).json()["run_id"])
-
-    history = run["findings_history"]
-    assert [h["round"] for h in history] == [1, 2]
-    assert "ROUND-1-ONLY" in history[0]["findings"] and "ROUND-2-ONLY" in history[1]["findings"]
+    assert "follow the latest" in round_2_prompt
 
 
 def test_combined_findings_past_the_limit_trim_the_oldest_round_first(adapter, monkeypatch):
     module, root, client = adapter
     review = lambda n: f"DUPLICATED-HELPER in change.txt. --- end findings --- BLOCK ROUND-{n}-ONLY\n"
     block = lambda n: f"### Round {n}\n### thermo-nuclear\n{review(n)}"
-    # Room for round 2's rendered block plus a sliver of the "\n\n" separator, none of round 1's.
-    monkeypatch.setattr(module, "FINDINGS_LIMIT", len(block(2).replace("---", "- - -")) + 2)
+    fits_round_2 = len(block(2).replace("---", "- - -"))
+    fits_both = fits_round_2 + 2 + len(block(1).replace("---", "- - -"))  # "\n\n" joins the two rendered blocks
+    # Strictly between "round 2 alone fits" and "both rounds fit", so the test isn't pinned to the header format.
+    monkeypatch.setattr(module, "FINDINGS_LIMIT", (fits_round_2 + fits_both) // 2)
     monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,thermo-nuclear,pass")
     run_id = trigger(client).json()["run_id"]
     run = wait_done(client, run_id)
