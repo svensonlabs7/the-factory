@@ -34,6 +34,7 @@ def sign(body: bytes, timestamp=None, secret=SECRET) -> dict:
 
 FAKE_AGENT = """#!/bin/sh
 cd "$1" || exit 1
+echo $$ > "$FAKE_AGENT_STATE/pid"
 echo "cwd=$PWD branch=$(git branch --show-current)"
 echo "prompt-start=$(printf '%s' "$2" | head -c 13)"
 case "$2" in *DUPLICATED-HELPER*)
@@ -282,6 +283,30 @@ def test_failed_agent_reports_exit_code_and_publishes_nothing(adapter, monkeypat
     assert "| **build_status** | failed |" in (root / "HEARTBEAT.md").read_text()
     assert "pr_url" not in run
     assert "refs/heads/factory" not in git(root, "ls-remote", "origin")
+
+
+def test_a_timed_out_round_is_stopped_for_real(adapter, monkeypatch, tmp_path):
+    module, root, client = adapter
+    monkeypatch.setattr(module, "AGENT_TIMEOUT", 2)
+    monkeypatch.setattr(module, "AGENT_TIMEOUT_GRACE", 1)
+    monkeypatch.setenv("FAKE_SLEEP", "30")  # far past AGENT_TIMEOUT + its grace period
+
+    run_id = trigger(client).json()["run_id"]
+    run = wait_done(client, run_id)
+
+    expected_reason = f"build round 0 passed the {module.AGENT_TIMEOUT // 60}-minute limit"
+    assert run["status"] == "timeout"
+    assert run["blocking_reason"] == expected_reason
+    assert f"| **blocking_reason** | {expected_reason} |" in (root / "HEARTBEAT.md").read_text()
+
+    actions = [json.loads(line) for line in (root / ".factory-logs" / f"{run_id}.actions.jsonl").read_text().splitlines()]
+    finished = next(a for a in actions if a["event"] == "round_finished")
+    assert (finished["attempt"], finished["exit_code"], finished["timed_out"]) == (0, None, True)
+
+    # The fake agent's own pid is also its process group's id (Popen started it in a new session).
+    pid = int((tmp_path / "agent-state" / "pid").read_text())
+    with pytest.raises(ProcessLookupError):
+        os.killpg(pid, 0)
 
 
 USAGE_LIMIT_MESSAGE = "You’ve hit your session limit · resets 5:40am (UTC)"

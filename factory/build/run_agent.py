@@ -12,6 +12,7 @@ which bills to the Claude plan. Its network reaches only the hosts in egress/all
 through a proxy, so that token cannot be sent anywhere else (egress.sh).
 """
 import os
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -24,6 +25,10 @@ from openhands.workspace import DockerWorkspace
 SERVER_IMAGE = "ghcr.io/openhands/agent-server@sha256:082368832a7e48087b64da38c7b2cf2442dd7621fde69f8d06ed52283ff136f8"
 SANDBOX_DIR = "/workspace/project"
 PROXY = "http://172.30.0.2:8888"  # factory-egress, set up by egress.sh
+
+# The caller's round timeout SIGTERMs this process first. Exit normally so the `with DockerWorkspace` block
+# below still runs its cleanup and removes the container, instead of dying mid-conversation and leaking it.
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 
 # The Docker VM mounts only the home directory, so <workdir> must live under it.
 workdir, prompt, timeout = sys.argv[1:]
