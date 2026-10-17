@@ -20,6 +20,7 @@ import os
 import re
 import shlex
 import shutil
+import signal
 import subprocess
 import tempfile
 import threading
@@ -50,7 +51,9 @@ FACTORY_ROOT = Path(os.environ.get("FACTORY_ROOT", "/Users/labs/projects/the-fac
 # Runs the agent in an OpenHands Docker sandbox. Called as: <command> <workdir> <prompt> <timeout-seconds>.
 AGENT_CMD = shlex.split(os.environ.get("FACTORY_AGENT_CMD", f"uv run -q --script {FACTORY_ROOT}/factory/build/run_agent.py"))
 AGENT_TIMEOUT = 1800  # 30-minute cap. The agent gets a shorter limit so it can end itself and remove its container.
+AGENT_TIMEOUT_GRACE = 30  # seconds a timed-out round's SIGTERM gets before the process group is SIGKILLed
 GH_BIN = os.environ.get("GH_BIN", "gh")
+DOCKER_BIN = os.environ.get("DOCKER_BIN", "docker")
 # A blocked PR gets this many fix rounds, each by a fresh builder, before the run escalates to HEARTBEAT.
 MAX_RETRIES = 2
 # A build that fails because the agent hit its Claude plan's usage limit is paused and retried once instead of
@@ -287,6 +290,26 @@ class AgentFailed(Exception):
         self.output = output
 
 
+class AgentTimedOut(Exception):
+    def __init__(self, attempt: int):
+        self.attempt = attempt
+
+
+def _stop_containers(workdir: Path) -> None:
+    """Stop every container whose volume mount is `workdir`. The sandbox runs with --rm, so this both ends the
+    container and removes it. Never raises: a stuck or missing docker must not stop the round from finishing
+    as a timeout, it only means the container outlives the run a little longer."""
+    try:
+        ids = subprocess.run(
+            [DOCKER_BIN, "ps", "-q", "--filter", f"volume={workdir}"],
+            capture_output=True, text=True, timeout=COMMAND_TIMEOUT,
+        ).stdout.split()
+        if ids:
+            subprocess.run([DOCKER_BIN, "stop", *ids], capture_output=True, text=True, timeout=COMMAND_TIMEOUT)
+    except Exception:
+        log.exception("Failed to stop the sandbox container for %s", workdir)
+
+
 def _run(*cmd: str, cwd: Path = FACTORY_ROOT) -> str:
     # A hung command raises RuntimeError, so it is reported as an error, never as the agent's timeout.
     try:
@@ -390,7 +413,7 @@ def _finish(run_id: str, status: str, **fields) -> None:
 
 
 def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> str:
-    """One builder round in a fresh sandbox. Returns the head it pushed, or raises AgentFailed."""
+    """One builder round in a fresh sandbox. Returns the head it pushed, or raises AgentFailed or AgentTimedOut."""
     _update(run_id, status="running", attempt=attempt)
     _log_action(run_id, "round_started", attempt=attempt)
     _set_heartbeat(pipeline_status="running", build_status="building", qa_gate_status="—")
@@ -401,15 +424,28 @@ def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> s
             open(log_path, "a") as lf:
         lf.write(f"===== attempt {attempt} =====\n")
         lf.flush()
-        result = subprocess.run(
+        # Its own session, so a timeout can SIGTERM/SIGKILL the whole process group, not just this one process.
+        process = subprocess.Popen(
             [*AGENT_CMD, str(workdir), prompt, str(AGENT_TIMEOUT - 300)],
             stdout=lf,
             stderr=subprocess.STDOUT,
-            timeout=AGENT_TIMEOUT,
+            start_new_session=True,
         )
-        _log_action(run_id, "round_finished", attempt=attempt, exit_code=result.returncode, seconds=round(time.time() - started, 1))
-        if result.returncode:
-            raise AgentFailed(result.returncode, output=log_path.read_text()[start:][-LOG_TAIL:])
+        try:
+            exit_code = process.wait(timeout=AGENT_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            _stop_containers(workdir)
+            os.killpg(process.pid, signal.SIGTERM)
+            try:
+                process.wait(timeout=AGENT_TIMEOUT_GRACE)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait()
+            _log_action(run_id, "round_finished", attempt=attempt, exit_code=None, timed_out=True, seconds=round(time.time() - started, 1))
+            raise AgentTimedOut(attempt)
+        _log_action(run_id, "round_finished", attempt=attempt, exit_code=exit_code, seconds=round(time.time() - started, 1))
+        if exit_code:
+            raise AgentFailed(exit_code, output=log_path.read_text()[start:][-LOG_TAIL:])
         head = _push(branch, workdir, since)
         _log_action(run_id, "pushed", head=head)
         return head
@@ -486,8 +522,8 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
             head = _build_round(run_id, attempt, _fix_prompt(task, findings_history, branch, run_id), branch, since=head)
     except AgentFailed as exc:
         _finish(run_id, "failed", exit_code=exc.code)
-    except subprocess.TimeoutExpired:
-        _finish(run_id, "timeout")
+    except AgentTimedOut as exc:
+        _finish(run_id, "timeout", blocking_reason=f"build round {exc.attempt} passed the {AGENT_TIMEOUT // 60}-minute limit")
     except Exception as exc:
         log.exception("Run %s failed with exception: %s", run_id, exc)
         _finish(run_id, "error", error=str(exc))

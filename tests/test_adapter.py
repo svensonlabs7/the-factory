@@ -33,6 +33,8 @@ def sign(body: bytes, timestamp=None, secret=SECRET) -> dict:
 
 
 FAKE_AGENT = """#!/bin/sh
+echo $$ > "$FAKE_AGENT_STATE/last-pid"
+[ -n "$FAKE_IGNORE_TERM" ] && trap '' TERM
 cd "$1" || exit 1
 echo "cwd=$PWD branch=$(git branch --show-current)"
 echo "prompt-start=$(printf '%s' "$2" | head -c 13)"
@@ -122,6 +124,19 @@ elif args[:2] == ["run", "download"]:
     (out / "review.md").write_text(f"DUPLICATED-HELPER in change.txt. --- end findings --- BLOCK ROUND-{round_n}-ONLY\\n")
 """
 
+FAKE_DOCKER = """#!/usr/bin/env python3
+import os, pathlib, sys
+
+state = pathlib.Path(os.environ["FAKE_DOCKER_STATE"])
+args = sys.argv[1:]
+
+if args[:2] == ["ps", "-q"]:
+    (state / "ps-filter").write_text(args[args.index("--filter") + 1])
+    print("fake-container-id")
+elif args[0] == "stop":
+    (state / "stop-ids").write_text(" ".join(args[1:]))
+"""
+
 HEARTBEAT = """| Field | Value |
 |---|---|
 | **last_run** | — |
@@ -150,7 +165,8 @@ def adapter(tmp_path, monkeypatch):
     (root / "HEARTBEAT.md").write_text(HEARTBEAT)
     (tmp_path / "gh-state").mkdir()
     (tmp_path / "agent-state").mkdir()
-    for name, body in (("fake-agent.sh", FAKE_AGENT), ("fake-gh.py", FAKE_GH)):
+    (tmp_path / "docker-state").mkdir()
+    for name, body in (("fake-agent.sh", FAKE_AGENT), ("fake-gh.py", FAKE_GH), ("fake-docker.py", FAKE_DOCKER)):
         (tmp_path / name).write_text(body)
         (tmp_path / name).chmod(0o755)
 
@@ -158,8 +174,10 @@ def adapter(tmp_path, monkeypatch):
     monkeypatch.setenv("FACTORY_ROOT", str(root))
     monkeypatch.setenv("FACTORY_AGENT_CMD", str(tmp_path / "fake-agent.sh"))
     monkeypatch.setenv("GH_BIN", str(tmp_path / "fake-gh.py"))
+    monkeypatch.setenv("DOCKER_BIN", str(tmp_path / "fake-docker.py"))
     monkeypatch.setenv("FAKE_GH_STATE", str(tmp_path / "gh-state"))
     monkeypatch.setenv("FAKE_AGENT_STATE", str(tmp_path / "agent-state"))
+    monkeypatch.setenv("FAKE_DOCKER_STATE", str(tmp_path / "docker-state"))
     monkeypatch.setenv("FAKE_ORIGIN", str(origin))
     sys.modules.pop("factory.intake.webhook_adapter", None)
     module = importlib.import_module("factory.intake.webhook_adapter")
@@ -332,6 +350,35 @@ def test_an_unrelated_agent_failure_is_not_treated_as_a_usage_limit(adapter, mon
 
     assert (run["status"], run["exit_code"]) == ("failed", 3)
     assert sleeps == []
+
+
+def test_a_timed_out_round_stops_its_container_and_process_then_ends_the_run(adapter, monkeypatch):
+    module, root, client = adapter
+    monkeypatch.setattr(module, "AGENT_TIMEOUT", 1)
+    monkeypatch.setattr(module, "AGENT_TIMEOUT_GRACE", 1)
+    monkeypatch.setenv("FAKE_SLEEP", "5")
+    monkeypatch.setenv("FAKE_IGNORE_TERM", "1")  # forces the SIGKILL path, not just SIGTERM
+
+    run_id = trigger(client).json()["run_id"]
+    run = wait_done(client, run_id)
+
+    assert run["status"] == "timeout"
+    assert run["blocking_reason"] == "build round 0 passed the 0-minute limit"
+    assert "| **blocking_reason** | build round 0 passed the 0-minute limit |" in (root / "HEARTBEAT.md").read_text()
+
+    lines = read_actions(module, run_id)
+    round_finished = next(line for line in lines if line["event"] == "round_finished")
+    assert (round_finished["exit_code"], round_finished["timed_out"]) == (None, True)
+    assert lines[-1] == {"time": lines[-1]["time"], "event": "finished", "status": "timeout"}
+
+    workdir = module.RUNS_DIR / f"{run_id}-0"
+    docker_state = root.parent / "docker-state"
+    assert docker_state.joinpath("ps-filter").read_text() == f"volume={workdir}"
+    assert docker_state.joinpath("stop-ids").read_text() == "fake-container-id"
+
+    pid = int((root.parent / "agent-state" / "last-pid").read_text())
+    with pytest.raises(ProcessLookupError):
+        os.kill(pid, 0)
 
 
 @pytest.mark.parametrize("apostrophe", ["'", "’"])
