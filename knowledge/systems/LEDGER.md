@@ -35,7 +35,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 70 | JWT Rotation | proven | [070-jwt-rotation.md](070-jwt-rotation.md) |
 | 71 | TLS | proven | [071-tls.md](071-tls.md) |
 | 73 | Encryption in Transit | proven | [073-encryption-in-transit.md](073-encryption-in-transit.md) |
-| 72 | Encryption at Rest | todo | |
+| 72 | Encryption at Rest | proven | [072-encryption-at-rest.md](072-encryption-at-rest.md) |
 | 74 | WAF | todo | |
 | 75 | DDoS Protection | todo | |
 
