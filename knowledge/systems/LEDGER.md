@@ -27,7 +27,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 |---|---|---|---|
 | 67 | Secrets Management | proven | [067-secrets-management.md](067-secrets-management.md) |
 | 80 | SSRF | proven | [080-ssrf.md](080-ssrf.md) |
-| 78 | SQL Injection | todo | |
+| 78 | SQL Injection | proven | [078-sql-injection.md](078-sql-injection.md) |
 | 79 | XSS | todo | |
 | 77 | CSRF | todo | |
 | 76 | CORS | todo | |
