@@ -21,7 +21,7 @@ Every service that someone depends on needs at least one black-box probe of its 
 - **The watcher has no path:** the signal exists but is not reachable from where the watcher runs.
 
 ## Review checklist
-- [ ] **Does a new service have both a black-box probe and a white-box signal, read by something that alerts?** · Applies when: the diff adds a long-running service or public endpoint. · Block if: its health is visible only on a dashboard or in local files that nothing polls.
+- [ ] **Does a new service have both a black-box probe and a white-box signal, read by something that alerts?** · Applies when: the diff adds a long-running service or a new public hostname. · Block if: its health is visible only on a dashboard or in local files that nothing polls. A route added to an already-watched service needs no new probe.
 - [ ] **Does the probe reach the origin?** · Applies when: the diff adds or changes an external probe behind an edge, auth gateway or cache. · Block if: the probe can be answered by the edge or auth layer without touching the origin (it must authenticate, or check a response only the origin produces).
 - [ ] **Can the watcher reach the signal?** · Applies when: the diff adds a health or heartbeat endpoint meant for an external watcher. · Block if: the tunnel, proxy or firewall does not route it to where the watcher runs.
 - [ ] **Has the monitoring been seen to fire?** · Applies when: the diff adds an alerting rule or probe. · Block if: there is no test or recorded drill showing it fires on the failure it targets.
@@ -41,7 +41,7 @@ https://factory.svensonlabs.dev/this-path-is-not-routed -> 401 (37816 bytes)
 The answers are byte-identical, so Cloudflare Access replies before the tunnel or origin is consulted. Who has polled the adapter (`intake.out.log` client addresses, behind cloudflared's forwarded headers): `127.0.0.1` (160), and addresses in this home's own IPv6 prefix and IPv4 (about 5,700, the operator's dashboard). No external watcher appears. `pmset -g custom`: `AC Power: sleep 0`.
 
 ## Related
-056-health-checks.md, 057-liveness-readiness-probes.md, 062-alerts.md, 061-metrics.md, 020-dead-letter-queues.md
+056-health-checks.md, 057-liveness-readiness-probes.md, 062-alerts.md, 061-metrics.md, 020-dead-letter-queues.md, 064-slis.md
 
 ## Sources
 - "Monitoring Distributed Systems" (black-box and white-box monitoring), Google SRE book: https://sre.google/sre-book/monitoring-distributed-systems/

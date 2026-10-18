@@ -29,7 +29,7 @@ Every service needs the four signals for its main unit of work, from day one, ev
 - **Errors without a denominator:** "12 failures" means nothing without "out of how many".
 
 ## Review checklist
-- [ ] **Does the new unit of work emit its golden signals?** · Applies when: the diff adds a job type, endpoint, queue or pipeline stage. · Block if: nothing records its count, its failures (with the total) and its duration.
+- [ ] **Does the new unit of work emit its golden signals?** · Applies when: the diff adds a job type, queue or pipeline stage, or an endpoint that starts work. · Block if: nothing records its count, its failures (with the total) and its duration. A read-only route on an already-instrumented service does not need its own signals.
 - [ ] **Is the binding resource measured?** · Applies when: the diff adds or changes handling of a quota, rate limit, pool or cap. · Block if: hitting or waiting on that limit emits no event, counter or gauge.
 - [ ] **Is the metric emitted where the event happens?** · Applies when: the diff adds a metric or KPI. · Block if: it is derived by text search over free-form logs instead of a structured event or counter.
 - [ ] **Is label cardinality bounded?** · Applies when: the diff adds labels or dimensions to a metric. · Block if: a label takes unbounded values (user ID, run ID, URL, free text).
@@ -55,7 +55,7 @@ SATURATION peak runs in flight: 3 of MAX_PENDING 5; busiest day: 3 of MAX_RUNS_P
 Checking those 3 by hand: only `1e8e28c7` really hit the limit (3 `ConversationRunError` lines). `4981e691` matched because its agent read test code containing the message, and `acec82e0`'s task was to build the pause feature. The text-derived number over-counts 3×.
 
 ## Related
-059-logging.md, 058-monitoring.md, 064-slis.md, 093-p99-latency.md, 062-alerts.md
+059-logging.md, 058-monitoring.md, 064-slis.md, 093-p99-latency.md, 062-alerts.md, 063-slos.md
 
 ## Sources
 - "Monitoring Distributed Systems", Google SRE book: https://sre.google/sre-book/monitoring-distributed-systems/

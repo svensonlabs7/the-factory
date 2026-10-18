@@ -29,3 +29,18 @@ Changed:
 Checked and kept:
 - 076 (Host validation) and 070 (Access JWT validation) both close the DNS-rebinding exposure. They are alternatives, not a contradiction, and each card names the other.
 - The severities in GAPS.md are consistent across cards: one high (no secret scan before the push), the rest medium or low. 68 IAM is deferred, and nothing from it is recorded.
+
+## 2026-10-18 · 30 cards (track B finished, minus 68; track C up to 63)
+
+Re-ran `061_metrics.py` against the real run records: same results (8 runs, 75% completed, 3/6 on the first build). The factory code is unchanged since the cards were written.
+
+Changed:
+- **063-slos.md (contradiction):** the suggested availability SLO was "`alive_at` fresh in 99% of minutes", but 057 proved `alive_at` keeps updating while the server cannot answer. It is now an authenticated `/health` probe through the tunnel, with a note explaining why.
+- **062-alerts.md:** the same blind spot. The staleness page catches a dead process but not a wedged one, so it is now paired with the authenticated `/health` probe.
+- **061-metrics.md:** the golden-signals item would have demanded new signals for any new endpoint. It now covers jobs, queues, pipeline stages and endpoints that start work, not read-only routes on an instrumented service.
+- **058-monitoring.md:** the probe item would have demanded a new probe for every route. It now applies to new services and new public hostnames.
+- **Related links:** added two-way links where the connection is real (020↔062, 057↔058, 020↔058, 061↔063, 058↔064, 074↔078, 074↔079, 044↔075, 057↔063).
+
+Checked and kept:
+- 062 and 064 add no gap rows of their own. Their findings are covered by the Monitoring, Dead Letter Queues and SLIs rows, so GAPS.md has no duplicates.
+- The TLS edge row (071) and the WAF card (074) agree that the edge settings are Cloudflare's, not the repo's.

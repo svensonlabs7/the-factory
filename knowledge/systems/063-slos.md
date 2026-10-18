@@ -33,7 +33,7 @@ It is worth it when someone depends on the service and decisions are being made 
 - Suggested starting set, loose by design:
   1. **Autonomous delivery:** 80% of triggered runs merged without human commits, over a rolling 90 days.
   2. **Latency:** 90% of runs open a PR within 60 minutes of trigger, over 90 days.
-  3. **Availability:** `alive_at` fresh in 99% of minutes over 30 days.
+  3. **Availability:** an authenticated probe of `/health` through the tunnel succeeds in 99% of minutes over 30 days. Do not use `alive_at` for this: 057-liveness-readiness-probes.md showed it keeps updating while the server cannot answer, so it proves the process exists, not that the factory is reachable.
 
   Minutes give about 43,000 events a month, so a 99% target is measurable there, and run outcomes are not.
 - Not applicable at today's load: SLAs, per-tenant SLOs and tight nines on run outcomes. There are about 60 runs a month at most (`MAX_RUNS_PER_DAY` is 30, real use is a few a day).
@@ -54,7 +54,7 @@ B  true rate 92%, SLO 90%: the month's number says 'met' in 80% of months
 Today's 8 runs cannot tell a good factory from a mediocre one. Even 60 runs a month misjudge a 90% target in about one month in five, in both directions. Longer windows narrow the interval: 600 events give ±3 points.
 
 ## Related
-064-slis.md, 065-error-budgets.md, 062-alerts.md, 061-metrics.md
+064-slis.md, 065-error-budgets.md, 062-alerts.md, 061-metrics.md, 057-liveness-readiness-probes.md
 
 ## Sources
 - "Embracing Risk", Google SRE book: https://sre.google/sre-book/embracing-risk/

@@ -53,7 +53,7 @@ C  factory's branch pattern accepts '--output=x': False, 'main$(touch${IFS}pwned
 ```
 
 ## Related
-101-webhooks.md, 067-secrets-management.md, 079-xss.md, 080-ssrf.md, 006-ci-cd.md
+101-webhooks.md, 067-secrets-management.md, 079-xss.md, 080-ssrf.md, 006-ci-cd.md, 074-waf.md
 
 ## Sources
 - "SQL Injection Prevention Cheat Sheet", OWASP: https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html

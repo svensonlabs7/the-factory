@@ -31,7 +31,7 @@ As soon as anyone depends on the service, it needs at least a liveness (stalenes
 ## In the factory
 - `factory/intake/webhook_adapter.py:77,576-579`: a burst of 20 rejected requests in an hour sets `open_incidents` in HEARTBEAT. It is a good symptom rule, but it only writes a file.
 - `factory/intake/command.html:195-197`: the dashboard shows `DOWN` and changes the tab title when `alive_at` is stale. It is a good staleness rule, but only while someone has the dashboard open.
-- No signal reaches a person. That is recorded as the Monitoring and Dead Letter Queues rows in GAPS.md, so no new row is added here. When it is wired, the experiment favours: page on `alive_at` stale for 5 minutes, page on 3 failed runs in a row, and use a dependency check before each build (056-health-checks.md) to catch a broken dependency in minutes rather than a day.
+- No signal reaches a person. That is recorded as the Monitoring and Dead Letter Queues rows in GAPS.md, so no new row is added here. When it is wired, the experiment favours: page on `alive_at` stale for 5 minutes (a dead process), and on the authenticated `/health` probe failing (a wedged one, which `alive_at` misses, per 057-liveness-readiness-probes.md), page on 3 failed runs in a row, and use a dependency check before each build (056-health-checks.md) to catch a broken dependency in minutes rather than a day.
 - Not applicable at today's load: burn-rate and SLO-window alerting. About 3 runs a day is too sparse for rates.
 
 ## Proof
@@ -46,7 +46,7 @@ page on >50% failed in 24h        false pages  5 | incident 1 detected after 29 
 "3 in a row" across 20 seeds: detection median 23 h, max 38 h, with false pages in 18 days median 0 and max 2. At this traffic, every outcome-based rule needs about a day to confirm a broken dependency. Only staleness catches a dead factory.
 
 ## Related
-058-monitoring.md, 063-slos.md, 065-error-budgets.md, 056-health-checks.md, 110-on-call.md
+058-monitoring.md, 063-slos.md, 065-error-budgets.md, 056-health-checks.md, 110-on-call.md, 020-dead-letter-queues.md
 
 ## Sources
 - "Alerting on SLOs", Google SRE workbook: https://sre.google/workbook/alerting-on-slos/
