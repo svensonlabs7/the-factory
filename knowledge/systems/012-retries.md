@@ -45,7 +45,7 @@ D  permanent error, retry transient  calls per request: 1
 ```
 
 ## Related
-011-timeouts.md, 013-exponential-backoff.md, 014-idempotency.md, 010-circuit-breakers.md, 001-rate-limiting.md
+011-timeouts.md, 013-exponential-backoff.md, 014-idempotency.md, 010-circuit-breakers.md, 001-rate-limiting.md, 020-dead-letter-queues.md, 101-webhooks.md
 
 ## Sources
 - Marc Brooker, "Timeouts, retries, and backoff with jitter", Amazon Builders' Library: https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter

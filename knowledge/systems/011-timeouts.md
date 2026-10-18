@@ -22,7 +22,7 @@ Always, for any call that crosses a process or network boundary: it costs one ar
 - [ ] **Is each inner limit shorter than the deadline around it?** · Applies when: a timed call runs inside another timed operation. · Block if: the inner timeout is greater than or equal to the enclosing one.
 - [ ] **Is a timeout reported as a timeout?** · Applies when: the diff adds a timeout handler. · Block if: the timeout is swallowed, retried with no limit, or reported without naming the operation and the limit that expired.
 - [ ] **Does the code know what its timeout measures?** · Applies when: the diff relies on a library's timeout parameter. · Block if: code or a comment treats a connect, per-read or idle timeout as a total deadline.
-- [ ] **Does a CI job that calls an LLM or the network set `timeout-minutes`?** · Applies when: the diff adds or edits a GitHub Actions job. · Block if: that job has no `timeout-minutes`.
+- [ ] **Does a long-running CI job set `timeout-minutes`?** · Applies when: the diff adds or edits a GitHub Actions job that calls an LLM, builds or runs untrusted code, or waits on an external service. · Block if: that job has no `timeout-minutes`.
 
 ## In the factory
 - `factory/intake/webhook_adapter.py:65,316-318`: every `git` and `gh` call gets `COMMAND_TIMEOUT` (300 s), and a hang is reported as an error naming the command. Right.
@@ -49,7 +49,7 @@ C-fix only stops the waiting; the reading thread runs on until the server finish
 Real sandbox: `run_agent.py <workdir> "<run sleep 600 in the foreground>" 40` exited 0 after 625 s. The 40-second `acp_prompt_timeout` never fired, and the run ended only when the tool's own 10-minute command limit ended the sleep.
 
 ## Related
-012-retries.md, 013-exponential-backoff.md, 014-idempotency.md, 010-circuit-breakers.md, 044-backpressure.md
+012-retries.md, 013-exponential-backoff.md, 014-idempotency.md, 010-circuit-breakers.md, 044-backpressure.md, 101-webhooks.md, 056-health-checks.md
 
 ## Sources
 - Marc Brooker, "Timeouts, retries, and backoff with jitter", Amazon Builders' Library: https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter

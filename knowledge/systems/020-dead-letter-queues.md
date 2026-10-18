@@ -46,7 +46,7 @@ B  in-flight run after restart: status='error' error='the service restarted duri
 ```
 
 ## Related
-012-retries.md, 044-backpressure.md, 014-idempotency.md, 062-alerts.md, 015-message-queues.md
+012-retries.md, 044-backpressure.md, 014-idempotency.md, 062-alerts.md, 015-message-queues.md, 010-circuit-breakers.md
 
 ## Sources
 - "Using dead-letter queues in Amazon SQS", AWS documentation: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html

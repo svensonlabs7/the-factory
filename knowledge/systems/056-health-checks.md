@@ -24,7 +24,7 @@ Every long-running service needs a liveness check that something actually watche
 
 ## Review checklist
 - [ ] **Does a new long-running service have a liveness check that something watches?** · Applies when: the diff adds a daemon, server or worker. · Block if: there is no endpoint or heartbeat a supervisor or monitor actually polls.
-- [ ] **Can the service tell "up" from "able to deliver"?** · Applies when: the diff adds or changes a dependency the service cannot work without (credentials, a CLI login, a daemon, a remote API). · Block if: nothing reports that dependency's state before real work fails on it.
+- [ ] **Can the service tell "up" from "able to deliver"?** · Applies when: the diff adds a new dependency the service cannot work without (credentials, a CLI login, a daemon, a remote API). · Block if: its failure would surface only after expensive work (a build, an LLM call) and nothing checks it first.
 - [ ] **Do automated actions use only shallow or local checks?** · Applies when: the diff wires a health check to a restart, failover or load-balancer removal. · Block if: a check that includes a shared dependency can remove or restart every instance at once.
 - [ ] **Is the check answered off the work path?** · Applies when: the diff adds a health endpoint. · Block if: it is served by the same worker or queue that does the real work, or it runs expensive dependency calls on every probe.
 - [ ] **Does the check report the running version?** · Applies when: the diff adds or changes a health endpoint of a service that is deployed by restart. · Block if: there is no way to tell which commit is running.

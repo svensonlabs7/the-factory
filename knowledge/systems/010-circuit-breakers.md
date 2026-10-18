@@ -27,7 +27,8 @@ It is worth it when many concurrent callers share a dependency that can fail for
 ## In the factory
 - `factory/intake/webhook_adapter.py:479-492`: a round that hits the Claude plan's usage limit pauses until the reset time the error states, then tries once more. With one worker (`RUN_EXECUTOR`, `:151`), that pause holds the whole queue. It is a circuit breaker in all but name, opened by a failure that states its own reset time. Right.
 - `factory/intake/webhook_adapter.py:328`: every round starts by cloning from GitHub, so a GitHub git outage fails the run in seconds, before any plan usage. Natural fail-fast. Right.
-- A GitHub API failure after a build (PR creation, check polling) loses that build. The fix is the retry gap in 012-retries.md, not a breaker.
+- A GitHub failure during the push loses that build, and one at PR creation or check polling leaves the branch pushed but the run `error`. The fix is the retry gap in 012-retries.md, not a breaker.
+- A dependency that is down for every run, such as a logged-out `gh`, makes each queued run build and then fail. For a serial worker the cheap guard is a dependency check before the build (see 056-health-checks.md), not a breaker.
 - Not applicable at today's load: a general breaker library or per-dependency breakers. One serial worker with at most `MAX_PENDING` (5) queued runs wastes at most a few builds in an outage, and bounded retries plus the existing pause cover it.
 
 ## Proof
@@ -50,7 +51,7 @@ breaker
 In the outage, the breaker cut load on the dependency 30× and caller waiting 30×. In the partial outage, it halved the success rate. After recovery, it kept rejecting good calls until its window passed.
 
 ## Related
-011-timeouts.md, 012-retries.md, 044-backpressure.md, 056-health-checks.md, 020-dead-letter-queues.md
+011-timeouts.md, 012-retries.md, 044-backpressure.md, 056-health-checks.md, 020-dead-letter-queues.md, 001-rate-limiting.md
 
 ## Sources
 - Martin Fowler, "CircuitBreaker": https://martinfowler.com/bliki/CircuitBreaker.html
