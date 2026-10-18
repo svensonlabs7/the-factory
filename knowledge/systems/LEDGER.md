@@ -45,7 +45,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 |---|---|---|---|
 | 59 | Logging | proven | [059-logging.md](059-logging.md) |
 | 61 | Metrics | proven | [061-metrics.md](061-metrics.md) |
-| 58 | Monitoring | todo | |
+| 58 | Monitoring | proven | [058-monitoring.md](058-monitoring.md) |
 | 62 | Alerts | todo | |
 | 64 | SLIs | todo | |
 | 63 | SLOs | todo | |
