@@ -83,5 +83,6 @@ For any task involving UI, forms, dashboards, pages, or user-facing flows — in
 - `factory/qa/` — QA gate notes (the gate itself is `.github/workflows/qa-gate.yml`)
 - `tests/` — adapter and wiring tests
 - `infra/cloudflare-tunnel/` — the public tunnel's config (credentials stay local)
+- `knowledge/systems/` — systems-mastery ledger and topic cards that `/systems-review` enforces
 - `vendor/` — pstack and Ponytail sources
 - `.claude/skills/`, `.claude/agents/` — Claude Code skills and subagents
