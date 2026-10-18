@@ -19,7 +19,7 @@ Paste this into an interactive Claude Code session in this repo:
 
 ## Into the factory
 
-1. **Now:** builders and reviewers can run `/systems-review` by hand. It PASSes until cards exist.
-2. **After track A (resilience) is done:** add `systems-review` as a lane in `.github/workflows/qa-gate.yml`, next to `ux-laws`, and make it a required check.
-3. **After track A:** add one line to `TASK_PROMPT_TEMPLATE` in `factory/intake/webhook_adapter.py`, telling builders to run `/systems-review` before and after building.
+1. **Now:** run `/systems-review` by hand. It PASSes until cards exist. It is user-invoked only (`disable-model-invocation: true`), so factory builds do not spend turns on it yet.
+2. **After track A (resilience) is done:** add `systems-review` as a lane in `.github/workflows/qa-gate.yml`, next to `ux-laws`, and make it a required check. The gate invokes it explicitly, as it does thermo-nuclear.
+3. **After track A:** remove `disable-model-invocation` from the skill, and add one line to `TASK_PROMPT_TEMPLATE` in `factory/intake/webhook_adapter.py` telling builders to run `/systems-review` before and after building.
 4. **As GAPS.md grows:** the operator turns `high` rows into factory tasks.

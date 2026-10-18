@@ -38,7 +38,7 @@ Do not fix gaps in the loop. Append each one to `knowledge/systems/GAPS.md` as o
 
 ## 5. Write the card
 
-Write `knowledge/systems/<NNN>-<slug>.md`, with the number zero-padded to three digits (`011-timeouts.md`). Use exactly these sections, because `systems-review` reads them:
+Write `knowledge/systems/<NNN>-<slug>.md`. Only the file name is zero-padded to three digits, so files sort in order (`011-timeouts.md`). The heading uses the plain topic number (`# 11. Timeouts`). Use exactly these sections, because `systems-review` reads them:
 
 ```markdown
 # <NN>. <Topic>

@@ -1,6 +1,7 @@
 ---
 name: systems-review
 description: Review or plan a change against the systems-engineering checklists in knowledge/systems/ (timeouts, retries, idempotency, security, observability, concurrency, data, deploys) and end with a PASS or BLOCK verdict. Use before building backend, infrastructure, or integration work, after building it, and when asked for a systems or reliability review.
+disable-model-invocation: true
 ---
 
 # Systems Review
