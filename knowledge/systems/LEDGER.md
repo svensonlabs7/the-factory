@@ -25,7 +25,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 67 | Secrets Management | todo | |
+| 67 | Secrets Management | proven | [067-secrets-management.md](067-secrets-management.md) |
 | 80 | SSRF | todo | |
 | 78 | SQL Injection | todo | |
 | 79 | XSS | todo | |
