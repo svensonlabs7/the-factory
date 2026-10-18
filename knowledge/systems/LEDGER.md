@@ -60,7 +60,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 39 | Race Conditions | proven | [039-race-conditions.md](039-race-conditions.md) |
 | 43 | Thread Safety | proven | [043-thread-safety.md](043-thread-safety.md) |
 | 40 | Deadlocks | proven | [040-deadlocks.md](040-deadlocks.md) |
-| 36 | Optimistic Locking | todo | |
+| 36 | Optimistic Locking | proven | [036-optimistic-locking.md](036-optimistic-locking.md) |
 | 37 | Pessimistic Locking | todo | |
 | 38 | Distributed Locks | todo | |
 | 41 | Memory Leaks | todo | |
