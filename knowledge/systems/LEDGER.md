@@ -48,7 +48,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 58 | Monitoring | proven | [058-monitoring.md](058-monitoring.md) |
 | 62 | Alerts | proven | [062-alerts.md](062-alerts.md) |
 | 64 | SLIs | proven | [064-slis.md](064-slis.md) |
-| 63 | SLOs | todo | |
+| 63 | SLOs | proven | [063-slos.md](063-slos.md) |
 | 65 | Error Budgets | todo | |
 | 60 | Distributed Tracing | todo | |
 | 66 | Observability | todo | |
