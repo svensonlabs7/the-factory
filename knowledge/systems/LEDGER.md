@@ -31,7 +31,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 79 | XSS | proven | [079-xss.md](079-xss.md) |
 | 77 | CSRF | proven | [077-csrf.md](077-csrf.md) |
 | 76 | CORS | proven | [076-cors.md](076-cors.md) |
-| 69 | OAuth | todo | |
+| 69 | OAuth | proven | [069-oauth.md](069-oauth.md) |
 | 70 | JWT Rotation | todo | |
 | 71 | TLS | todo | |
 | 73 | Encryption in Transit | todo | |
