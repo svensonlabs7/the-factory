@@ -30,7 +30,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 78 | SQL Injection | proven | [078-sql-injection.md](078-sql-injection.md) |
 | 79 | XSS | proven | [079-xss.md](079-xss.md) |
 | 77 | CSRF | proven | [077-csrf.md](077-csrf.md) |
-| 76 | CORS | todo | |
+| 76 | CORS | proven | [076-cors.md](076-cors.md) |
 | 68 | IAM | todo | |
 | 69 | OAuth | todo | |
 | 70 | JWT Rotation | todo | |
