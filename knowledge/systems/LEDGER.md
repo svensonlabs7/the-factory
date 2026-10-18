@@ -43,7 +43,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 59 | Logging | todo | |
+| 59 | Logging | proven | [059-logging.md](059-logging.md) |
 | 61 | Metrics | todo | |
 | 58 | Monitoring | todo | |
 | 62 | Alerts | todo | |
