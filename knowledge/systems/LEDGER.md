@@ -31,7 +31,6 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 79 | XSS | proven | [079-xss.md](079-xss.md) |
 | 77 | CSRF | proven | [077-csrf.md](077-csrf.md) |
 | 76 | CORS | proven | [076-cors.md](076-cors.md) |
-| 68 | IAM | todo | |
 | 69 | OAuth | todo | |
 | 70 | JWT Rotation | todo | |
 | 71 | TLS | todo | |
@@ -175,3 +174,13 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 85 | Failover | todo | |
 | 86 | Multi-Region Deployment | todo | |
 | 87 | Chaos Engineering | todo | |
+
+## Deferred
+
+Revisit later. These rows are picked only after every row above is done.
+
+- **68. IAM:** paused on 2026-10-18 at the operator's request; revisit later. The audit of the factory's GitHub push identity and `main`'s protection was done, but the card was not written. When revisiting, write the card around the defensive fixes (narrowest token for the adapter, one identity per workload).
+
+| # | Topic | Status | Card |
+|---|---|---|---|
+| 68 | IAM | todo | |
