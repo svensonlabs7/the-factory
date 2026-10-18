@@ -51,7 +51,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 63 | SLOs | proven | [063-slos.md](063-slos.md) |
 | 65 | Error Budgets | proven | [065-error-budgets.md](065-error-budgets.md) |
 | 60 | Distributed Tracing | proven | [060-distributed-tracing.md](060-distributed-tracing.md) |
-| 66 | Observability | todo | |
+| 66 | Observability | proven | [066-observability.md](066-observability.md) |
 
 ## D. Concurrency and correctness
 
