@@ -13,7 +13,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 12 | Retries | proven | [012-retries.md](012-retries.md) |
 | 13 | Exponential Backoff | proven | [013-exponential-backoff.md](013-exponential-backoff.md) |
 | 14 | Idempotency | proven | [014-idempotency.md](014-idempotency.md) |
-| 10 | Circuit Breakers | todo | |
+| 10 | Circuit Breakers | proven | [010-circuit-breakers.md](010-circuit-breakers.md) |
 | 1 | Rate Limiting | todo | |
 | 44 | Backpressure | todo | |
 | 20 | Dead Letter Queues | todo | |
