@@ -61,7 +61,7 @@ http://[::ffff:169.254.169.254]/         naive blocklist allows: False resolves 
 Checking the resolved IP with `ipaddress` (`is_private or is_link_local or is_loopback`) flags all five.
 
 ## Related
-067-secrets-management.md, 101-webhooks.md, 074-waf.md, 097-dns.md, 007-docker.md
+067-secrets-management.md, 101-webhooks.md, 074-waf.md, 097-dns.md, 007-docker.md, 076-cors.md
 
 ## Sources
 - "Server-Side Request Forgery Prevention Cheat Sheet", OWASP: https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html

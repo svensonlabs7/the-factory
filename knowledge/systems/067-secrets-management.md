@@ -25,7 +25,7 @@ Always, at any scale, for any credential. The minimum is no secrets in git (igno
 
 ## Review checklist
 - [ ] **Is every new secret kept out of git, code and logs?** · Applies when: the diff adds a credential, key or token, or code that handles one. · Block if: the value appears in a tracked file, a default, a log or error message, or a command-line argument.
-- [ ] **Is every publish step scanned before it publishes?** · Applies when: the diff adds or changes a step that pushes commits, uploads artifacts or posts output somewhere others can read. · Block if: content produced by an agent or untrusted input is published with no secret scan first.
+- [ ] **Is every publish step scanned before it publishes?** · Applies when: the diff adds a step that pushes commits, uploads artifacts or posts output others can read, or makes an existing step publish new agent-produced content. · Block if: that content is published with no secret scan first.
 - [ ] **Does each process or job get only the secrets it needs?** · Applies when: the diff passes secrets to a process, container or CI job. · Block if: it passes a secret that process does not use, or passes all of them as a group.
 - [ ] **Does a privileged CI job keep untrusted code away from secrets?** · Applies when: the diff adds or edits a `pull_request_target` or `workflow_run` workflow, or a job with secrets. · Block if: it checks out or runs PR code, or interpolates PR-controlled text into a `run:` script, while secrets are available.
 - [ ] **Can the secret be rotated without an outage?** · Applies when: the diff adds a secret that verifies or signs requests. · Block if: only one value can be valid at a time.
@@ -49,7 +49,7 @@ Always, at any scale, for any credential. The minimum is no secrets in git (igno
 The adapter pushed it, and the run completed. `gitleaks` is installed on this host (`/opt/homebrew/bin/gitleaks`), so the same scan could run in `_push` before `git push`. `gh repo view` reports the repo's visibility as `PUBLIC`.
 
 ## Related
-101-webhooks.md, 068-iam.md, 070-jwt-rotation.md, 059-logging.md, 006-ci-cd.md
+101-webhooks.md, 068-iam.md, 070-jwt-rotation.md, 059-logging.md, 006-ci-cd.md, 069-oauth.md, 080-ssrf.md, 078-sql-injection.md
 
 ## Sources
 - "Secrets Management Cheat Sheet", OWASP: https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html

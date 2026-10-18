@@ -52,7 +52,7 @@ Receiving: whenever another system must start work here, and polling would be sl
 `getconf ARG_MAX` is 1048576 on this Mac. The production agent command passes the prompt as an argument the same way, so it fails at the same limit.
 
 ## Related
-014-idempotency.md, 001-rate-limiting.md, 011-timeouts.md, 067-secrets-management.md, 013-exponential-backoff.md
+014-idempotency.md, 001-rate-limiting.md, 011-timeouts.md, 067-secrets-management.md, 013-exponential-backoff.md, 012-retries.md, 077-csrf.md
 
 ## Sources
 - "Best practices for using webhooks", GitHub Docs: https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks
