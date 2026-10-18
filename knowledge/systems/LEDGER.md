@@ -11,7 +11,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 |---|---|---|---|
 | 11 | Timeouts | proven | [011-timeouts.md](011-timeouts.md) |
 | 12 | Retries | proven | [012-retries.md](012-retries.md) |
-| 13 | Exponential Backoff | todo | |
+| 13 | Exponential Backoff | proven | [013-exponential-backoff.md](013-exponential-backoff.md) |
 | 14 | Idempotency | todo | |
 | 10 | Circuit Breakers | todo | |
 | 1 | Rate Limiting | todo | |
