@@ -57,7 +57,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 39 | Race Conditions | todo | |
+| 39 | Race Conditions | proven | [039-race-conditions.md](039-race-conditions.md) |
 | 43 | Thread Safety | todo | |
 | 40 | Deadlocks | todo | |
 | 36 | Optimistic Locking | todo | |
