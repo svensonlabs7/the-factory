@@ -61,7 +61,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 43 | Thread Safety | proven | [043-thread-safety.md](043-thread-safety.md) |
 | 40 | Deadlocks | proven | [040-deadlocks.md](040-deadlocks.md) |
 | 36 | Optimistic Locking | proven | [036-optimistic-locking.md](036-optimistic-locking.md) |
-| 37 | Pessimistic Locking | todo | |
+| 37 | Pessimistic Locking | proven | [037-pessimistic-locking.md](037-pessimistic-locking.md) |
 | 38 | Distributed Locks | todo | |
 | 41 | Memory Leaks | todo | |
 | 42 | Garbage Collection | todo | |
