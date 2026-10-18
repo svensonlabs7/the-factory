@@ -16,7 +16,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 10 | Circuit Breakers | proven | [010-circuit-breakers.md](010-circuit-breakers.md) |
 | 1 | Rate Limiting | proven | [001-rate-limiting.md](001-rate-limiting.md) |
 | 44 | Backpressure | proven | [044-backpressure.md](044-backpressure.md) |
-| 20 | Dead Letter Queues | todo | |
+| 20 | Dead Letter Queues | proven | [020-dead-letter-queues.md](020-dead-letter-queues.md) |
 | 101 | Webhooks | todo | |
 | 56 | Health Checks | todo | |
 | 57 | Liveness & Readiness Probes | todo | |
