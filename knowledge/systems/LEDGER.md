@@ -17,7 +17,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 1 | Rate Limiting | proven | [001-rate-limiting.md](001-rate-limiting.md) |
 | 44 | Backpressure | proven | [044-backpressure.md](044-backpressure.md) |
 | 20 | Dead Letter Queues | proven | [020-dead-letter-queues.md](020-dead-letter-queues.md) |
-| 101 | Webhooks | todo | |
+| 101 | Webhooks | proven | [101-webhooks.md](101-webhooks.md) |
 | 56 | Health Checks | todo | |
 | 57 | Liveness & Readiness Probes | todo | |
 
