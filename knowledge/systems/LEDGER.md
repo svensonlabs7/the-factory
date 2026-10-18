@@ -19,7 +19,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 20 | Dead Letter Queues | proven | [020-dead-letter-queues.md](020-dead-letter-queues.md) |
 | 101 | Webhooks | proven | [101-webhooks.md](101-webhooks.md) |
 | 56 | Health Checks | proven | [056-health-checks.md](056-health-checks.md) |
-| 57 | Liveness & Readiness Probes | todo | |
+| 57 | Liveness & Readiness Probes | proven | [057-liveness-readiness-probes.md](057-liveness-readiness-probes.md) |
 
 ## B. Security
 
