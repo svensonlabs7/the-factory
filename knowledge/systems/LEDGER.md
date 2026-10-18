@@ -37,7 +37,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 73 | Encryption in Transit | proven | [073-encryption-in-transit.md](073-encryption-in-transit.md) |
 | 72 | Encryption at Rest | proven | [072-encryption-at-rest.md](072-encryption-at-rest.md) |
 | 74 | WAF | proven | [074-waf.md](074-waf.md) |
-| 75 | DDoS Protection | todo | |
+| 75 | DDoS Protection | proven | [075-ddos-protection.md](075-ddos-protection.md) |
 
 ## C. Observability
 
