@@ -46,7 +46,7 @@ Run on this host:
 - `du -sh ~/.cache/uv/environments-v2/run-agent-*`: `307M`, `328M`. Two builder environments exist, because the dependency tree drifted between builds.
 
 ## Related
-045-autoscaling.md, 090-serverless-limits.md, 108-dependency-hell.md, 107-build-caching.md, 057-liveness-readiness-probes.md, 091-latency.md
+045-autoscaling.md, 090-serverless-limits.md, 088-cost-optimization.md, 108-dependency-hell.md, 107-build-caching.md, 057-liveness-readiness-probes.md, 091-latency.md
 
 ## Sources
 - "Understanding the Lambda execution environment lifecycle", AWS Lambda Developer Guide: https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtime-environment.html
