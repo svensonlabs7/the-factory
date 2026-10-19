@@ -158,7 +158,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 |---|---|---|---|
 | 7 | Docker | proven | [007-docker.md](007-docker.md) |
 | 104 | Infrastructure as Code | proven | [104-infrastructure-as-code.md](104-infrastructure-as-code.md) |
-| 105 | Terraform | todo | |
+| 105 | Terraform | proven | [105-terraform.md](105-terraform.md) |
 | 8 | Kubernetes | todo | |
 | 106 | Helm Charts | todo | |
 
