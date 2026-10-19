@@ -77,7 +77,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 52 | Blue-Green Deployment | proven | [052-blue-green-deployment.md](052-blue-green-deployment.md) |
 | 53 | Canary Releases | proven | [053-canary-releases.md](053-canary-releases.md) |
 | 81 | Database Migrations | proven | [081-database-migrations.md](081-database-migrations.md) |
-| 82 | Schema Versioning | todo | |
+| 82 | Schema Versioning | proven | [082-schema-versioning.md](082-schema-versioning.md) |
 | 102 | API Versioning | todo | |
 | 103 | Semantic Versioning | todo | |
 | 108 | Dependency Hell | todo | |
