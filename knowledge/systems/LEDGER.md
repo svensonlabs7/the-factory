@@ -167,7 +167,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | # | Topic | Status | Card |
 |---|---|---|---|
 | 109 | Production Incidents | proven | [109-production-incidents.md](109-production-incidents.md) |
-| 110 | On-Call | todo | |
+| 110 | On-Call | proven | [110-on-call.md](110-on-call.md) |
 | 111 | Postmortems | todo | |
 | 84 | Backups | todo | |
 | 83 | Disaster Recovery | todo | |
