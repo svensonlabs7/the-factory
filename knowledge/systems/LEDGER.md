@@ -81,7 +81,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 102 | API Versioning | proven | [102-api-versioning.md](102-api-versioning.md) |
 | 103 | Semantic Versioning | proven | [103-semantic-versioning.md](103-semantic-versioning.md) |
 | 108 | Dependency Hell | proven | [108-dependency-hell.md](108-dependency-hell.md) |
-| 107 | Build Caching | todo | |
+| 107 | Build Caching | proven | [107-build-caching.md](107-build-caching.md) |
 
 ## F. Async and messaging
 
