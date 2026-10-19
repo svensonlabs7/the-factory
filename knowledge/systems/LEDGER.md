@@ -169,7 +169,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 109 | Production Incidents | proven | [109-production-incidents.md](109-production-incidents.md) |
 | 110 | On-Call | proven | [110-on-call.md](110-on-call.md) |
 | 111 | Postmortems | proven | [111-postmortems.md](111-postmortems.md) |
-| 84 | Backups | todo | |
+| 84 | Backups | proven | [084-backups.md](084-backups.md) |
 | 83 | Disaster Recovery | todo | |
 | 85 | Failover | todo | |
 | 86 | Multi-Region Deployment | todo | |
