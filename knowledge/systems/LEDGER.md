@@ -131,7 +131,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 2 | Caching | proven | [002-caching.md](002-caching.md) |
 | 50 | Cache Invalidation | proven | [050-cache-invalidation.md](050-cache-invalidation.md) |
 | 47 | Vertical Scaling | proven | [047-vertical-scaling.md](047-vertical-scaling.md) |
-| 46 | Horizontal Scaling | todo | |
+| 46 | Horizontal Scaling | proven | [046-horizontal-scaling.md](046-horizontal-scaling.md) |
 | 45 | Autoscaling | todo | |
 | 48 | CDN | todo | |
 | 49 | Edge Caching | todo | |
