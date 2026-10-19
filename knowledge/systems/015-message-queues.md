@@ -25,7 +25,7 @@ A queue is worth it when producers and consumers run at different speeds or have
 
 ## Review checklist
 - [ ] **Is a message removed only after it is processed?** · Applies when: the diff adds or changes a consumer of a queue, job table or work directory. · Block if: the message or job is deleted, marked done or acknowledged before its processing has finished.
-- [ ] **Does waiting work survive a restart?** · Applies when: the diff queues work in a long-running service. · Block if: work accepted (acknowledged to the producer) lives only in memory, or a restart discards accepted work that never started.
+- [ ] **Does waiting work survive a restart?** · Applies when: the diff adds a queue or work pool, or changes how accepted work is stored or recovered after a restart. · Block if: work acknowledged to the producer lives only in memory, or the recovery it adds or changes discards accepted work that never started.
 - [ ] **Is redelivery safe?** · Applies when: the diff consumes from an at-least-once queue or redelivers work after a crash. · Block if: processing the same message twice repeats a side effect (a payment, a push, a PR) with no idempotency key or check.
 - [ ] **Is processing time bounded below the redelivery timeout?** · Applies when: the diff sets a visibility timeout or lease, or changes how long a consumer works on one message. · Block if: the work can outlast the timeout with no heartbeat or extension.
 - [ ] **Does a failing message stop circulating?** · Applies when: the diff adds a consumer with retries. · Block if: there is no maximum receive count or DLQ.

@@ -45,7 +45,7 @@ C  second instance binding 127.0.0.1:7654: EADDRINUSE (Address already in use)
 In A, writer 1 held SQLite's write lock (`BEGIN IMMEDIATE`) through 2 s of slow work. Writer 2 either gave up or waited out the hold.
 
 ## Related
-036-optimistic-locking.md, 040-deadlocks.md, 038-distributed-locks.md, 039-race-conditions.md, 015-message-queues.md, 052-blue-green-deployment.md
+036-optimistic-locking.md, 040-deadlocks.md, 038-distributed-locks.md, 039-race-conditions.md, 015-message-queues.md, 052-blue-green-deployment.md, 021-cron-jobs.md
 
 ## Sources
 - Martin Fowler, "Pessimistic Offline Lock", Patterns of Enterprise Application Architecture: https://martinfowler.com/eaaCatalog/pessimisticOfflineLock.html

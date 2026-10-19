@@ -25,7 +25,7 @@ It is worth it when a call crosses a network to a dependency that fails briefly 
 
 ## In the factory
 - `factory/intake/webhook_adapter.py:479-492`: a build round that failed on the plan's usage limit pauses until reset and reruns once. It retries one specific temporary error, bounded to one attempt, and every other failure propagates. Right.
-- `factory/intake/webhook_adapter.py:358-372`: check polling treats "no checks reported" as the only error that means keep waiting, under a 20-minute deadline. Right.
+- `factory/intake/webhook_adapter.py:358-372`: check polling treats "no checks reported" as the only error that means keep waiting, under a 20-minute deadline. Right. (Review 60: the match is on gh's human-readable wording, which no gh version promises; see 103-semantic-versioning.md and its GAPS.md row.)
 - `factory/intake/webhook_adapter.py:58,511-522`: fix rounds are bounded (`MAX_RETRIES = 2`). They are new attempts with feedback, not retries of the same call.
 - Gap: `factory/intake/webhook_adapter.py:313` (`_run`) never retries, so one transient GitHub error during polling or push ends the run and discards the build (see GAPS.md).
 - Gap: a reviewer that crashes fails its check like a BLOCK, so the adapter redoes the work instead of rerunning the check (`qa-gate.yml:61-66`, `webhook_adapter.py:516-522`; see GAPS.md).
@@ -45,7 +45,7 @@ D  permanent error, retry transient  calls per request: 1
 ```
 
 ## Related
-011-timeouts.md, 013-exponential-backoff.md, 014-idempotency.md, 010-circuit-breakers.md, 001-rate-limiting.md, 020-dead-letter-queues.md, 101-webhooks.md
+011-timeouts.md, 013-exponential-backoff.md, 014-idempotency.md, 010-circuit-breakers.md, 001-rate-limiting.md, 020-dead-letter-queues.md, 101-webhooks.md, 103-semantic-versioning.md
 
 ## Sources
 - Marc Brooker, "Timeouts, retries, and backoff with jitter", Amazon Builders' Library: https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter

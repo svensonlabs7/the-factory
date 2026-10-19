@@ -43,7 +43,7 @@ service sending ACAO *: READ {"internal": "run tasks, PR links, heartbeat"}
 The adapter's access log counted `GET /heartbeat` lines going from 7 to 8 across one page load: the blocked request was still sent and answered with 200, and only the read was refused. `curl -H "Host: rebind.attacker.example" localhost:7654/heartbeat` returned `200`. Whether this browser's private-network protections would also stop a rebinding page was not tested.
 
 ## Related
-077-csrf.md, 079-xss.md, 080-ssrf.md, 097-dns.md, 101-webhooks.md, 070-jwt-rotation.md
+077-csrf.md, 079-xss.md, 080-ssrf.md, 097-dns.md, 101-webhooks.md, 070-jwt-rotation.md, 022-websockets.md
 
 ## Sources
 - "Cross-Origin Resource Sharing (CORS)", MDN: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS

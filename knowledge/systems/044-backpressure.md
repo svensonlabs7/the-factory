@@ -44,7 +44,7 @@ B  communicate() reads while waiting: got 1,000,000 bytes
 In the unbounded case, the slowest 1% waited 11.8 s, longer than the worst wait during the overload itself (10 s), because the backlog outlived the spike. Bounding moved the cost either to rejected jobs or to a slowed producer.
 
 ## Related
-001-rate-limiting.md, 015-message-queues.md, 020-dead-letter-queues.md, 010-circuit-breakers.md, 011-timeouts.md, 013-exponential-backoff.md, 075-ddos-protection.md, 040-deadlocks.md, 041-memory-leaks.md, 102-api-versioning.md
+001-rate-limiting.md, 015-message-queues.md, 020-dead-letter-queues.md, 010-circuit-breakers.md, 011-timeouts.md, 013-exponential-backoff.md, 075-ddos-protection.md, 040-deadlocks.md, 041-memory-leaks.md, 102-api-versioning.md, 023-long-polling.md
 
 ## Sources
 - David Yanacek, "Avoiding insurmountable queue backlogs", Amazon Builders' Library: https://builder.aws.com/content/3EuRcgkTP1MI0c7zM8W6HL3WIqA/avoiding-insurmountable-queue-backlogs

@@ -74,3 +74,20 @@ Checked and kept:
 - 081 and 102 both find HEARTBEAT's schema hidden in a markdown template. 081 owns the "new rows never reach the live file" gap, and 102 points at the existing Backpressure row for the dead fields, so neither duplicates the other.
 - 054 and 055 agree on the adapter's way back: `git checkout` in the working copy plus `launchctl kickstart -k`, with no merge needed. 054's in-flight-run gap and the Idempotency row's orphaned-container gap are separate rows.
 - GAPS.md: 33 open rows, 1 high (no secret scan before the push), 15 medium, 17 low.
+
+## 2026-10-19 · 60 cards (track E finished; track F finished)
+
+Re-ran `044_backpressure.py`: identical output (unbounded queue: peak depth 121 and a p99 wait of 11.8 s; both bounded queues: depth 20 and a 2.0 s wait; the 1 MB pipe still blocks `wait()`). The factory code is unchanged since the cards were written.
+
+Changed:
+- **012-retries.md:** it called the "no checks reported" match "Right". 103 then showed the match depends on gh's human-readable wording, which no gh version promises, and a reworded message turns the wait into a failure. 012 keeps its verdict on the retry logic and now points to 103's GAPS.md row for the wording dependency.
+- **108-dependency-hell.md:** "Is the full dependency tree locked?" would have blocked any dependency change while the factory has no lock files, which is outside the diff's control. That is the same over-breadth review 50 fixed in 006. It now blocks a new environment without a lock, or a change that bypasses or skips updating an existing lock.
+- **015-message-queues.md:** "Does waiting work survive a restart?" applied to any diff touching the enqueue path, so the existing never-started-runs gap would have blocked unrelated changes. It now applies to new queues and to changes in how accepted work is stored or recovered.
+- **Related links:** added two-way links where the connection is real (012↔103, 067↔103, 067↔107, 067↔108, 006↔103, 006↔107, 006↔108, 076↔022, 077↔022, 060↔016, 060↔017, 044↔023, 054↔015, 043↔023, 037↔021, 011↔023).
+
+Checked and kept:
+- 022's claim that the live adapter cannot serve WebSockets holds. Its interpreter has none of `websockets`, `wsproto`, `uvloop` or `httptools`.
+- 015's never-started-runs gap, 054's "restart only when idle" gap and the Idempotency row's orphaned-container gap are three separate failures with three separate fixes, so none duplicates another.
+- 016, 023 and 024 agree that polling is right for one operator: the 15 s dashboard poll, and the 15 s `gh pr checks` poll that added 16 s to a 492 s run.
+- 103 and 108 agree with 006 on pinning. 006's row covers CI and the adapter, 108's row covers the builder's transitive tree, and 103's row covers the gh wording dependency.
+- GAPS.md: 36 open rows, 1 high (no secret scan before the push), 16 medium, 19 low.

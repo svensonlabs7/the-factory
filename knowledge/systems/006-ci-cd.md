@@ -60,7 +60,7 @@ B  requirement 'fastapi==0.110.0' installed on
 Live versions: the adapter's interpreter (PID 40944) reports `3.11.15 fastapi 0.144.0 starlette 1.8.0`. The latest `tests` run log shows `python3.12/site-packages` and `fastapi-0.145.0`.
 
 ## Related
-055-rollbacks.md, 051-feature-flags.md, 053-canary-releases.md, 104-infrastructure-as-code.md, 011-timeouts.md, 056-health-checks.md
+055-rollbacks.md, 051-feature-flags.md, 053-canary-releases.md, 104-infrastructure-as-code.md, 011-timeouts.md, 056-health-checks.md, 103-semantic-versioning.md, 107-build-caching.md, 108-dependency-hell.md
 
 ## Sources
 - "Continuous Integration", Martin Fowler: https://martinfowler.com/articles/continuousIntegration.html

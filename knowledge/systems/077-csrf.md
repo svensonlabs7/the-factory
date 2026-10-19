@@ -47,7 +47,7 @@ The attacker page's fetch reported `blocked: Failed to fetch`, and the `POST /tr
 - a custom-header request, the factory's model, never left the browser.
 
 ## Related
-079-xss.md, 076-cors.md, 101-webhooks.md, 069-oauth.md, 067-secrets-management.md
+079-xss.md, 076-cors.md, 101-webhooks.md, 069-oauth.md, 067-secrets-management.md, 022-websockets.md
 
 ## Sources
 - "Cross-Site Request Forgery Prevention Cheat Sheet", OWASP: https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html

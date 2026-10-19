@@ -26,7 +26,7 @@ Every program with third-party packages needs a lock of its full tree, as soon a
 - **Unreviewed new transitive dependencies:** an upgrade silently adds packages nobody chose.
 
 ## Review checklist
-- [ ] **Is the full dependency tree locked?** · Applies when: the diff adds or changes a dependency of a program that runs in production or CI. · Block if: only top-level versions are pinned, with no lock file, constraints file or `exclude-newer` cutoff that fixes the transitive tree.
+- [ ] **Is the full dependency tree locked?** · Applies when: the diff adds a new program or environment, or changes dependencies of one that already has a lock file. · Block if: the new environment has only top-level pins and no lock file, constraints file or `exclude-newer` cutoff, or the change bypasses or does not update an existing lock.
 - [ ] **Does a new dependency earn its weight?** · Applies when: the diff adds a third-party package. · Block if: the standard library or an existing dependency does the job in a few lines, or the package is unmaintained or pulls in a large transitive tree for a small use.
 - [ ] **Are programs with incompatible needs isolated?** · Applies when: the diff merges two programs' requirements into one environment, or adds a package to a shared one. · Block if: their Python versions or shared packages conflict, or the merge forces either to downgrade.
 - [ ] **Is the upgrade reviewed as a change?** · Applies when: the diff updates a lock file or raises pins. · Block if: it bumps a major version, or adds new transitive packages, without the tests passing and the notable changes named in the PR.

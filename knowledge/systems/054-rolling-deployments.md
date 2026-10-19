@@ -47,7 +47,7 @@ C  rolling, 2 instances, readiness:  0 of 169 requests failed; deploy took 1.4 s
 Rolling alone is not enough: without the readiness gate (B), the new instance is back in rotation before uvicorn listens. The live in-flight loss is from the archived run records above, not re-run.
 
 ## Related
-055-rollbacks.md, 052-blue-green-deployment.md, 053-canary-releases.md, 056-health-checks.md, 057-liveness-readiness-probes.md, 006-ci-cd.md
+055-rollbacks.md, 052-blue-green-deployment.md, 053-canary-releases.md, 056-health-checks.md, 057-liveness-readiness-probes.md, 006-ci-cd.md, 015-message-queues.md
 
 ## Sources
 - "Deployments" (RollingUpdate, Recreate, progressDeadlineSeconds), Kubernetes documentation: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/

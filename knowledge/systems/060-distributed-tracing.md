@@ -51,7 +51,7 @@ where the 492 s went: building 406 s (82%), waiting for the gate 82 s (17%)
 The gate's critical path is thermo-nuclear (61 s). The adapter saw the result 16 s after the last job ended, which matches its 15 s `CHECKS_POLL`.
 
 ## Related
-059-logging.md, 061-metrics.md, 096-clock-skew.md, 091-latency.md, 066-observability.md
+059-logging.md, 061-metrics.md, 096-clock-skew.md, 091-latency.md, 066-observability.md, 016-pub-sub.md, 017-event-driven-architecture.md
 
 ## Sources
 - "Trace Context", W3C Recommendation: https://www.w3.org/TR/trace-context/
