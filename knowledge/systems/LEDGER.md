@@ -160,7 +160,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 104 | Infrastructure as Code | proven | [104-infrastructure-as-code.md](104-infrastructure-as-code.md) |
 | 105 | Terraform | proven | [105-terraform.md](105-terraform.md) |
 | 8 | Kubernetes | proven | [008-kubernetes.md](008-kubernetes.md) |
-| 106 | Helm Charts | todo | |
+| 106 | Helm Charts | proven | [106-helm-charts.md](106-helm-charts.md) |
 
 ## L. Operations and recovery
 
