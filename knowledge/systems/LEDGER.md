@@ -91,7 +91,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 16 | Pub/Sub | proven | [016-pub-sub.md](016-pub-sub.md) |
 | 17 | Event-Driven Architecture | proven | [017-event-driven-architecture.md](017-event-driven-architecture.md) |
 | 21 | Cron Jobs | proven | [021-cron-jobs.md](021-cron-jobs.md) |
-| 23 | Long Polling | todo | |
+| 23 | Long Polling | proven | [023-long-polling.md](023-long-polling.md) |
 | 24 | Server-Sent Events | todo | |
 | 22 | WebSockets | todo | |
 
