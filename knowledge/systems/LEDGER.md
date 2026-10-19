@@ -136,7 +136,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 48 | CDN | proven | [048-cdn.md](048-cdn.md) |
 | 49 | Edge Caching | proven | [049-edge-caching.md](049-edge-caching.md) |
 | 89 | Cold Starts | proven | [089-cold-starts.md](089-cold-starts.md) |
-| 90 | Serverless Limits | todo | |
+| 90 | Serverless Limits | proven | [090-serverless-limits.md](090-serverless-limits.md) |
 | 88 | Cost Optimization | todo | |
 
 ## J. Networking and protocols
