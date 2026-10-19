@@ -172,7 +172,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 84 | Backups | proven | [084-backups.md](084-backups.md) |
 | 83 | Disaster Recovery | proven | [083-disaster-recovery.md](083-disaster-recovery.md) |
 | 85 | Failover | proven | [085-failover.md](085-failover.md) |
-| 86 | Multi-Region Deployment | todo | |
+| 86 | Multi-Region Deployment | proven | [086-multi-region-deployment.md](086-multi-region-deployment.md) |
 | 87 | Chaos Engineering | todo | |
 
 ## Deferred
