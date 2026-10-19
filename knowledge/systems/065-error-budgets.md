@@ -26,7 +26,7 @@ It is worth it once there is an SLO with enough events to measure (see 063-slos.
 - [ ] **Does a new SLO come with a written budget policy?** · Applies when: the diff adds or changes an SLO. · Block if: there is no agreed action for when the budget is spent.
 - [ ] **Is the budget large enough to spend?** · Applies when: the diff sets an SLO target. · Block if: the budget per window is under about one event, so a single miss exhausts it.
 - [ ] **Are misses attributed to causes?** · Applies when: the diff records SLO misses or failures. · Block if: a miss is recorded without a cause category that lets the spend be grouped.
-- [ ] **When the budget is spent, are features paused for reliability work?** · Applies when: a feature change is proposed while the service is over budget. · Block if: it is not a P0 or security fix and the budget is exceeded, unless the operator has explicitly overridden the policy.
+- [ ] **When the budget is spent, are features paused for reliability work?** · Applies when: an SLO and its budget policy have been adopted, its budget is exceeded, and the diff is a feature change. · Block if: it is not a P0, security or reliability fix, unless the operator has explicitly overridden the policy.
 
 ## In the factory
 - No SLO or budget policy exists yet (see 063-slos.md and the SLI row in GAPS.md). The run records are enough to compute one by hand (proof below).
@@ -34,7 +34,7 @@ It is worth it once there is an SLO with enough events to measure (see 063-slos.
   1. The plan usage limit: P0 already done, PR #52 added pause and rerun.
   2. The gate blocking until fix rounds ran out: partly addressed by #54 (fix rounds see earlier findings). The crashed-reviewer misclassification is still open in the Retries row.
   3. The gate passing a change that did not work (#55): nothing addresses this. The gate's tests use a fake Docker, so a change to sandbox or infra behaviour can pass every check and still fail for real. It was caught only by a manual live test (see GAPS.md).
-- With the budget spent, the policy says to pause factory feature work and fix reliability first. That is the GAPS list, starting with the high row.
+- If the starter SLO and the example policy are adopted, the budget is already spent: pause factory feature work and fix reliability first. That is the GAPS list, starting with the high row. Until they are adopted, this is a recommendation, not a rule the reviewer enforces.
 - Not applicable at today's load: budget-gated release automation and burn-rate dashboards.
 
 ## Proof

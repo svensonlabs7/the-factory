@@ -25,7 +25,7 @@ It matters for every long-running process: servers, daemons, workers. Short scri
 - [ ] **Does every long-lived container have a bound?** · Applies when: the diff adds a module-level, class-level or global dict, list, set or cache in a long-running process. · Block if: it can grow with traffic, runs or time and has no max size, TTL or removal.
 - [ ] **Is per-request or per-run data released when the work ends?** · Applies when: the diff stores data keyed by a request, run or connection. · Block if: nothing removes the entry when that request, run or connection finishes.
 - [ ] **Are registrations paired with removals?** · Applies when: the diff adds listeners, callbacks, subscriptions or background tasks at runtime. · Block if: there is no matching unregister or cancel.
-- [ ] **Has a long-running path been checked for a plateau?** · Applies when: the diff changes a hot path of a server or worker in a way that allocates. · Block if: there is no evidence (`tracemalloc` diff, or RSS across repeated identical load) that memory levels off.
+- [ ] **Has a long-running path been checked for a plateau?** · Applies when: the diff makes a server or worker keep data across requests or runs (caches, buffers, history, registries). · Block if: there is no evidence (a `tracemalloc` diff, or RSS across repeated identical load) that memory levels off.
 
 ## In the factory
 - `factory/intake/webhook_adapter.py:550,573-575`: `_recent_rejections` is pruned to `REJECTION_WINDOW` on every append. The replay directory is pruned by age (`_replayed`), and the per-request `ThreadPoolExecutor` in `/command/data` is closed by its `with` block. Right.

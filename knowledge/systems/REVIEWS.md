@@ -44,3 +44,16 @@ Changed:
 Checked and kept:
 - 062 and 064 add no gap rows of their own. Their findings are covered by the Monitoring, Dead Letter Queues and SLIs rows, so GAPS.md has no duplicates.
 - The TLS edge row (071) and the WAF card (074) agree that the edge settings are Cloudflare's, not the repo's.
+
+## 2026-10-18 · 40 cards (track C finished; track D up to 41)
+
+Re-ran `039_races.py`: same result. The adapter's `FETCH_HEAD` pattern still reads another fetch's commit, and a dedicated ref still reads the right one. The factory code is unchanged since the cards were written.
+
+Changed:
+- **065-error-budgets.md:** the "pause features when the budget is spent" item would have blocked every feature today, because of a starter SLO nobody has adopted. It now applies only once an SLO and budget policy are adopted, and the card's text says the 188% figure is a recommendation until then.
+- **041-memory-leaks.md:** the plateau item applied to any hot-path change that allocates, which is nearly every change. It now applies to changes that keep data across requests or runs.
+- **Related links:** added two-way links where the connection is real (037↔039, 040↔044, 041↔044, 041↔043, 043↔057, 060↔061, 061↔066, 058↔066, 060↔066, 014↔036).
+
+Checked and kept:
+- 039, 037 and 043 agree on the adapter's concurrency model: one run worker, `HEARTBEAT_LOCK` the only lock, the port as a single-instance lock, `FETCH_HEAD` the one cross-process race.
+- 060 and 066 agree that the action log covers 2 of 8 runs, and 061 and 066 agree that pauses and token usage are unrecorded. Each has one GAPS row, with no duplicates.

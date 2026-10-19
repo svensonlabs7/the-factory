@@ -51,7 +51,7 @@ B  own ref:         refs/factory/run1 is the agent's commit = True
 B runs the adapter's exact `git fetch <clone> main` then `git rev-parse FETCH_HEAD` in scratch repos, with a second fetch placed in the window. `grep` confirms the live plist does not set `FACTORY_ROOT`, so the code default, `/Users/labs/projects/the-factory`, is the adapter's trusted checkout.
 
 ## Related
-043-thread-safety.md, 040-deadlocks.md, 014-idempotency.md, 038-distributed-locks.md, 036-optimistic-locking.md
+043-thread-safety.md, 040-deadlocks.md, 014-idempotency.md, 038-distributed-locks.md, 036-optimistic-locking.md, 037-pessimistic-locking.md
 
 ## Sources
 - "CWE-362: Concurrent Execution using Shared Resource with Improper Synchronization ('Race Condition')", MITRE: https://cwe.mitre.org/data/definitions/362.html

@@ -47,7 +47,7 @@ B  startup 90 s, startup probe                        0       330
 In the simulation, liveness on a dependency caused 4 pointless restarts during the outage. Each would have killed a running factory build. A liveness delay shorter than startup crash-looped and never served.
 
 ## Related
-056-health-checks.md, 011-timeouts.md, 014-idempotency.md, 008-kubernetes.md, 010-circuit-breakers.md, 058-monitoring.md
+056-health-checks.md, 011-timeouts.md, 014-idempotency.md, 008-kubernetes.md, 010-circuit-breakers.md, 058-monitoring.md, 043-thread-safety.md
 
 ## Sources
 - "Pod Lifecycle: Container probes", Kubernetes documentation: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/

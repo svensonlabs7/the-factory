@@ -41,7 +41,7 @@ https://factory.svensonlabs.dev/this-path-is-not-routed -> 401 (37816 bytes)
 The answers are byte-identical, so Cloudflare Access replies before the tunnel or origin is consulted. Who has polled the adapter (`intake.out.log` client addresses, behind cloudflared's forwarded headers): `127.0.0.1` (160), and addresses in this home's own IPv6 prefix and IPv4 (about 5,700, the operator's dashboard). No external watcher appears. `pmset -g custom`: `AC Power: sleep 0`.
 
 ## Related
-056-health-checks.md, 057-liveness-readiness-probes.md, 062-alerts.md, 061-metrics.md, 020-dead-letter-queues.md, 064-slis.md
+056-health-checks.md, 057-liveness-readiness-probes.md, 062-alerts.md, 061-metrics.md, 020-dead-letter-queues.md, 064-slis.md, 066-observability.md
 
 ## Sources
 - "Monitoring Distributed Systems" (black-box and white-box monitoring), Google SRE book: https://sre.google/sre-book/monitoring-distributed-systems/
