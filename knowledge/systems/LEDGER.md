@@ -79,7 +79,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 81 | Database Migrations | proven | [081-database-migrations.md](081-database-migrations.md) |
 | 82 | Schema Versioning | proven | [082-schema-versioning.md](082-schema-versioning.md) |
 | 102 | API Versioning | proven | [102-api-versioning.md](102-api-versioning.md) |
-| 103 | Semantic Versioning | todo | |
+| 103 | Semantic Versioning | proven | [103-semantic-versioning.md](103-semantic-versioning.md) |
 | 108 | Dependency Hell | todo | |
 | 107 | Build Caching | todo | |
 
