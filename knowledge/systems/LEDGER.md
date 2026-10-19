@@ -88,7 +88,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | # | Topic | Status | Card |
 |---|---|---|---|
 | 15 | Message Queues | proven | [015-message-queues.md](015-message-queues.md) |
-| 16 | Pub/Sub | todo | |
+| 16 | Pub/Sub | proven | [016-pub-sub.md](016-pub-sub.md) |
 | 17 | Event-Driven Architecture | todo | |
 | 21 | Cron Jobs | todo | |
 | 23 | Long Polling | todo | |
