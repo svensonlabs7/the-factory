@@ -128,7 +128,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 92 | Throughput | proven | [092-throughput.md](092-throughput.md) |
 | 93 | P99 Latency | proven | [093-p99-latency.md](093-p99-latency.md) |
 | 94 | Tail Latency | proven | [094-tail-latency.md](094-tail-latency.md) |
-| 2 | Caching | todo | |
+| 2 | Caching | proven | [002-caching.md](002-caching.md) |
 | 50 | Cache Invalidation | todo | |
 | 47 | Vertical Scaling | todo | |
 | 46 | Horizontal Scaling | todo | |
