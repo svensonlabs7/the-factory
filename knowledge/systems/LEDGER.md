@@ -63,7 +63,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 36 | Optimistic Locking | proven | [036-optimistic-locking.md](036-optimistic-locking.md) |
 | 37 | Pessimistic Locking | proven | [037-pessimistic-locking.md](037-pessimistic-locking.md) |
 | 38 | Distributed Locks | proven | [038-distributed-locks.md](038-distributed-locks.md) |
-| 41 | Memory Leaks | todo | |
+| 41 | Memory Leaks | proven | [041-memory-leaks.md](041-memory-leaks.md) |
 | 42 | Garbage Collection | todo | |
 
 ## E. Delivery and change
