@@ -147,7 +147,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 98 | TCP vs UDP | proven | [098-tcp-vs-udp.md](098-tcp-vs-udp.md) |
 | 99 | HTTP/2 & HTTP/3 | proven | [099-http2-http3.md](099-http2-http3.md) |
 | 4 | Reverse Proxies | proven | [004-reverse-proxies.md](004-reverse-proxies.md) |
-| 3 | Load Balancing | todo | |
+| 3 | Load Balancing | proven | [003-load-balancing.md](003-load-balancing.md) |
 | 5 | API Gateways | todo | |
 | 9 | Service Discovery | todo | |
 | 100 | gRPC | todo | |
