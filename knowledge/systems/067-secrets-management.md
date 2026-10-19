@@ -49,7 +49,7 @@ Always, at any scale, for any credential. The minimum is no secrets in git (igno
 The adapter pushed it, and the run completed. `gitleaks` is installed on this host (`/opt/homebrew/bin/gitleaks`), so the same scan could run in `_push` before `git push`. `gh repo view` reports the repo's visibility as `PUBLIC`.
 
 ## Related
-101-webhooks.md, 068-iam.md, 070-jwt-rotation.md, 059-logging.md, 006-ci-cd.md, 069-oauth.md, 080-ssrf.md, 078-sql-injection.md, 103-semantic-versioning.md, 107-build-caching.md, 108-dependency-hell.md
+101-webhooks.md, 068-iam.md, 070-jwt-rotation.md, 059-logging.md, 006-ci-cd.md, 069-oauth.md, 080-ssrf.md, 078-sql-injection.md, 103-semantic-versioning.md, 107-build-caching.md, 108-dependency-hell.md, 028-connection-pooling.md
 
 ## Sources
 - "Secrets Management Cheat Sheet", OWASP: https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html

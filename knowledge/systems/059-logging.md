@@ -48,7 +48,7 @@ B  with the dashboard open: ~5760 lines/day, ~179 MB/year, never rotated
 Breakdown of the access log by route: `5653 GET /command/data` (the dashboard's 15 s poll), `56 POST /trigger`, `48 GET /health`. The average line is 85 bytes. No `newsyslog` entry and no rotating handler exist for these files.
 
 ## Related
-061-metrics.md, 066-observability.md, 067-secrets-management.md, 060-distributed-tracing.md, 072-encryption-at-rest.md
+061-metrics.md, 066-observability.md, 067-secrets-management.md, 060-distributed-tracing.md, 072-encryption-at-rest.md, 031-partitioning.md
 
 ## Sources
 - "Logging Cheat Sheet", OWASP: https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html

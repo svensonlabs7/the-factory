@@ -64,7 +64,7 @@ B  reworded by a gh release: RuntimeError after 1 poll(s): gh pr checks: no requ
 The installed gh contains both of its wordings: `strings $(which gh)` shows "no checks reported on the '%s' branch" and "no required checks reported on the '%s' branch".
 
 ## Related
-102-api-versioning.md, 082-schema-versioning.md, 006-ci-cd.md, 067-secrets-management.md, 012-retries.md
+102-api-versioning.md, 082-schema-versioning.md, 006-ci-cd.md, 067-secrets-management.md, 012-retries.md, 029-read-replicas.md
 
 ## Sources
 - "Semantic Versioning 2.0.0": https://semver.org/

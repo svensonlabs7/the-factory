@@ -27,7 +27,7 @@ Pooling is worth it whenever a process makes repeated calls to the same server o
 ## Review checklist
 - [ ] **Is every checkout returned on every path?** · Applies when: the diff acquires pooled connections, sessions or clients. · Block if: a connection is obtained without `with`, `try/finally` or a framework-managed scope that returns it even on exceptions.
 - [ ] **Is the pool sized and bounded against the server?** · Applies when: the diff configures a pool, or adds instances or workers that each have one. · Block if: pool size × instances can exceed the server's connection limit, or the checkout has no timeout.
-- [ ] **Are connections reused, not rebuilt per request?** · Applies when: the diff calls a network service (database, HTTP API) on a request path or in a loop. · Block if: it creates a new client, engine or session per call instead of reusing a long-lived one.
+- [ ] **Are connections reused, not rebuilt per request?** · Applies when: the diff calls a network service on a hot request path or in a loop over items. · Block if: it creates a new HTTP client, database engine or session per call instead of reusing a long-lived one. Spawning a CLI per call at a few calls a minute, as the adapter does with `gh` to keep its token out of the process, is a deliberate exception.
 - [ ] **Are stale connections handled?** · Applies when: the diff configures a long-lived pool to a server behind firewalls, proxies or idle timeouts. · Block if: there is no pre-ping, recycle or retry-on-disconnect.
 - [ ] **Is a connection held only for the query?** · Applies when: the diff holds a pooled connection or transaction across slow work. · Block if: the connection stays checked out across remote calls, sleeps or waits that do not need it.
 

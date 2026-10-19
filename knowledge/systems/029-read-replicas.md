@@ -52,7 +52,7 @@ B  one snapshot read (head and checks together): head new222 -> {'tests': 'pass'
 - B: whether GitHub's two endpoints can disagree like this in practice was not observed. The proof shows only that the adapter would accept it if they did.
 
 ## Related
-032-replication.md, 035-eventual-consistency.md, 026-query-optimization.md, 002-caching.md, 103-semantic-versioning.md
+032-replication.md, 035-eventual-consistency.md, 026-query-optimization.md, 002-caching.md, 103-semantic-versioning.md, 034-cap-theorem.md
 
 ## Sources
 - "Working with DB instance read replicas", Amazon RDS User Guide: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html

@@ -48,7 +48,7 @@ C  lru_cache(maxsize=256) after 5,000 PRs: 256 entries, +748 KiB (capped)
 ```
 
 ## Related
-042-garbage-collection.md, 002-caching.md, 044-backpressure.md, 043-thread-safety.md
+042-garbage-collection.md, 002-caching.md, 044-backpressure.md, 043-thread-safety.md, 028-connection-pooling.md
 
 ## Sources
 - "tracemalloc: Trace memory allocations", Python documentation: https://docs.python.org/3/library/tracemalloc.html

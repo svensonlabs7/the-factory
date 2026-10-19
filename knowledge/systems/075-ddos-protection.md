@@ -52,7 +52,7 @@ behind a buffering edge      normal requests served  600/600  (100%)
 A 10 s timeout fails because 5/s × 10 s = 50 held slots, more than 20. A 2 s timeout works only while the attack rate stays below 10/s. The buffering edge works at any rate.
 
 ## Related
-001-rate-limiting.md, 074-waf.md, 044-backpressure.md, 011-timeouts.md, 097-dns.md
+001-rate-limiting.md, 074-waf.md, 044-backpressure.md, 011-timeouts.md, 097-dns.md, 031-partitioning.md
 
 ## Sources
 - "Mitigation techniques", AWS Best Practices for DDoS Resiliency: https://docs.aws.amazon.com/whitepapers/latest/aws-best-practices-ddos-resiliency/mitigation-techniques.html

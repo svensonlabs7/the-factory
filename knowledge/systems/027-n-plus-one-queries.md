@@ -26,7 +26,7 @@ Batching is worth it wherever a loop touches related data over a network: an ORM
 
 ## Review checklist
 - [ ] **Does a loop query or call per item?** · Applies when: the diff adds a loop over records that reads related data from a database or remote API, directly or through a helper, lazy relation or serializer. · Block if: N can grow with the data and the related data is not fetched in bulk (`JOIN`, an `IN` batch, eager loading, or a list API).
-- [ ] **Is the query count per request bounded?** · Applies when: the diff adds or changes a list endpoint or page. · Block if: the number of queries or remote calls grows with the number of items returned, and no test asserts a constant count.
+- [ ] **Is the query count per request bounded?** · Applies when: the diff adds a list endpoint or page, or adds a per-item query or remote call to one. · Block if: the queries or remote calls it adds grow with the number of items returned, with no batching, caching or test asserting a constant count.
 - [ ] **Is a per-item remote call within its rate limit?** · Applies when: the diff calls a rate-limited external API once per item. · Block if: at the expected N and refresh rate, the calls per hour approach the provider's limit.
 - [ ] **Does the cold path stay fast enough?** · Applies when: a cache hides per-item calls. · Block if: a cold cache (restart, eviction) makes the request take longer than its caller's timeout or refresh interval.
 - [ ] **Is batching justified?** · Applies when: the diff replaces per-item lookups with a batch or join. · Block if: N is small and bounded and the per-item lookups are local or cached.

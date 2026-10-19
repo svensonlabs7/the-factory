@@ -49,7 +49,7 @@ C-fix only stops the waiting; the reading thread runs on until the server finish
 Real sandbox: `run_agent.py <workdir> "<run sleep 600 in the foreground>" 40` exited 0 after 625 s. The 40-second `acp_prompt_timeout` never fired, and the run ended only when the tool's own 10-minute command limit ended the sleep.
 
 ## Related
-012-retries.md, 013-exponential-backoff.md, 014-idempotency.md, 010-circuit-breakers.md, 044-backpressure.md, 101-webhooks.md, 056-health-checks.md, 057-liveness-readiness-probes.md, 006-ci-cd.md, 023-long-polling.md
+012-retries.md, 013-exponential-backoff.md, 014-idempotency.md, 010-circuit-breakers.md, 044-backpressure.md, 101-webhooks.md, 056-health-checks.md, 057-liveness-readiness-probes.md, 006-ci-cd.md, 023-long-polling.md, 095-network-partitions.md
 
 ## Sources
 - Marc Brooker, "Timeouts, retries, and backoff with jitter", Amazon Builders' Library: https://builder.aws.com/content/3EumjoZascWd1oZiEgL8ORlv3qE/timeouts-retries-and-backoff-with-jitter

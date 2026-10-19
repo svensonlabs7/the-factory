@@ -91,3 +91,19 @@ Checked and kept:
 - 016, 023 and 024 agree that polling is right for one operator: the 15 s dashboard poll, and the 15 s `gh pr checks` poll that added 16 s to a 492 s run.
 - 103 and 108 agree with 006 on pinning. 006's row covers CI and the adapter, 108's row covers the builder's transitive tree, and 103's row covers the gh wording dependency.
 - GAPS.md: 36 open rows, 1 high (no secret scan before the push), 16 medium, 19 low.
+
+## 2026-10-19 · 70 cards (track G finished; track H up to 34)
+
+Re-ran `014_idempotency.py`: same results (a retried task makes two runs, an exact resend gets `401 Replayed request`, a keyed store creates one run, and check-then-write under 5 concurrent requests creates 5). Only the random run IDs differ. The factory code is unchanged since the cards were written.
+
+Changed:
+- **032-replication.md (contradiction):** it said `_gate_results` "never acts on the previous commit's results". 029 then showed that the checks come from a second read carrying no SHA, which can still return the previous commit's verdict. 032 now says the head check prevents a stale head, and points to 029's gap for the checks read.
+- **027-n-plus-one-queries.md:** "Is the query count per request bounded?" applied to any change to a list endpoint, so the dashboard's existing per-PR calls (cached, and right at today's load per the card itself) would have blocked unrelated changes to `command_data`. It now blocks only the per-item calls a diff adds.
+- **028-connection-pooling.md:** "Are connections reused?" would have blocked any new `gh` call, contradicting the card's own conclusion that a CLI per call is right at a few calls a minute, because it keeps the token out of the adapter. It now targets hot paths and loops, and names the `gh` exception.
+- **Related links:** added two-way links where the connection is real (029↔034, 032↔095, 014↔095, 012↔095, 011↔095, 057↔095, 052↔030, 059↔031, 075↔031, 043↔027, 001↔027, 067↔028, 041↔028, 103↔029).
+
+Checked and kept:
+- 095's ambiguous `gh pr create` row and the Retries row are different failures: one is a write whose outcome is unknown, the other is any call failing outright. The fixes differ (look up by branch, against retry on idempotent reads).
+- 031 extended the Logging row instead of adding a duplicate. 025, 026 and 027 agree on the adapter's scan and lookup costs (0.5 ms for 30 run records, 17 ms for 900, and 0.48 s per real `gh` call).
+- 034's per-operation verdicts (dashboard available, gate consistent, intake available) match what 029, 032 and 095 found about the same code.
+- GAPS.md: 38 open rows, 1 high (no secret scan before the push), 16 medium, 21 low.

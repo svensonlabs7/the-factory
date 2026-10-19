@@ -50,7 +50,7 @@ A2 8 threads x 200,000 `n = add(n, 1)`: n = 394,165 (expected 1,600,000; lost 1,
 Bare `+=` survived only because 3.11 does not switch inside it. A free-threaded build (3.13t) was not tested; none is installed here.
 
 ## Related
-039-race-conditions.md, 040-deadlocks.md, 057-liveness-readiness-probes.md, 002-caching.md, 041-memory-leaks.md, 023-long-polling.md
+039-race-conditions.md, 040-deadlocks.md, 057-liveness-readiness-probes.md, 002-caching.md, 041-memory-leaks.md, 023-long-polling.md, 027-n-plus-one-queries.md
 
 ## Sources
 - "What kinds of global value mutation are thread-safe?", Python Library FAQ: https://docs.python.org/3/faq/library.html#what-kinds-of-global-value-mutation-are-thread-safe

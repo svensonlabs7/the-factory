@@ -52,7 +52,7 @@ B  token bucket                      10 allowed                           100 al
 The sliding log refusing 2 of 100 evenly spaced requests is floating-point rounding at the window edge, which shows why a limit set at exactly the expected rate misfires.
 
 ## Related
-013-exponential-backoff.md, 044-backpressure.md, 075-ddos-protection.md, 074-waf.md, 012-retries.md, 101-webhooks.md, 010-circuit-breakers.md
+013-exponential-backoff.md, 044-backpressure.md, 075-ddos-protection.md, 074-waf.md, 012-retries.md, 101-webhooks.md, 010-circuit-breakers.md, 027-n-plus-one-queries.md
 
 ## Sources
 - Paul Tarjan, "Scaling your API with rate limiters", Stripe engineering blog: https://stripe.com/blog/rate-limiters

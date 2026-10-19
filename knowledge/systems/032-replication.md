@@ -33,7 +33,7 @@ Replication is worth it when losing a node's data or its availability is unaccep
 
 ## In the factory
 - The factory has no database to replicate. Its one replicated store is git: `_push` copies each run's commits to GitHub, the durable copy (`factory/intake/webhook_adapter.py:338-350`). Work the agent did is safe once pushed, and only the unpushed part of an in-flight run is at risk.
-- GitHub's view of a PR lags behind a push, the same read-your-writes problem as a lagging replica. `_gate_results` (`:352-370`) waits until `gh pr view` shows the pushed head before reading checks, so it never acts on the previous commit's results. Right (proof B). The tests cover it as `FAKE_STALE` (`tests/test_adapter.py:103-104`).
+- GitHub's view of a PR lags behind a push, the same read-your-writes problem as a lagging replica. `_gate_results` (`:352-370`) waits until `gh pr view` shows the pushed head before reading checks, so it never acts on a stale head. Right (proof B). The checks themselves come from a second read with no SHA, which can still lag; that is 029-read-replicas.md's gap (corrected in review 70). The tests cover it as `FAKE_STALE` (`tests/test_adapter.py:103-104`).
 - Run records, logs and `.env` exist only on the Mac's disk, with no copy anywhere. That is a durability question for 084-backups.md, not a reason to replicate.
 - Not applicable at today's load: database replication, read replicas and lag monitoring.
 
@@ -51,7 +51,7 @@ B  _gate_results('url', 'new222'):        {'tests': 'pass'}  after 3 looks at th
 - A naive read of the PR would have reported the previous commit's failure for a passing push.
 
 ## Related
-029-read-replicas.md, 035-eventual-consistency.md, 034-cap-theorem.md, 084-backups.md, 085-failover.md, 038-distributed-locks.md
+029-read-replicas.md, 035-eventual-consistency.md, 034-cap-theorem.md, 084-backups.md, 085-failover.md, 038-distributed-locks.md, 095-network-partitions.md
 
 ## Sources
 - "High Availability, Load Balancing, and Replication: Log-Shipping Standby Servers" (streaming and synchronous replication), PostgreSQL documentation: https://www.postgresql.org/docs/current/warm-standby.html
