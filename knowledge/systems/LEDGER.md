@@ -89,7 +89,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 |---|---|---|---|
 | 15 | Message Queues | proven | [015-message-queues.md](015-message-queues.md) |
 | 16 | Pub/Sub | proven | [016-pub-sub.md](016-pub-sub.md) |
-| 17 | Event-Driven Architecture | todo | |
+| 17 | Event-Driven Architecture | proven | [017-event-driven-architecture.md](017-event-driven-architecture.md) |
 | 21 | Cron Jobs | todo | |
 | 23 | Long Polling | todo | |
 | 24 | Server-Sent Events | todo | |
