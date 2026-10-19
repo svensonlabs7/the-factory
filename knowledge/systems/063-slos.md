@@ -54,7 +54,7 @@ B  true rate 92%, SLO 90%: the month's number says 'met' in 80% of months
 Today's 8 runs cannot tell a good factory from a mediocre one. Even 60 runs a month misjudge a 90% target in about one month in five, in both directions. Longer windows narrow the interval: 600 events give ±3 points.
 
 ## Related
-064-slis.md, 065-error-budgets.md, 062-alerts.md, 061-metrics.md, 057-liveness-readiness-probes.md
+064-slis.md, 065-error-budgets.md, 062-alerts.md, 061-metrics.md, 057-liveness-readiness-probes.md, 093-p99-latency.md
 
 ## Sources
 - "Embracing Risk", Google SRE book: https://sre.google/sre-book/embracing-risk/

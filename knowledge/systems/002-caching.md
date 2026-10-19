@@ -40,7 +40,7 @@ A cache is worth it when the same results are read repeatedly, the source is slo
 
 ## In the factory
 - The one application cache is `_pr_cache` (`factory/intake/webhook_adapter.py:646-672`): PR state for the dashboard, open PRs for 60 s, merged and closed ones kept.
-  - It is bounded only by retention (041-memory-leaks.md), and CLOSED is wrongly treated as final (035-eventual-consistency.md's row).
+  - It is never evicted, so it grows until the adapter restarts, about 2 KB per PR (041-memory-leaks.md; corrected in review 80), and CLOSED is wrongly treated as final (035-eventual-consistency.md's row).
   - Its cold start is the one-call-per-PR fan-out on 8 threads (027-n-plus-one-queries.md).
   - Concurrent misses can duplicate a `gh` call, which is harmless at one operator's load (043-thread-safety.md).
   - On a refresh failure it drops the stale entry and returns `None` (proof C), so a GitHub blip blanks an open PR's checks until the next good poll. That is cosmetic; serving the stale entry (a soft TTL) would be the one-line improvement.

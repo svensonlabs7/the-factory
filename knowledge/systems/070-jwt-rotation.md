@@ -48,7 +48,7 @@ C  single static key swapped to NEW:  old tokens valid 0/5 at the instant of rot
 ```
 
 ## Related
-069-oauth.md, 067-secrets-management.md, 076-cors.md, 101-webhooks.md
+069-oauth.md, 067-secrets-management.md, 076-cors.md, 101-webhooks.md, 096-clock-skew.md
 
 ## Sources
 - RFC 8725, "JSON Web Token Best Current Practices": https://www.rfc-editor.org/rfc/rfc8725.html

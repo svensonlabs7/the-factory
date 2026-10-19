@@ -56,7 +56,7 @@ B  300 PRs | cold cache: 300 gh calls  2.17 s | warm, merged:   0 gh calls  0.01
 The same 100 runs and 494 events cost 101 statements lazily and 1 or 2 in bulk. The dashboard's calls scale with the number of PRs whenever the cache is cold or the PRs are open.
 
 ## Related
-026-query-optimization.md, 025-database-indexing.md, 002-caching.md, 043-thread-safety.md, 001-rate-limiting.md, 091-latency.md
+026-query-optimization.md, 025-database-indexing.md, 002-caching.md, 043-thread-safety.md, 001-rate-limiting.md, 091-latency.md, 094-tail-latency.md
 
 ## Sources
 - "Relationship Loading Techniques", SQLAlchemy 2.0 documentation: https://docs.sqlalchemy.org/en/20/orm/queryguide/relationships.html

@@ -27,7 +27,7 @@ The cheap rules: monotonic clocks for durations, NTP on every host, windows wide
 - **Local time in timestamps:** daylight-saving changes and zones scramble ordering (021-cron-jobs.md).
 
 ## Review checklist
-- [ ] **Are durations, timeouts and deadlines measured on a monotonic clock?** · Applies when: the diff measures elapsed time or enforces a deadline within one process. · Block if: it subtracts or compares `time.time()` (or another wall clock) instead of `time.monotonic()`, and a clock step could fire the deadline early, never, or produce a negative duration.
+- [ ] **Are durations, timeouts and deadlines measured on a monotonic clock?** · Applies when: the diff adds or changes code that measures elapsed time or enforces a deadline within one process. · Block if: that code subtracts or compares `time.time()` (or another wall clock) instead of `time.monotonic()`. Untouched existing uses are tracked in the card, not blocked.
 - [ ] **Does a cross-machine freshness or expiry check allow for skew?** · Applies when: the diff validates timestamps from another machine (signatures, tokens, certificates). · Block if: the window has no allowance for skew, or the allowance is smaller than the hosts' realistic offset.
 - [ ] **Is cross-machine ordering logical, not physical?** · Applies when: the diff orders, merges or resolves conflicts between events from several machines. · Block if: it relies on wall-clock timestamps where reordering would change correctness (last-write-wins, causal logs), with no logical clock or single sequencer.
 - [ ] **Are timestamps stored in UTC?** · Applies when: the diff records or compares times. · Block if: it stores local time, or a format without a zone.

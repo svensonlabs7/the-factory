@@ -23,7 +23,7 @@ Measure latency on every user-facing path and every dependency call, from the st
 - **No budget:** nobody knows which hop may spend what, so every team assumes it is someone else's.
 
 ## Review checklist
-- [ ] **Is latency measured per route and per outcome?** · Applies when: the diff adds a request path, job type or dependency call that users or the pipeline wait on. · Block if: its latency is not recorded as a distribution (histogram or percentiles) with failures included and labelled.
+- [ ] **Is latency measured per route and per outcome?** · Applies when: the diff adds a service, or adds a request path, job type or dependency call to a service that already records latency. · Block if: a new service ships with no latency measurement, or the new path is left out of the existing distribution (histogram or percentiles, failures included and labelled).
 - [ ] **Does a request path make serial remote calls that could be batched or parallel?** · Applies when: the diff adds remote calls on a request path. · Block if: independent calls run one after another in a path where their sum is user-visible.
 - [ ] **Is the optimization aimed at the largest share?** · Applies when: the diff optimizes for speed. · Block if: no measurement shows that the optimized step is a significant share of the path's latency.
 - [ ] **Does the dependency call have a latency bound?** · Applies when: the diff calls a remote service. · Block if: there is no timeout below the caller's own deadline (011-timeouts.md).

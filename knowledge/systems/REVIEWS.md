@@ -107,3 +107,19 @@ Checked and kept:
 - 031 extended the Logging row instead of adding a duplicate. 025, 026 and 027 agree on the adapter's scan and lookup costs (0.5 ms for 30 run records, 17 ms for 900, and 0.48 s per real `gh` call).
 - 034's per-operation verdicts (dashboard available, gate consistent, intake available) match what 029, 032 and 095 found about the same code.
 - GAPS.md: 38 open rows, 1 high (no secret scan before the push), 16 medium, 21 low.
+
+## 2026-10-19 · 80 cards (track H finished; track I up to 2)
+
+Re-ran `012_retries.py`: identical output (79.8% → 99.3% success with 3 attempts; 27 vs 3 db calls for layered retries; a retry budget brings a dead dependency down to 1.01 calls; transient-only retry makes 1 call on a permanent error). The factory code is unchanged since the cards were written.
+
+Changed:
+- **002-caching.md (contradiction):** it said `_pr_cache` is "bounded only by retention". 041 proved that its entries are never evicted, not even when `_recover` prunes their runs. The cache grows, at about 2 KB per PR, until the adapter restarts. 002 now says so.
+- **091-latency.md:** "Is latency measured per route and per outcome?" would have blocked every new route while the factory records no latency metrics at all, which is outside a diff's control. It now asks a new service to ship with measurement, and new paths on an instrumented service to be included, the same narrowing review 30 applied to 061.
+- **096-clock-skew.md:** the monotonic-clock item blocked any diff touching existing deadlines, while the card itself rates the existing wall-clock uses acceptable on this never-sleeping host. It now applies to code a diff adds or changes, which can use `time.monotonic()` at no cost.
+- **Related links:** added two-way links where the connection is real (070↔096, 052↔033, 017↔018, 017↔019, 014↔019, 061↔091, 044↔092, 001↔092, 063↔093, 027↔094).
+
+Checked and kept:
+- 033's proposed `flock` guard is the same fix as 052's medium Blue-Green row, and 033 adds no row of its own.
+- 091, 092, 093 and 094 agree on where the factory's time goes: the build (82% of a run), then the gate. The gate's critical path is thermo-nuclear in all 15 measured runs. Throughput is bounded by plan usage, not compute. All of them say percentiles over 2–8 runs would be noise.
+- 018 and 019 agree that a run is an orchestrated saga with a durable log and deliberately no compensations, and that its crash gaps are already rows (Idempotency, Rolling Deployments, Message Queues, Network Partitions).
+- GAPS.md: 39 open rows, 1 high (no secret scan before the push), 16 medium, 22 low.

@@ -55,7 +55,7 @@ first instance's in-flight run after the failed start: status 'error', error 'th
 ```
 
 ## Related
-054-rolling-deployments.md, 055-rollbacks.md, 053-canary-releases.md, 039-race-conditions.md, 038-distributed-locks.md, 006-ci-cd.md, 030-sharding.md
+054-rolling-deployments.md, 055-rollbacks.md, 053-canary-releases.md, 039-race-conditions.md, 038-distributed-locks.md, 006-ci-cd.md, 030-sharding.md, 033-leader-election.md
 
 ## Sources
 - "BlueGreenDeployment", Martin Fowler: https://martinfowler.com/bliki/BlueGreenDeployment.html

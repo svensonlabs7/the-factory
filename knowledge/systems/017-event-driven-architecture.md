@@ -51,7 +51,7 @@ B  /status: status 'completed'; its events: {'counts': {'queued': 1}, 'last': 'q
 ```
 
 ## Related
-015-message-queues.md, 016-pub-sub.md, 060-distributed-tracing.md, 014-idempotency.md, 082-schema-versioning.md, 059-logging.md
+015-message-queues.md, 016-pub-sub.md, 060-distributed-tracing.md, 014-idempotency.md, 082-schema-versioning.md, 059-logging.md, 018-distributed-transactions.md, 019-saga-pattern.md
 
 ## Sources
 - "What do you mean by 'Event-Driven'?", Martin Fowler: https://martinfowler.com/articles/201701-event-driven.html
