@@ -93,7 +93,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 21 | Cron Jobs | proven | [021-cron-jobs.md](021-cron-jobs.md) |
 | 23 | Long Polling | proven | [023-long-polling.md](023-long-polling.md) |
 | 24 | Server-Sent Events | proven | [024-server-sent-events.md](024-server-sent-events.md) |
-| 22 | WebSockets | todo | |
+| 22 | WebSockets | proven | [022-websockets.md](022-websockets.md) |
 
 ## G. Data
 
