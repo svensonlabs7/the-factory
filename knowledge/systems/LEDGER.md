@@ -144,7 +144,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | # | Topic | Status | Card |
 |---|---|---|---|
 | 97 | DNS | proven | [097-dns.md](097-dns.md) |
-| 98 | TCP vs UDP | todo | |
+| 98 | TCP vs UDP | proven | [098-tcp-vs-udp.md](098-tcp-vs-udp.md) |
 | 99 | HTTP/2 & HTTP/3 | todo | |
 | 4 | Reverse Proxies | todo | |
 | 3 | Load Balancing | todo | |
