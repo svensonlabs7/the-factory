@@ -113,7 +113,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | # | Topic | Status | Card |
 |---|---|---|---|
 | 95 | Network Partitions | proven | [095-network-partitions.md](095-network-partitions.md) |
-| 34 | CAP Theorem | todo | |
+| 34 | CAP Theorem | proven | [034-cap-theorem.md](034-cap-theorem.md) |
 | 35 | Eventual Consistency | todo | |
 | 96 | Clock Skew | todo | |
 | 33 | Leader Election | todo | |
