@@ -170,7 +170,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 110 | On-Call | proven | [110-on-call.md](110-on-call.md) |
 | 111 | Postmortems | proven | [111-postmortems.md](111-postmortems.md) |
 | 84 | Backups | proven | [084-backups.md](084-backups.md) |
-| 83 | Disaster Recovery | todo | |
+| 83 | Disaster Recovery | proven | [083-disaster-recovery.md](083-disaster-recovery.md) |
 | 85 | Failover | todo | |
 | 86 | Multi-Region Deployment | todo | |
 | 87 | Chaos Engineering | todo | |
