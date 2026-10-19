@@ -106,7 +106,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 32 | Replication | proven | [032-replication.md](032-replication.md) |
 | 29 | Read Replicas | proven | [029-read-replicas.md](029-read-replicas.md) |
 | 31 | Partitioning | proven | [031-partitioning.md](031-partitioning.md) |
-| 30 | Sharding | todo | |
+| 30 | Sharding | proven | [030-sharding.md](030-sharding.md) |
 
 ## H. Distributed systems
 
