@@ -74,7 +74,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 55 | Rollbacks | proven | [055-rollbacks.md](055-rollbacks.md) |
 | 51 | Feature Flags | proven | [051-feature-flags.md](051-feature-flags.md) |
 | 54 | Rolling Deployments | proven | [054-rolling-deployments.md](054-rolling-deployments.md) |
-| 52 | Blue-Green Deployment | todo | |
+| 52 | Blue-Green Deployment | proven | [052-blue-green-deployment.md](052-blue-green-deployment.md) |
 | 53 | Canary Releases | todo | |
 | 81 | Database Migrations | todo | |
 | 82 | Schema Versioning | todo | |
