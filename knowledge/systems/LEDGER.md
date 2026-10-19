@@ -124,7 +124,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 91 | Latency | todo | |
+| 91 | Latency | proven | [091-latency.md](091-latency.md) |
 | 92 | Throughput | todo | |
 | 93 | P99 Latency | todo | |
 | 94 | Tail Latency | todo | |
