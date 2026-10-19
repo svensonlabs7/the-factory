@@ -133,7 +133,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 47 | Vertical Scaling | proven | [047-vertical-scaling.md](047-vertical-scaling.md) |
 | 46 | Horizontal Scaling | proven | [046-horizontal-scaling.md](046-horizontal-scaling.md) |
 | 45 | Autoscaling | proven | [045-autoscaling.md](045-autoscaling.md) |
-| 48 | CDN | todo | |
+| 48 | CDN | proven | [048-cdn.md](048-cdn.md) |
 | 49 | Edge Caching | todo | |
 | 89 | Cold Starts | todo | |
 | 90 | Serverless Limits | todo | |
