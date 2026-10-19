@@ -135,7 +135,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 45 | Autoscaling | proven | [045-autoscaling.md](045-autoscaling.md) |
 | 48 | CDN | proven | [048-cdn.md](048-cdn.md) |
 | 49 | Edge Caching | proven | [049-edge-caching.md](049-edge-caching.md) |
-| 89 | Cold Starts | todo | |
+| 89 | Cold Starts | proven | [089-cold-starts.md](089-cold-starts.md) |
 | 90 | Serverless Limits | todo | |
 | 88 | Cost Optimization | todo | |
 
