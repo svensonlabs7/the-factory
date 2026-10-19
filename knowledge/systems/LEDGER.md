@@ -118,7 +118,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 96 | Clock Skew | proven | [096-clock-skew.md](096-clock-skew.md) |
 | 33 | Leader Election | proven | [033-leader-election.md](033-leader-election.md) |
 | 18 | Distributed Transactions | proven | [018-distributed-transactions.md](018-distributed-transactions.md) |
-| 19 | Saga Pattern | todo | |
+| 19 | Saga Pattern | proven | [019-saga-pattern.md](019-saga-pattern.md) |
 
 ## I. Performance and scaling
 
