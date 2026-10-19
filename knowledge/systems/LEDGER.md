@@ -70,7 +70,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 6 | CI/CD | todo | |
+| 6 | CI/CD | proven | [006-ci-cd.md](006-ci-cd.md) |
 | 55 | Rollbacks | todo | |
 | 51 | Feature Flags | todo | |
 | 54 | Rolling Deployments | todo | |
