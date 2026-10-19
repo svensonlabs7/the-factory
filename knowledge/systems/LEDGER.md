@@ -137,7 +137,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 49 | Edge Caching | proven | [049-edge-caching.md](049-edge-caching.md) |
 | 89 | Cold Starts | proven | [089-cold-starts.md](089-cold-starts.md) |
 | 90 | Serverless Limits | proven | [090-serverless-limits.md](090-serverless-limits.md) |
-| 88 | Cost Optimization | todo | |
+| 88 | Cost Optimization | proven | [088-cost-optimization.md](088-cost-optimization.md) |
 
 ## J. Networking and protocols
 
