@@ -31,8 +31,7 @@ It is worth it for short critical sections over in-process state, for resources 
 ## In the factory
 - `factory/intake/webhook_adapter.py:532-547`: `HEARTBEAT_LOCK` is a mutex around the HEARTBEAT read-modify-write. The critical section is pure local file work: a median hold of 0.16 ms and a maximum of 2.76 ms over 500 updates. Right.
 - `factory/intake/webhook_adapter.py:151`: `RUN_EXECUTOR` has `max_workers=1`, which serialises runs and gives each one exclusive use of the Claude plan quota and the origin repo. It is pessimistic by design, because conflicting builds are expensive. Right.
-- `factory/intake/com.svenson.factory-intake.plist`: the adapter binds `127.0.0.1:7654`, so a second instance on that port fails with `EADDRINUSE`. The port works as a single-instance lock, and releases itself when the process dies. Right.
-- Limitation, not observed: `HEARTBEAT_LOCK` is per-process. A second adapter on another port with the same `FACTORY_ROOT` (a manual debug run, say) would share HEARTBEAT and the run metas without any lock between them. Run debug instances against a temporary `FACTORY_ROOT`, as the tests do.
+- `factory/intake/com.svenson.factory-intake.plist`: the adapter binds `127.0.0.1:7654`, so a second instance on that port fails with `EADDRINUSE`. That is not a single-instance lock, though (corrected in review 50). uvicorn imports the module before it binds, and the import runs `_recover`. A second start on the same port marks the live adapter's in-flight run `error` and only then fails to bind. A second adapter on another port also shares HEARTBEAT and the run metas, with no lock between them. See 052-blue-green-deployment.md and its GAPS.md row. Until an import-time lock exists, run debug instances against a temporary `FACTORY_ROOT`, as the tests do.
 - Not applicable at today's load: `FOR UPDATE` and `SKIP LOCKED`. There is no database, and one worker.
 
 ## Proof
@@ -46,7 +45,7 @@ C  second instance binding 127.0.0.1:7654: EADDRINUSE (Address already in use)
 In A, writer 1 held SQLite's write lock (`BEGIN IMMEDIATE`) through 2 s of slow work. Writer 2 either gave up or waited out the hold.
 
 ## Related
-036-optimistic-locking.md, 040-deadlocks.md, 038-distributed-locks.md, 039-race-conditions.md, 015-message-queues.md
+036-optimistic-locking.md, 040-deadlocks.md, 038-distributed-locks.md, 039-race-conditions.md, 015-message-queues.md, 052-blue-green-deployment.md
 
 ## Sources
 - Martin Fowler, "Pessimistic Offline Lock", Patterns of Enterprise Application Architecture: https://martinfowler.com/eaaCatalog/pessimisticOfflineLock.html

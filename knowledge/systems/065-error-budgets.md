@@ -49,7 +49,7 @@ same runs under a 99% SLO: budget 0.08 misses -> one miss is 1250% of budget
 ```
 
 ## Related
-063-slos.md, 064-slis.md, 111-postmortems.md, 062-alerts.md
+063-slos.md, 064-slis.md, 111-postmortems.md, 062-alerts.md, 053-canary-releases.md
 
 ## Sources
 - "Example Error Budget Policy", Google SRE workbook: https://sre.google/workbook/error-budget-policy/

@@ -30,12 +30,12 @@ It is worth it when a release must switch instantly and roll back instantly, and
 
 ## In the factory
 - The factory does not deploy blue-green: one launchd process, restarted in place (see 054-rolling-deployments.md). That is the right choice. Its run records, HEARTBEAT and `FACTORY_ROOT` checkout are exclusive to one process by design: one run worker (`factory/intake/webhook_adapter.py:151`, `RUN_EXECUTOR` with `max_workers=1`), and `_recover` at import (`:715-732`) assumes every in-flight run belongs to a dead predecessor.
-- Gap (low): nothing enforces a single instance. A second copy started on the same `FACTORY_ROOT` (and the default, `:50`, is the operator's working copy, the same as the live adapter's) does three things, all shown in the proof:
+- Gap (medium, raised in review 50): nothing enforces a single instance. A second copy started on the same `FACTORY_ROOT` (and the default, `:50`, is the operator's working copy, the same as the live adapter's) does three things, all shown in the proof:
   - it marks the live adapter's in-flight run `error` at import;
   - it accepts and builds runs in parallel with the live worker, counting only its own runs against the in-flight cap;
   - its pushes share `FETCH_HEAD` with the live worker (039-race-conditions.md).
 
-  A manual `uvicorn` started for debugging without `FACTORY_ROOT` is enough to trigger it (see GAPS.md).
+  A manual `uvicorn` started for debugging without `FACTORY_ROOT` is enough to trigger it. So is a second start on the live port 7654, which fails to bind but only after its import has already marked the live run `error` (review 50; see GAPS.md). The bound port is not the single-instance lock that 037 once called it.
 - Not applicable at today's load: a second environment, a traffic switch and shared-state migration. With one host and one operator, Recreate plus a fast rollback is enough.
 
 ## Proof
@@ -47,6 +47,12 @@ A  after blue's worker ends: record 'completed', blue's own events for it: ['que
 B  green on its own root: blue's run seen as 'running' after green started, finished 'completed'; green healthy: {'status': 'ok'}
 ```
 With shared state, the run's record flips from `running` to `error` to `completed`, its action log gets two `finished` events, and two workers build at once. With separate state (B), and blue drained before it stops, nothing collides.
+
+Review 50 (`python3 -I scratchpad/mastery/review50_port_lock.py <repo>`, real uvicorn processes on a scratch port and root):
+```
+second instance on the same port: exit 3, "ERROR:    [Errno 48] error while attempting to bind on address ('127.0.0.1', 18750): address already in use"
+first instance's in-flight run after the failed start: status 'error', error 'the service restarted during the run'
+```
 
 ## Related
 054-rolling-deployments.md, 055-rollbacks.md, 053-canary-releases.md, 039-race-conditions.md, 038-distributed-locks.md, 006-ci-cd.md

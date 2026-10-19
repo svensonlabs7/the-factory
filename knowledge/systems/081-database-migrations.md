@@ -54,7 +54,7 @@ D  new template row set on an existing HEARTBEAT.md: in /heartbeat False; warnin
 Postgres's `ACCESS EXCLUSIVE` behaviour is from its docs, not run here: no Postgres image is on this machine.
 
 ## Related
-082-schema-versioning.md, 055-rollbacks.md, 054-rolling-deployments.md, 052-blue-green-deployment.md, 037-pessimistic-locking.md, 014-idempotency.md
+082-schema-versioning.md, 055-rollbacks.md, 054-rolling-deployments.md, 052-blue-green-deployment.md, 037-pessimistic-locking.md, 014-idempotency.md, 102-api-versioning.md
 
 ## Sources
 - "ALTER TABLE", PostgreSQL documentation: https://www.postgresql.org/docs/current/sql-altertable.html

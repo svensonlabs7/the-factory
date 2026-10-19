@@ -24,10 +24,10 @@ CI is worth it for any shared codebase. A self-testing build on every PR, requir
 
 ## Review checklist
 - [ ] **Is the change tested on top of the current mainline?** · Applies when: the diff changes branch protection, merge settings or how PRs are merged. · Block if: it turns off "require branches to be up to date" (or a merge queue) and puts nothing in its place.
-- [ ] **Does CI run the versions production runs?** · Applies when: the diff adds or changes a dependency, a runtime version, or the command that installs either in CI or in the deploy. · Block if: CI and production take the version from different places, or either installs an unpinned version.
+- [ ] **Does CI run the versions production runs?** · Applies when: the diff adds or changes a dependency, a runtime version, or the command that installs either in CI or in the deploy. · Block if: the dependency or version it adds or changes is unpinned, or is pinned in CI but not in production (or the reverse).
 - [ ] **Is every new check required, and does it fail closed?** · Applies when: the diff adds a CI job or lane. · Block if: the job is not a required check, or a skipped, crashed or timed-out run can count as passing.
 - [ ] **Can the PR change the gate that reviews it?** · Applies when: the diff touches workflows, review skills or the scripts they call. · Block if: the reviewing job runs the PR's own copy of them with access to secrets.
-- [ ] **Does the deploy reach the running process?** · Applies when: the diff changes code that a long-running service loads at start. · Block if: the PR does not say how the change is deployed and how the running version is checked.
+- [ ] **Does the deploy reach the running process?** · Applies when: the diff changes how a long-running service is started or deployed (its launch config, entrypoint, dependencies or runtime). · Block if: the PR does not say how the change is applied to the running service and how to check it took effect.
 
 ## In the factory
 - Branch protection on `main` requires all six checks (`thermo-nuclear`, `ponytail-review`, `ux-laws`, `tests`, `lint`, `secrets`) with `strict: true` and `enforce_admins: true` (`gh api …/branches/main/protection`). Every merge is tested on top of the current main, and admins cannot skip it. That closes the semantic-conflict case in the proof. Right.

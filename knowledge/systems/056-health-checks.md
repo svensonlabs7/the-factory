@@ -53,7 +53,7 @@ B  deep, fail-open      servers in rotation 10/10   served 70%
 ```
 
 ## Related
-057-liveness-readiness-probes.md, 010-circuit-breakers.md, 058-monitoring.md, 062-alerts.md, 020-dead-letter-queues.md, 011-timeouts.md
+057-liveness-readiness-probes.md, 010-circuit-breakers.md, 058-monitoring.md, 062-alerts.md, 020-dead-letter-queues.md, 011-timeouts.md, 054-rolling-deployments.md, 006-ci-cd.md
 
 ## Sources
 - David Yanacek, "Implementing health checks", Amazon Builders' Library: https://builder.aws.com/content/3Ev53O39izHCtWLzp4XU6t8PC1O/implementing-health-checks

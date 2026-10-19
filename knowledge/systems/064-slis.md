@@ -50,7 +50,7 @@ SLI user-facing  'PR merged':      7/8 = 88%
 "Completed and merged", the factory delivering on its own, is 5/8 = 62%. Neither single signal says that. PR #55 passed every gate check and was closed because its fix did not work against real Docker, which is a correctness failure that only post-merge verification would count.
 
 ## Related
-063-slos.md, 065-error-budgets.md, 061-metrics.md, 058-monitoring.md
+063-slos.md, 065-error-budgets.md, 061-metrics.md, 058-monitoring.md, 053-canary-releases.md
 
 ## Sources
 - "Implementing SLOs", Google SRE workbook: https://sre.google/workbook/implementing-slos/

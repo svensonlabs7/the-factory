@@ -51,7 +51,7 @@ breaker
 In the outage, the breaker cut load on the dependency 30× and caller waiting 30×. In the partial outage, it halved the success rate. After recovery, it kept rejecting good calls until its window passed.
 
 ## Related
-011-timeouts.md, 012-retries.md, 044-backpressure.md, 056-health-checks.md, 020-dead-letter-queues.md, 001-rate-limiting.md, 013-exponential-backoff.md
+011-timeouts.md, 012-retries.md, 044-backpressure.md, 056-health-checks.md, 020-dead-letter-queues.md, 001-rate-limiting.md, 013-exponential-backoff.md, 051-feature-flags.md
 
 ## Sources
 - Martin Fowler, "CircuitBreaker": https://martinfowler.com/bliki/CircuitBreaker.html

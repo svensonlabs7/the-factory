@@ -29,7 +29,7 @@ Only when several machines must coordinate on a shared resource and a queue, par
 - [ ] **Is work bounded by the lease?** · Applies when: the diff does work while holding a lease. · Block if: the work can outlast the lease with no renewal or fencing, and nothing stops a stale holder from writing.
 
 ## In the factory
-- One host, one adapter. The bound port `127.0.0.1:7654` is the single-instance lock (037-pessimistic-locking.md), and `RUN_EXECUTOR` (`max_workers=1`) gives one run at a time exclusive use of the plan and repo. No distributed lock is needed. Right.
+- One host, one adapter. `RUN_EXECUTOR` (`max_workers=1`) gives one run at a time exclusive use of the plan and repo, and no distributed lock is needed. Right. The bound port `127.0.0.1:7654` is not a single-instance lock (corrected in review 50): a second start's import runs `_recover` before the bind fails (052-blue-green-deployment.md). A local `flock` at import is the fix, not a distributed lock.
 - `factory/intake/webhook_adapter.py:350`: a non-forced `git push` is a compare-and-swap on the remote branch, so GitHub itself fences stale writers. If a stale actor pushes after the branch moved, it is rejected (036-optimistic-locking.md). That is fencing enforced by the resource.
 - `.github/workflows/*.yml`: no `concurrency:` groups. That is fine, because the adapter pushes a new head only after every check on the previous head has finished, so gate runs for one PR do not overlap.
 - If the factory ever runs workers on several hosts (multi-repo builds), coordinate through a queue with leases, plus conditional writes at the resource (git push without force, or a database row with a version), not through a Redis lock alone.
@@ -44,7 +44,7 @@ B  with fencing tokens   : client2 token 34 wrote "client2's data"; client1 toke
 The git equivalent, a stale push rejected because the branch moved on, is proven with real git in 036-optimistic-locking.md.
 
 ## Related
-036-optimistic-locking.md, 037-pessimistic-locking.md, 033-leader-election.md, 096-clock-skew.md, 039-race-conditions.md
+036-optimistic-locking.md, 037-pessimistic-locking.md, 033-leader-election.md, 096-clock-skew.md, 039-race-conditions.md, 052-blue-green-deployment.md
 
 ## Sources
 - Martin Kleppmann, "How to do distributed locking": https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html

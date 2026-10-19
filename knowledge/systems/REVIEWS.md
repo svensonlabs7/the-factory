@@ -57,3 +57,20 @@ Changed:
 Checked and kept:
 - 039, 037 and 043 agree on the adapter's concurrency model: one run worker, `HEARTBEAT_LOCK` the only lock, the port as a single-instance lock, `FETCH_HEAD` the one cross-process race.
 - 060 and 066 agree that the action log covers 2 of 8 runs, and 061 and 066 agree that pauses and token usage are unrecorded. Each has one GAPS row, with no duplicates.
+
+## 2026-10-19 · 50 cards (track D finished; track E up to 102)
+
+Re-ran `057_probes.py`: identical output (a 2.7 s `/health` stall while `alive_at` was stamped 13 times; the same probe-simulation table). The factory code is unchanged since the cards were written.
+
+Changed:
+- **037 and 038 (contradiction, now proven wrong):** both called the bound port `127.0.0.1:7654` the adapter's single-instance lock. It is not one. uvicorn imports the module, and the import runs `_recover`, before it binds. Real uvicorn processes on a scratch port and root showed a second start on an occupied port exit with `EADDRINUSE`, but only after it had marked the first instance's in-flight run `error`. Both cards now say so and point to 052.
+- **052-blue-green-deployment.md and its GAPS.md row:** raised from low to medium. The trigger is no longer only a debug run on another port: any second start, even one that fails visibly on the live port, corrupts the live run's record. The review proof is added to the card.
+- **006-ci-cd.md:** two items would have blocked for things outside the diff. "Does CI run the versions production runs?" blocked any dependency change while the factory has no lockfile; it now blocks only what the diff adds unpinned, or pins on one side only. "Does the deploy reach the running process?" asked every adapter PR for deploy notes; it now applies to launch config, entrypoint, dependency and runtime changes.
+- **055-rollbacks.md:** "Is the way back known?" would have blocked every gate change, because `pull_request_target` makes the gate's rollback depend on the gate. It now blocks only a diff that removes or invalidates a documented way back.
+- **053-canary-releases.md:** the global-change item now excludes comment-only and doc-only edits, and asks for trial evidence only when a restart cannot undo the change.
+- **Related links:** added two-way links where the connection is real (037↔052, 038↔052, 039↔052, 054↔057, 054↔056, 006↔056, 053↔065, 053↔064, 055↔081, 055↔082, 044↔102, 058↔102, 010↔051, 006↔011, 081↔102).
+
+Checked and kept:
+- 081 and 102 both find HEARTBEAT's schema hidden in a markdown template. 081 owns the "new rows never reach the live file" gap, and 102 points at the existing Backpressure row for the dead fields, so neither duplicates the other.
+- 054 and 055 agree on the adapter's way back: `git checkout` in the working copy plus `launchctl kickstart -k`, with no merge needed. 054's in-flight-run gap and the Idempotency row's orphaned-container gap are separate rows.
+- GAPS.md: 33 open rows, 1 high (no secret scan before the push), 15 medium, 17 low.

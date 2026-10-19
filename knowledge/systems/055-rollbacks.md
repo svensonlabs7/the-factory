@@ -29,7 +29,7 @@ Every deployable thing needs a known way back, written down and fast, in the tim
 - [ ] **Do readers tolerate unknown fields and values?** · Applies when: the diff reads or rewrites persisted records. · Block if: it rejects unknown fields, drops them on rewrite, or crashes on an enum value it does not know.
 - [ ] **Does one bad record stop the whole service?** · Applies when: the diff loads persisted state at startup. · Block if: a single unparseable record crashes startup instead of being skipped and reported.
 - [ ] **Is the change reversible, or is the irreversible part separated?** · Applies when: the diff drops or rewrites data, runs a migration, or calls an external side effect. · Block if: the destructive step ships in the same deploy as the code that stops needing the data.
-- [ ] **Is the way back known?** · Applies when: the diff changes how a service, gate or pipeline is deployed. · Block if: it removes the documented way to return to the previous version, or makes the rollback depend on the component being changed.
+- [ ] **Is the way back known?** · Applies when: the diff changes how a service, gate or pipeline is deployed or rolled back. · Block if: it removes or invalidates the documented way back (a restart command, a pinned previous version, a break-glass step) without replacing it.
 
 ## In the factory
 - `factory/intake/webhook_adapter.py:127-129` (`_update`): merges new fields into the loaded record, so unknown fields written by another version survive a rewrite. `_capacity` and `_recover` (`:220-224`, `:715-729`) read with `.get`, so missing fields do not crash. Right.
@@ -50,7 +50,7 @@ B  one meta file in a new format, old version restarts -> import fails: UnicodeD
 Not run: the gate's self-rollback trap. Proving it needs a broken gate on the real `main`. It follows from `pull_request_target` taking the workflow from the base branch, together with the live protection settings (`enforce_admins: true`, `strict: true`, read with `gh api`).
 
 ## Related
-006-ci-cd.md, 051-feature-flags.md, 052-blue-green-deployment.md, 053-canary-releases.md, 054-rolling-deployments.md, 056-health-checks.md
+006-ci-cd.md, 051-feature-flags.md, 052-blue-green-deployment.md, 053-canary-releases.md, 054-rolling-deployments.md, 056-health-checks.md, 081-database-migrations.md, 082-schema-versioning.md
 
 ## Sources
 - "Ensuring rollback safety during deployments", Amazon Builders' Library: https://builder.aws.com/content/3F04j2yRAAMBuPSPs50xwXZqg01/ensuring-rollback-safety-during-deployments
