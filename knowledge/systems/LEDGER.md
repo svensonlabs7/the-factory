@@ -92,7 +92,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 17 | Event-Driven Architecture | proven | [017-event-driven-architecture.md](017-event-driven-architecture.md) |
 | 21 | Cron Jobs | proven | [021-cron-jobs.md](021-cron-jobs.md) |
 | 23 | Long Polling | proven | [023-long-polling.md](023-long-polling.md) |
-| 24 | Server-Sent Events | todo | |
+| 24 | Server-Sent Events | proven | [024-server-sent-events.md](024-server-sent-events.md) |
 | 22 | WebSockets | todo | |
 
 ## G. Data
