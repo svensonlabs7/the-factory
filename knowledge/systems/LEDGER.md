@@ -103,7 +103,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 26 | Query Optimization | proven | [026-query-optimization.md](026-query-optimization.md) |
 | 27 | N+1 Queries | proven | [027-n-plus-one-queries.md](027-n-plus-one-queries.md) |
 | 28 | Connection Pooling | proven | [028-connection-pooling.md](028-connection-pooling.md) |
-| 32 | Replication | todo | |
+| 32 | Replication | proven | [032-replication.md](032-replication.md) |
 | 29 | Read Replicas | todo | |
 | 31 | Partitioning | todo | |
 | 30 | Sharding | todo | |
