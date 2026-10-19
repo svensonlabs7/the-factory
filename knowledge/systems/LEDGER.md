@@ -149,7 +149,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 4 | Reverse Proxies | proven | [004-reverse-proxies.md](004-reverse-proxies.md) |
 | 3 | Load Balancing | proven | [003-load-balancing.md](003-load-balancing.md) |
 | 5 | API Gateways | proven | [005-api-gateways.md](005-api-gateways.md) |
-| 9 | Service Discovery | todo | |
+| 9 | Service Discovery | proven | [009-service-discovery.md](009-service-discovery.md) |
 | 100 | gRPC | todo | |
 
 ## K. Infrastructure
