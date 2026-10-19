@@ -130,7 +130,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 | 94 | Tail Latency | proven | [094-tail-latency.md](094-tail-latency.md) |
 | 2 | Caching | proven | [002-caching.md](002-caching.md) |
 | 50 | Cache Invalidation | proven | [050-cache-invalidation.md](050-cache-invalidation.md) |
-| 47 | Vertical Scaling | todo | |
+| 47 | Vertical Scaling | proven | [047-vertical-scaling.md](047-vertical-scaling.md) |
 | 46 | Horizontal Scaling | todo | |
 | 45 | Autoscaling | todo | |
 | 48 | CDN | todo | |
