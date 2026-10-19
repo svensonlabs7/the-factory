@@ -99,7 +99,7 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 25 | Database Indexing | todo | |
+| 25 | Database Indexing | proven | [025-database-indexing.md](025-database-indexing.md) |
 | 26 | Query Optimization | todo | |
 | 27 | N+1 Queries | todo | |
 | 28 | Connection Pooling | todo | |
