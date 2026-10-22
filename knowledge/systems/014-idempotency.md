@@ -33,7 +33,7 @@ It is worth it for any operation with a side effect that a client, a queue or a 
 - Not applicable at today's load: a shared idempotency store or key expiry service. One process and one directory are enough.
 
 ## Proof
-`pytest -s scratchpad/mastery/014_idempotency.py` (A and B use the real adapter through `tests/test_adapter.py`'s fixture):
+`pytest -s knowledge/systems/proofs/014_idempotency.py` (A and B use the real adapter through `tests/test_adapter.py`'s fixture):
 ```
 A  same task retried: 202 run 813641c0, 202 run b1a114d1 -> two runs for one request
 B  exact resend: 202 run 961084f1, then 401 {'detail': 'Replayed request'}

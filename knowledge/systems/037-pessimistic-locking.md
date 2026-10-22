@@ -35,7 +35,7 @@ It is worth it for short critical sections over in-process state, for resources 
 - Not applicable at today's load: `FOR UPDATE` and `SKIP LOCKED`. There is no database, and one worker.
 
 ## Proof
-`pytest -s scratchpad/mastery/037_pessimistic.py` (B uses the adapter's real `_set_heartbeat` and `HEARTBEAT_LOCK` through `tests/test_adapter.py`'s fixture; C tests the live adapter's port):
+`pytest -s knowledge/systems/proofs/037_pessimistic.py` (B uses the adapter's real `_set_heartbeat` and `HEARTBEAT_LOCK` through `tests/test_adapter.py`'s fixture; C tests the live adapter's port):
 ```
 A  writer 2 (timeout 0.5 s): database is locked after 0.6 s
 A  writer 2 (timeout 5 s): succeeded after 1.4 s, once writer 1 committed

@@ -30,7 +30,7 @@ Kubernetes (k8s) is a container orchestrator: you declare the desired state of y
 - Not applicable at today's load: Deployments, Services, Ingress, HPA, etcd, a scheduler, manifests.
 
 ## Proof
-`python3 008_kubernetes.py`, a model of a Deployment's reconciliation loop vs a one-shot launcher, with random pod crashes:
+`python3 knowledge/systems/proofs/008_kubernetes.py`, a model of a Deployment's reconciliation loop vs a one-shot launcher, with random pod crashes:
 ```
 A  self-healing under random crashes (desired=3):
    reconciler: running=3 (back to desired), total pods ever created=11

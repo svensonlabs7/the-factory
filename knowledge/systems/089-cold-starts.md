@@ -41,7 +41,7 @@ Measured on this host:
 ## Proof
 Run on this host:
 - `/usr/bin/time -p docker run --rm --network none ghcr.io/openhands/agent-server:1.54.0-python true`, three times: `real 5.42`, `3.79`, `3.64`.
-- `uv run --script scratchpad/mastery/089_agent_imports.py` (the builder's real header and imports): `imports 8.77 s` (real 10.04), `4.12 s` (real 4.75), `4.00 s` (real 4.60).
+- `uv run --script knowledge/systems/proofs/089_agent_imports.py` (the builder's real header and imports): `imports 8.77 s` (real 10.04), `4.12 s` (real 4.75), `4.00 s` (real 4.60).
 - A scratch uvicorn running this working copy's adapter, launch to first `/health`: `0.59 s`, `0.52 s`, `0.52 s`.
 - `du -sh ~/.cache/uv/environments-v2/run-agent-*`: `307M`, `328M`. Two builder environments exist, because the dependency tree drifted between builds.
 

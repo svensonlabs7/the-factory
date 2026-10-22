@@ -34,7 +34,7 @@ Autoscaling is worth it when load varies a lot over hours or days, capacity cost
 - Not applicable at today's load: autoscalers, scaling policies and pre-scaling.
 
 ## Proof
-`python3.11 -I scratchpad/mastery/045_autoscaling.py` is a seeded simulation of the HPA rule: a 15 s evaluation, a 0.1 tolerance, and a 60% CPU target with 100 req/s per replica. New replicas take 60 s to become ready. Load is noisy around 300 req/s, then steps to 900 req/s at 10 minutes:
+`python3.11 -I knowledge/systems/proofs/045_autoscaling.py` is a seeded simulation of the HPA rule: a 15 s evaluation, a 0.1 tolerance, and a 60% CPU target with 100 req/s per replica. New replicas take 60 s to become ready. Load is noisy around 300 req/s, then steps to 900 req/s at 10 minutes:
 ```
 A  no stabilization              :  56 replica-count changes in 20 min; final 12 replicas
 B  300 s downscale stabilization :   4 replica-count changes in 20 min; final 18 replicas

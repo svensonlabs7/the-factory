@@ -36,7 +36,7 @@ Validate JWTs wherever you accept them, at any scale. That includes tokens an ed
 - Not applicable at today's load: issuing JWTs, or a JWKS endpoint of the factory's own.
 
 ## Proof
-`uv run --with pyjwt python -I scratchpad/mastery/070_jwt.py`, using the real PyJWT library against a deliberately naive verifier:
+`uv run --with pyjwt python -I knowledge/systems/proofs/070_jwt.py`, using the real PyJWT library against a deliberately naive verifier:
 ```
 A  naive verifier, alg=none forgery: {'sub': 'attacker', 'role': 'admin', 'aud': 'factory'}
 A  PyJWT, algorithms=['HS256']:     rejected (InvalidAlgorithmError)

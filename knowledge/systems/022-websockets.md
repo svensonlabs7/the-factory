@@ -37,7 +37,7 @@ WebSockets are worth it when both sides send frequently and need low latency: ch
 - Not applicable at today's load: WebSocket servers, heartbeat tuning and per-message authorization.
 
 ## Proof
-`python harness.py` in `scratchpad/mastery/022/` runs `ws_app.py` under real uvicorn 0.54 (Python 3.11) with a `websockets` client. The "operator" cookie stands in for an Access session. A frozen client is a real process stopped with `SIGSTOP` while its socket stays open:
+`python harness.py` in `knowledge/systems/proofs/022/` runs `ws_app.py` under real uvicorn 0.54 (Python 3.11) with a `websockets` client. The "operator" cookie stands in for an Access session. A frozen client is a real process stopped with `SIGSTOP` while its socket stays open:
 ```
 A  evil.example -> /ws (cookie only):          opened, read 'run 920d7293: completed, PR #56'
 A  evil.example -> /ws_checked (Origin allowlist): refused: HTTP 403

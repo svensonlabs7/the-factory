@@ -41,7 +41,7 @@ Any persisted state that outlives one deploy needs a migration story. That inclu
 - Not applicable at today's load: migration tooling, online schema-change tools and lock tuning. There is no database. Today the template gap is the only migration risk.
 
 ## Proof
-`pytest -s scratchpad/mastery/081_migrations.py` (SQLite 3.51 from the stdlib. C and D use the real adapter through `tests/test_adapter.py`'s fixture. C copies the real archived records):
+`pytest -s knowledge/systems/proofs/081_migrations.py` (SQLite 3.51 from the stdlib. C and D use the real adapter through `tests/test_adapter.py`'s fixture. C copies the real archived records):
 ```
 A  rename in one step, old code still running: OperationalError: table runs has no column named task
 A  expand/contract: old code after each step -> [('expand', 'old write'), ('backfill', 'old write')]; rows still without `prompt`: 1 (the old version's write after the backfill)

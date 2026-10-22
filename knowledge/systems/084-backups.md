@@ -30,7 +30,7 @@ A backup is a separate, recoverable copy of data that lets you restore it after 
 - Not applicable at today's load: scheduled snapshots, off-site backup storage, retention tiers, automated restore drills. The right-sized fix is a short documented copy of `.env` + tunnel creds to one off-machine location, which 083-disaster-recovery.md frames.
 
 ## Proof
-`python3 084_backups.py`, a real tar backup of a small data dir, corrupted mid-archive (a bad-sector/bit-rot overwrite), then checked two ways:
+`python3 knowledge/systems/proofs/084_backups.py`, a real tar backup of a small data dir, corrupted mid-archive (a bad-sector/bit-rot overwrite), then checked two ways:
 ```
 A  "backup exists" check (file present, non-empty): OK  -> false confidence, the archive is corrupt
 A  test-restore check (extract + compare checksums): RESTORE FAILED  -> the only check that catches it

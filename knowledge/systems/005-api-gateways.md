@@ -36,7 +36,7 @@ The factory has a two-layer gateway, both bought not built, which is right for o
 - Not applicable at today's load: a gateway product (Kong, API Gateway), per-route policy configs, API key management, request/response transformation.
 
 ## Proof
-`uv run --with pydantic python 005_api_gateway.py`, using the factory's exact `TriggerPayload` pattern:
+`uv run --with pydantic python knowledge/systems/proofs/005_api_gateway.py`, using the factory's exact `TriggerPayload` pattern:
 ```
 A  gateway validation of `branch`:
    branch='factory/feat-x'         -> accepted -> 'factory/feat-x'

@@ -49,7 +49,7 @@ Versioning is worth it when an API has clients you do not deploy: external custo
 - Not applicable at today's load: version paths, version headers, Stripe-style transformation modules and `Sunset` headers. There is no external client.
 
 ## Proof
-`pytest -s scratchpad/mastery/102_api_versioning.py`. A reads the real template and adapter source. B and C run the real adapter through `tests/test_adapter.py`'s fixture:
+`pytest -s knowledge/systems/proofs/102_api_versioning.py`. A reads the real template and adapter source. B and C run the real adapter through `tests/test_adapter.py`'s fixture:
 ```
 A  real template rows: 10; fields the adapter writes: ['alive_at', 'blocking_reason', 'build_status', 'last_run', 'open_incidents', 'pipeline_status', 'qa_gate_status']; missing from the template: []
 B  today:              v1 client -> gate passed, pipeline completed

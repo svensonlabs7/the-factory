@@ -41,7 +41,7 @@ Always, at any scale, for any credential. The minimum is no secrets in git (igno
 - Acceptable: `actions/checkout@v4` and `actions/upload-artifact@v4` are pinned to tags, not SHAs. GitHub's guidance allows tags from a creator you trust, and these are GitHub's own.
 
 ## Proof
-`pytest -s scratchpad/mastery/067_secrets.py`, against the real adapter through `tests/test_adapter.py`'s fixture, with an agent that commits a fake, randomly generated Anthropic-format key:
+`pytest -s knowledge/systems/proofs/067_secrets.py`, against the real adapter through `tests/test_adapter.py`'s fixture, with an agent that commits a fake, randomly generated Anthropic-format key:
 ```
 1  run completed; origin's factory/2b123478 has debug.log carrying the fake key: True
 2  gitleaks on that commit: exit 1, findings [('anthropic-api-key', 'debug.log')]

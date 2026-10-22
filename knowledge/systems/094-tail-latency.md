@@ -37,7 +37,7 @@ Tail-tolerant techniques are worth it when requests fan out to many parallel sub
 - Not applicable at today's load: hedged and tied requests, micro-partitioning and server probation.
 
 ## Proof
-`python3.11 -I scratchpad/mastery/094_tail.py '<runs>'`. A and B are seeded simulations: a server at 10 ms, 1% of requests at 1 s. C uses per-job durations from the 15 most recent successful `qa-gate` runs (`gh run view --json jobs`, read-only):
+`python3.11 -I knowledge/systems/proofs/094_tail.py '<runs>'`. A and B are seeded simulations: a server at 10 ms, 1% of requests at 1 s. C uses per-job durations from the 15 most recent successful `qa-gate` runs (`gh run view --json jobs`, read-only):
 ```
 A  fan-out to   1 servers:   1.0% of user requests take 1 s (formula 1-0.99^N =   1.0%)
 A  fan-out to  10 servers:   9.6% of user requests take 1 s (formula 1-0.99^N =   9.6%)

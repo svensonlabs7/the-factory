@@ -39,7 +39,7 @@ Use OAuth or OIDC whenever an app acts on a user's behalf at another service, or
 - The scope of the `gh` token is part of 68. IAM, which is deferred.
 
 ## Proof
-`python3 -I scratchpad/mastery/069_oauth.py`, a toy authorization server in one process:
+`python3 -I knowledge/systems/proofs/069_oauth.py`, a toy authorization server in one process:
 ```
 A  no PKCE:   attacker redeems the stolen code -> access_token issued
 A  with PKCE: attacker redeems the stolen code -> error: invalid_grant (PKCE verifier mismatch)

@@ -43,7 +43,7 @@ A queue is worth it when producers and consumers run at different speeds or have
 - Not applicable at today's load: a message broker, multiple consumers, visibility timeouts and leases. There is one producer endpoint, one worker, at most 5 waiting runs and 30 a day.
 
 ## Proof
-`pytest -s scratchpad/mastery/015_queues.py` (Python 3.11): the real adapter through `tests/test_adapter.py`'s fixture, with a fake agent that sleeps 1 s. A crash is simulated by discarding the in-memory queue and re-importing the module:
+`pytest -s knowledge/systems/proofs/015_queues.py` (Python 3.11): the real adapter through `tests/test_adapter.py`'s fixture, with a fake agent that sleeps 1 s. A crash is simulated by discarding the in-memory queue and re-importing the module:
 ```
 A  at the crash: {'93d47489': 'running', 'fd09141c': 'queued', '483289f7': 'queued'}
 A  after restart: {'93d47489': ('error', 'started'), 'fd09141c': ('error', 'never started'), '483289f7': ('error', 'never started')}

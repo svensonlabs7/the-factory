@@ -38,7 +38,7 @@ Long polling is worth it when clients need changes quickly (seconds or less), ch
 - Not applicable at today's load: long polling, SSE and WebSockets for the dashboard.
 
 ## Proof
-`python harness.py` in `scratchpad/mastery/023/` runs `lp_app.py` under real uvicorn on Python 3.11, with httpx clients. A scales the dashboard's 15 s poll down to 1 s: 8 state changes at seeded random times over 16 s. B uses 45 held requests, past anyio's default of 40 threads:
+`python harness.py` in `knowledge/systems/proofs/023/` runs `lp_app.py` under real uvicorn on Python 3.11, with httpx clients. A scales the dashboard's 15 s poll down to 1 s: 8 state changes at seeded random times over 16 s. B uses 45 held requests, past anyio's default of 40 threads:
 ```
 A  short poll every 1 s :  15 requests in 17 s; change seen after mean    375 ms, max    979 ms
 A  long poll, hold 4 s  :   9 requests in 17 s; change seen after mean      1 ms, max      1 ms

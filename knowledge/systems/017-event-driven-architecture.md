@@ -43,7 +43,7 @@ Event-driven design is worth it when independent teams or services must react to
 - Not applicable at today's load: event sourcing, CQRS, an outbox and a broker. There is one process, one writer, and state that is a JSON record per run.
 
 ## Proof
-`pytest -s scratchpad/mastery/017_eda.py` (Python 3.11). B runs the real adapter through `tests/test_adapter.py`'s fixture, with only the `.actions.jsonl` appends failing (`OSError` 28, no space left on the device):
+`pytest -s knowledge/systems/proofs/017_eda.py` (Python 3.11). B runs the real adapter through `tests/test_adapter.py`'s fixture, with only the `.actions.jsonl` appends failing (`OSError` 28, no space left on the device):
 ```
 A  choreography: steps done ['built', 'pushed']; errors raised: none; nothing says the flow stopped
 A  orchestration: KeyError 'open_pr' at the missing step

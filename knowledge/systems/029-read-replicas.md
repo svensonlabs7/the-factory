@@ -40,7 +40,7 @@ Read replicas are worth it when reads dominate, the primary's CPU or I/O is the 
 - Not applicable at today's load: read replicas, routing, lag monitoring.
 
 ## Proof
-`pytest -s scratchpad/mastery/029_read_replicas.py` (Python 3.11). A uses a counter that advances every 50 ms, with replicas lagging 60 ms and 400 ms. B is the real `_gate_results` through `tests/test_adapter.py`'s fixture, with `_run` playing a GitHub whose PR-head view has caught up and whose checks view has not:
+`pytest -s knowledge/systems/proofs/029_read_replicas.py` (Python 3.11). A uses a counter that advances every 50 ms, with replicas lagging 60 ms and 400 ms. B is the real `_gate_results` through `tests/test_adapter.py`'s fixture, with `_run` playing a GitHub whose PR-head view has caught up and whose checks view has not:
 ```
 A  round-robin       : version went backwards 20 times in 40 reads
 A  sticky            : version went backwards  0 times in 40 reads

@@ -32,7 +32,7 @@ It is worth it when many concurrent callers share a dependency that can fail for
 - Not applicable at today's load: a general breaker library or per-dependency breakers. One serial worker with at most `MAX_PENDING` (5) queued runs wastes at most a few builds in an outage, and bounded retries plus the existing pause cover it.
 
 ## Proof
-`python3 -I scratchpad/mastery/010_circuit_breaker.py`, in simulated time, at 10 requests a second: healthy 0–10 s, hung until the 2 s timeout 10–40 s, failing half its calls 40–60 s, recovered 60–80 s. The breaker opens after 5 consecutive failures, for 5 s:
+`python3 -I knowledge/systems/proofs/010_circuit_breaker.py`, in simulated time, at 10 requests a second: healthy 0–10 s, hung until the 2 s timeout 10–40 s, failing half its calls 40–60 s, recovered 60–80 s. The breaker opens after 5 consecutive failures, for 5 s:
 ```
 no breaker
   phase           success   calls reaching dependency   caller-seconds waiting

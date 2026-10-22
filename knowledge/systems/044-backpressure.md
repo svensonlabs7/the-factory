@@ -32,7 +32,7 @@ It is needed wherever work is queued or buffered between a producer and a consum
 - Not applicable at today's load: priority lanes, per-tenant fairness and LIFO recovery. There is one caller and a queue of at most 5.
 
 ## Proof
-`python3 -I scratchpad/mastery/044_backpressure.py`. A is simulated time: 12 jobs/s arrive for 60 s, then 8/s; one consumer does 10/s. B is a real OS pipe:
+`python3 -I knowledge/systems/proofs/044_backpressure.py`. A is simulated time: 12 jobs/s arrive for 60 s, then 8/s; one consumer does 10/s. B is a real OS pipe:
 ```
 A  queue                  peak depth  max wait  p99 wait  rejected  last job done
 A  unbounded                     121     10.0s     11.8s         0           180s

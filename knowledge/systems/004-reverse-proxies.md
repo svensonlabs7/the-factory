@@ -30,7 +30,7 @@ A reverse proxy sits in front of one or more backend servers and takes client re
 - Not applicable at today's load: a second proxy in front of the single adapter, upstream load balancing, proxy-level caching.
 
 ## Proof
-`python3 004_reverse_proxy.py`, real `http.server` backend + proxy on loopback. The backend allows a request only if the leftmost `X-Forwarded-For` is an internal IP; the client sends a spoofed `X-Forwarded-For: 10.0.0.9`:
+`python3 knowledge/systems/proofs/004_reverse_proxy.py`, real `http.server` backend + proxy on loopback. The backend allows a request only if the leftmost `X-Forwarded-For` is an internal IP; the client sends a spoofed `X-Forwarded-For: 10.0.0.9`:
 ```
 naive proxy (forwards client XFF): HTTP 200: ALLOW client_ip='10.0.0.9'
 correct proxy (overwrites XFF)   : HTTP 403: DENY client_ip='127.0.0.1'

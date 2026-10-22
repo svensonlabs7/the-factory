@@ -31,7 +31,7 @@ It is worth it for any record that more than one actor can edit with a gap betwe
 - Not applicable at today's load: ETags on the adapter's API and versioned meta records. Nothing outside the adapter edits them.
 
 ## Proof
-`python3 -I scratchpad/mastery/036_optimistic.py`. A is an in-memory record. B is real git in scratch repos, with a human pushing to `factory/x` while a "fix round" works from the old head:
+`python3 -I knowledge/systems/proofs/036_optimistic.py`. A is an in-memory record. B is real git in scratch repos, with a human pushing to `factory/x` while a "fix round" works from the old head:
 ```
 A  without version check: Alice saved; Bob saved; final text: "base + Bob's paragraph"
 A  with version check: Alice saved; Bob 412 Precondition Failed (re-read and re-apply); final text: "base + Alice's paragraph"

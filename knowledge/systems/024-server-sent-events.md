@@ -44,7 +44,7 @@ SSE is worth it when clients need server-pushed updates promptly (live logs, pro
 - Not applicable at today's load: SSE endpoints, replay buffers and HTTP/2-specific tuning.
 
 ## Proof
-`python client.py` in `scratchpad/mastery/024/` runs `sse_app.py` under real uvicorn (Python 3.11, FastAPI `StreamingResponse`). Events 1 to 12 are produced every 0.3 s. The server cuts each stream after 1 s, as a proxy or deploy would. The client is a minimal `EventSource` over httpx that honours `retry:` and sends `Last-Event-ID`:
+`python client.py` in `knowledge/systems/proofs/024/` runs `sse_app.py` under real uvicorn (Python 3.11, FastAPI `StreamingResponse`). Events 1 to 12 are produced every 0.3 s. The server cuts each stream after 1 s, as a proxy or deploy would. The client is a minimal `EventSource` over httpx that honours `retry:` and sends `Last-Event-ID`:
 ```
 A  no id field        : 3 reconnects, received [1, 2, 3, 5, 6, 7, 8, 10, 11, 12], missed [4, 9]
 B  id + Last-Event-ID : 3 reconnects, received [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], missed []

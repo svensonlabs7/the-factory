@@ -40,7 +40,7 @@ A schedule is worth it for work with no natural trigger (expiry, retention, reco
 - Not applicable at today's load: a scheduler, `concurrencyPolicy`, leader election and job monitoring.
 
 ## Proof
-`python3.11 -I scratchpad/mastery/021_cron.py`. A is a scheduler that fires a real process every 0.5 s. Each run does a 1.2 s read-modify-write on a shared state file. B uses `zoneinfo` for this host's zone, America/New_York:
+`python3.11 -I knowledge/systems/proofs/021_cron.py`. A is a scheduler that fires a real process every 0.5 s. Each run does a 1.2 s read-modify-write on a shared state file. B uses `zoneinfo` for this host's zone, America/New_York:
 ```
 A  no lock             : 8 runs, 0 skipped, peak concurrent 3, counter 3 (should equal runs: 8)
 A  flock, skip if busy : 3 runs, 5 skipped, peak concurrent 1, counter 3 (should equal runs: 3)

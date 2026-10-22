@@ -32,7 +32,7 @@ Liveness is worth it when a process can hang without exiting (a deadlock, a wedg
 - Not applicable at today's load: Kubernetes probes, readiness-based rotation and startup probes. There is one process, no balancer and a fast start.
 
 ## Proof
-`pytest -s scratchpad/mastery/057_probes.py`. A uses the real adapter (one event loop, lifespan running) with a handler that blocks the loop for 3 s:
+`pytest -s knowledge/systems/proofs/057_probes.py`. A uses the real adapter (one event loop, lifespan running) with a handler that blocks the loop for 3 s:
 ```
 A  /health took 2.7 s while the loop was blocked; alive_at was stamped 13 times meanwhile
 ```

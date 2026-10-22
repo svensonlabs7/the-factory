@@ -44,7 +44,7 @@ Election is worth it when one of several replicas must act alone and failover mu
 - Not applicable at today's load: Raft, leases, fencing tokens and coordination services. There is one host and one process.
 
 ## Proof
-`python3.11 -I scratchpad/mastery/033_leader.py`. A simulates 5 nodes with a 10 ms vote round trip over 1,000 seeded trials: a node that times out within one round trip of the first also becomes a candidate, and the votes split. B uses real processes contending for `fcntl.flock` on one file:
+`python3.11 -I knowledge/systems/proofs/033_leader.py`. A simulates 5 nodes with a 10 ms vote round trip over 1,000 seeded trials: a node that times out within one round trip of the first also becomes a candidate, and the votes split. B uses real processes contending for `fcntl.flock` on one file:
 ```
 A  fixed 150 ms          : leader elected in 0/1000 trials; mean rounds nan
 A  randomized 150-300 ms : leader elected in 1000/1000 trials; mean rounds 1.43

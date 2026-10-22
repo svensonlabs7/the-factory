@@ -29,7 +29,7 @@ Every Python service already gets GC, so the question is when to tune it. Leave 
 - Not applicable at today's load: threshold tuning, `gc.freeze()`, and pause monitoring.
 
 ## Proof
-`pytest -s scratchpad/mastery/042_gc.py` (Python 3.11; C uses the adapter's real module through `tests/test_adapter.py`'s fixture):
+`pytest -s knowledge/systems/proofs/042_gc.py` (Python 3.11; C uses the adapter's real module through `tests/test_adapter.py`'s fixture):
 ```
 A  gc disabled, 2,000 dropped cycles still held: 191 MiB; gc.collect() found 3998 objects; now 0.1 MiB
 B    100,000 tracked dicts alive: full gc.collect() pause     7.3 ms

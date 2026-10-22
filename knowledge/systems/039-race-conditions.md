@@ -41,7 +41,7 @@ Always, for any state touched by more than one thread, process, request handler 
 - Not applicable at today's load: distributed locks and lock-free structures. There is one process with one worker thread.
 
 ## Proof
-`python3 -I scratchpad/mastery/039_races.py`:
+`python3 -I knowledge/systems/proofs/039_races.py`:
 ```
 A  no lock:   counter = 51 (expected 400)     (7 of 8 threads also crashed: ValueError reading '' from a half-written file)
 A  with lock: counter = 400 (expected 400)

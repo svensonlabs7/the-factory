@@ -30,7 +30,7 @@ Helm is the package manager for Kubernetes (008-kubernetes.md). A **chart** bund
 - Not applicable at today's load: charts, `values.yaml`, `helm template/lint/upgrade/rollback`, chart repositories, subcharts.
 
 ## Proof
-`uv run --with pyyaml python 106_helm.py`, a Helm-style template injecting a labels map at different indentation, then rendering-and-parsing as `helm template`/`lint` would:
+`uv run --with pyyaml python knowledge/systems/proofs/106_helm.py`, a Helm-style template injecting a labels map at different indentation, then rendering-and-parsing as `helm template`/`lint` would:
 ```
 A  render the labels block at different indentation, then render-and-validate (what `helm template` does):
    indent=4 (correct): parsed metadata.labels = {'app': 'factory', 'tier': 'web'}  -> correct

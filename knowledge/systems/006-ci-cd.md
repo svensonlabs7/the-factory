@@ -42,7 +42,7 @@ CI is worth it for any shared codebase. A self-testing build on every PR, requir
 - Not applicable at today's load: a merge queue, `concurrency` cancellation, canary deploys and automated rollback. The adapter waits for every check before it pushes again, so no superseded review runs, and PRs arrive a few a day, so strict mode's rebase cost is small.
 
 ## Proof
-`python3 -I scratchpad/mastery/006_cicd.py`. A runs real git in scratch repos. B resolves with `uv pip compile --exclude-newer <date>`.
+`python3 -I knowledge/systems/proofs/006_cicd.py`. A runs real git in scratch repos. B resolves with `uv pip compile --exclude-newer <date>`.
 ```
 A  CI on each branch against the old base: a green, b green
 A  main after merging a: green

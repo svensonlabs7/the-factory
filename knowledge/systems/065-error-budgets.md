@@ -38,7 +38,7 @@ It is worth it once there is an SLO with enough events to measure (see 063-slos.
 - Not applicable at today's load: budget-gated release automation and burn-rate dashboards.
 
 ## Proof
-`python3 -I scratchpad/mastery/065_error_budget.py .factory-logs`, using the real runs, each PR's state from GitHub, and each failed run's raw log for the cause:
+`python3 -I knowledge/systems/proofs/065_error_budget.py .factory-logs`, using the real runs, each PR's state from GitHub, and each failed run's raw log for the cause:
 ```
 runs 8, SLO 80% -> error budget 1.6 misses; used 3 = 188% of budget
   gate kept blocking (fix rounds did not converge)   1 miss = 63% of budget -> P0 item (over 20%)

@@ -33,7 +33,7 @@ Hop by hop:
 - Not applicable at today's load: mTLS between components and Encrypted Client Hello. Every cross-network hop is already TLS or QUIC, and the hostnames the factory contacts are not secret.
 
 ## Proof
-`python3 -I scratchpad/mastery/073_on_path.py`: a local relay records every byte between client and server.
+`python3 -I knowledge/systems/proofs/073_on_path.py`: a local relay records every byte between client and server.
 ```
 A  plain HTTP: observer captured 174 bytes; secret visible = True
 B  TLS (TLSv1.2, server answered 'HTTP/1.1 200 OK'): observer captured 4792 bytes; secret visible = False; hostname 'github.com' visible = True

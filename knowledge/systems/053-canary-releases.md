@@ -41,7 +41,7 @@ A canary is worth it when a bad release would hurt many users, and traffic is hi
 - Not applicable at today's load: traffic splitting, version-split metrics and automated canary analysis.
 
 ## Proof
-`python3 -I scratchpad/mastery/053_canary.py` is a seeded simulation:
+`python3 -I knowledge/systems/proofs/053_canary.py` is a seeded simulation:
 ```
 A  deploy to all:  1,178 failed requests (alarm after 1 min, 5 min to roll back)
 A  5% canary:      8 failed requests caused by the release (caught at minute 1, 500 canary requests)

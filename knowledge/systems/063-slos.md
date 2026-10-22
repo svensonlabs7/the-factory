@@ -39,7 +39,7 @@ It is worth it when someone depends on the service and decisions are being made 
 - Not applicable at today's load: SLAs, per-tenant SLOs and tight nines on run outcomes. There are about 60 runs a month at most (`MAX_RUNS_PER_DAY` is 30, real use is a few a day).
 
 ## Proof
-`python3 -I scratchpad/mastery/063_slos.py` (standard library only; A starts from the real autonomous-delivery SLI, 5 of 8):
+`python3 -I knowledge/systems/proofs/063_slos.py` (standard library only; A starts from the real autonomous-delivery SLI, 5 of 8):
 ```
 A  5/8 = 62%: the true rate is somewhere in 31%..86% (95%)
 A  48/60 = 80%: the true rate is somewhere in 68%..88% (95%)

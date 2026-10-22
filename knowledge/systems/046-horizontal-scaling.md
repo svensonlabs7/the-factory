@@ -43,7 +43,7 @@ Scale out when one instance cannot carry the load or its failure is unacceptable
 - Not applicable at today's load: multiple instances, load balancing and shared state stores.
 
 ## Proof
-`pytest -s scratchpad/mastery/046_horizontal.py` (Python 3.11):
+`pytest -s knowledge/systems/proofs/046_horizontal.py` (Python 3.11):
 - A is the real adapter through `tests/test_adapter.py`'s fixture, then a second import of the module on the same files, acting as a second instance behind round-robin.
 - B uses real processes contending for an `fcntl.flock`-guarded counter file, with an fsync on each increment, for 2 s each.
 ```

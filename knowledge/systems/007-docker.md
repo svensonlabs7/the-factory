@@ -33,7 +33,7 @@ Docker is central and used carefully:
 - Not applicable at today's load: multi-stage image builds authored here (the agent-server image is upstream), a private registry, orchestration (8-kubernetes is next).
 
 ## Proof
-`bash 007_docker.sh`, real `docker build` on `alpine:3.20`, with the dependency install simulated by `sleep 2`; a unique source change each run so the cache cannot pre-hold it:
+`bash knowledge/systems/proofs/007_docker.sh`, real `docker build` on `alpine:3.20`, with the dependency install simulated by `sleep 2`; a unique source change each run so the cache cannot pre-hold it:
 ```
 bad  : rebuild 2.3s, layers reused=0, install layer cached=NO
 good : rebuild 0.1s, layers reused=2, install layer cached=yes

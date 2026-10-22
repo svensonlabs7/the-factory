@@ -32,7 +32,7 @@ It is worth it when a call crosses a network to a dependency that fails briefly 
 - Not applicable at today's load: retry budgets or token buckets. One process makes the calls, so a bounded attempt count is enough.
 
 ## Proof
-`python3 -I scratchpad/mastery/012_retries.py`:
+`python3 -I knowledge/systems/proofs/012_retries.py`:
 ```
 A  flaky db, no retry:      success 79.8%
 A  flaky db, 3 attempts:    success 99.3%

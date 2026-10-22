@@ -32,7 +32,7 @@ HTTP/1.1 sends one request/response at a time per TCP connection, so a slow resp
 - Not applicable at today's load: tuning stream concurrency, HPACK/QPACK tables, server push, HTTP/3 fallback logic, or running our own QUIC.
 
 ## Proof
-`python3 099_http23.py`, a deterministic model of 3 streams × 4 segments multiplexed on one connection, with one segment lost and retransmitted 10 ticks later:
+`python3 knowledge/systems/proofs/099_http23.py`, a deterministic model of 3 streams × 4 segments multiplexed on one connection, with one segment lost and retransmitted 10 ticks later:
 ```
 lost segment: wire index 3 = stream 0 seq 1; retransmit +10 ticks
   stream 0: HTTP/2 done at t=14   HTTP/3 done at t=14

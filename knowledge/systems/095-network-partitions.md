@@ -50,7 +50,7 @@ Quorums, fencing and partition-tolerant consensus are for systems with several s
 - Not applicable at today's load: quorums, fencing and multi-site failover.
 
 ## Proof
-`pytest -s scratchpad/mastery/095_partitions.py` (Python 3.11). A uses real sockets: client, then a proxy, then a small "GitHub" server. During the partition the proxy relays the request and drops the reply. B is the real adapter through `tests/test_adapter.py`'s fixture: the fake `gh pr create` runs, and then its answer is lost:
+`pytest -s knowledge/systems/proofs/095_partitions.py` (Python 3.11). A uses real sockets: client, then a proxy, then a small "GitHub" server. During the partition the proxy relays the request and drops the reply. B is the real adapter through `tests/test_adapter.py`'s fixture: the fake `gh pr create` runs, and then its answer is lost:
 ```
 A  create PR during the partition: client saw ReadError; server has 1 PR(s)
 A  naive retry: 422 A pull request already exists for factory/abc.

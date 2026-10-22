@@ -42,7 +42,7 @@ Cost work is worth it once spend, or consumption of a capped resource, is signif
 - Not applicable at today's load: FinOps tooling, reservations and cost dashboards.
 
 ## Proof
-`python3 -I scratchpad/mastery/088_cost.py`, read-only `gh` calls against the repo's real PRs and gate runs:
+`python3 -I knowledge/systems/proofs/088_cost.py`, read-only `gh` calls against the repo's real PRs and gate runs:
 ```
 A  87 gate runs for 57 PRs (1.53 runs per PR); 41 merged, 16 closed
 A  Claude review sessions per gate run 2.07 -> about 180 sessions, 4.4 per merged PR

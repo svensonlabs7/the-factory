@@ -31,7 +31,7 @@ A postmortem is the written record and analysis of an incident (109-production-i
 - Not applicable at today's load: postmortem templates, review meetings, an incident-tracking tool, severity-triggered postmortem criteria.
 
 ## Proof
-`python3 111_postmortems.py`, cumulative incidents from 8 latent faults over a horizon, varying how many have their root cause actually removed by a completed action item:
+`python3 knowledge/systems/proofs/111_postmortems.py`, cumulative incidents from 8 latent faults over a horizon, varying how many have their root cause actually removed by a completed action item:
 ```
 no postmortem (remove 0%)           : 40 cumulative incidents over 20 periods
 blame culture (remove ~30%)         : 32 cumulative incidents over 20 periods

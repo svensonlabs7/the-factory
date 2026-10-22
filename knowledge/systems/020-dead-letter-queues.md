@@ -34,7 +34,7 @@ It is worth it for any automatic retry of queued or background work, because som
 - Not applicable at today's load: a broker DLQ, redrive policies or DLQ metrics. One worker and a status field do the job.
 
 ## Proof
-`pytest -s scratchpad/mastery/020_dlq.py`. A is a 20-message FIFO simulation where message 2 always fails. B uses the real adapter through `tests/test_adapter.py`'s fixture:
+`pytest -s knowledge/systems/proofs/020_dlq.py`. A is a 20-message FIFO simulation where message 2 always fails. B uses the real adapter through `tests/test_adapter.py`'s fixture:
 ```
 A  no DLQ:            processed 2/19 good, 200 receives used, 18 still queued
 A  maxReceiveCount=3: processed 19/19 good, 22 receives used, DLQ=[2]  -> alarm: 1 dead message

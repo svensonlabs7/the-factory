@@ -30,7 +30,7 @@ A production incident is an unplanned disruption — an outage, data problem, or
 - Not applicable at today's load: incident commander rotation, severity taxonomy, status page, comms lead.
 
 ## Proof
-`python3 109_incidents.py`, the impact timeline of one incident under three responses (minutes of user-facing impact):
+`python3 knowledge/systems/proofs/109_incidents.py`, the impact timeline of one incident under three responses (minutes of user-facing impact):
 ```
 customer-impact minutes per response to the same incident:
   undetected (no alerting)      245 min  #################################################

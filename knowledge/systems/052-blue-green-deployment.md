@@ -39,7 +39,7 @@ It is worth it when a release must switch instantly and roll back instantly, and
 - Not applicable at today's load: a second environment, a traffic switch and shared-state migration. With one host and one operator, Recreate plus a fast rollback is enough.
 
 ## Proof
-`pytest -s scratchpad/mastery/052_blue_green.py` (Python 3.11): blue and green are two imports of the real adapter module through `tests/test_adapter.py`'s fixture (fake agent sleeping 2 s, fake `gh`):
+`pytest -s knowledge/systems/proofs/052_blue_green.py` (Python 3.11): blue and green are two imports of the real adapter module through `tests/test_adapter.py`'s fixture (fake agent sleeping 2 s, fake `gh`):
 ```
 A  green starts while blue builds a570b746: green reports 'error' (the service restarted during the run)
 A  green accepts a new run while blue's worker is still building: blue worker alive True, green's run 'running', green counts in flight 1
@@ -48,7 +48,7 @@ B  green on its own root: blue's run seen as 'running' after green started, fini
 ```
 With shared state, the run's record flips from `running` to `error` to `completed`, its action log gets two `finished` events, and two workers build at once. With separate state (B), and blue drained before it stops, nothing collides.
 
-Review 50 (`python3 -I scratchpad/mastery/review50_port_lock.py <repo>`, real uvicorn processes on a scratch port and root):
+Review 50 (`python3 -I knowledge/systems/proofs/review50_port_lock.py <repo>`, real uvicorn processes on a scratch port and root):
 ```
 second instance on the same port: exit 3, "ERROR:    [Errno 48] error while attempting to bind on address ('127.0.0.1', 18750): address already in use"
 first instance's in-flight run after the failed start: status 'error', error 'the service restarted during the run'

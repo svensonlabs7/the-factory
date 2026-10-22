@@ -49,7 +49,7 @@ It matters whenever code holds a lock, a transaction or a pool slot while waitin
 - Not applicable at today's load: lock hierarchies and deadlock detection. There is one lock and one worker.
 
 ## Proof
-`pytest -s scratchpad/mastery/040_deadlocks.py` (B uses the adapter's real `HEARTBEAT_LOCK` and `_set_heartbeat` through `tests/test_adapter.py`'s fixture). Every wait has a timeout:
+`pytest -s knowledge/systems/proofs/040_deadlocks.py` (B uses the adapter's real `HEARTBEAT_LOCK` and `_set_heartbeat` through `tests/test_adapter.py`'s fixture). Every wait has a timeout:
 ```
 A  opposite order: [('t0', False), ('t1', False)]   (False = gave up after 1 s: deadlocked)
 A  same order:     [('t0', True), ('t1', True)]

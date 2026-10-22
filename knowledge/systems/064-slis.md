@@ -32,7 +32,7 @@ Every service with users should have one to three SLIs that match what those use
 - Not applicable at today's load: client-side instrumentation and SLI pipelines. A dozen runs a month can be scored from `meta.json` plus `gh pr view`.
 
 ## Proof
-`python3 -I scratchpad/mastery/064_slis.py .factory-logs`, using every run on disk and each PR's state from GitHub:
+`python3 -I knowledge/systems/proofs/064_slis.py .factory-logs`, using every run on disk and each PR's state from GitHub:
 ```
   8fb2c8b4  status=completed PR #48  MERGED
   b3c60871  status=blocked   PR #49  MERGED

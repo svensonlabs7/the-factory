@@ -32,7 +32,7 @@ Chaos engineering is the discipline of deliberately injecting real-world faults 
 - Not applicable at today's load: Chaos Monkey, AWS FIS, automated/continuous chaos, production fault injection against live traffic.
 
 ## Proof
-`python3 087_chaos.py`, a service depending on D, with the steady-state hypothesis "success >= 99%":
+`python3 knowledge/systems/proofs/087_chaos.py`, a service depending on D, with the steady-state hypothesis "success >= 99%":
 ```
 Inject 'dependency D is down' on 100% of traffic (full experiment):
    fallback=False: success    0% -> hypothesis VIOLATED (weakness found)

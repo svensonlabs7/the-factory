@@ -44,7 +44,7 @@ Batching is worth it wherever a loop touches related data over a network: an ORM
 - Not applicable at today's load: ORMs, eager loading and query-count assertions. There is no database.
 
 ## Proof
-`pytest -s scratchpad/mastery/027_n_plus_one.py` (Python 3.11. A is SQLite with statements counted by `set_trace_callback`, each paying a 1 ms round trip. B is the real `command_data` and `_pr`, with `_run` replaced to count `gh pr view` calls and charge 50 ms each, a tenth of the measured 0.48 s):
+`pytest -s knowledge/systems/proofs/027_n_plus_one.py` (Python 3.11. A is SQLite with statements counted by `set_trace_callback`, each paying a 1 ms round trip. B is the real `command_data` and `_pr`, with `_run` replaced to count `gh pr view` calls and charge 50 ms each, a tenth of the measured 0.48 s):
 ```
 A  lazy loop (N+1)     : 101 statements,  152.3 ms, 100 runs / 494 events
 A  IN batch (selectin) :   2 statements,    4.2 ms, 100 runs / 494 events

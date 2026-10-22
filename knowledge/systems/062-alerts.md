@@ -35,7 +35,7 @@ As soon as anyone depends on the service, it needs at least a liveness (stalenes
 - Not applicable at today's load: burn-rate and SLO-window alerting. About 3 runs a day is too sparse for rates.
 
 ## Proof
-`python3 -I scratchpad/mastery/062_alerts.py` simulates 30 days at about 3 runs a day, with 25% normal failures. Incident 1 (day 18): every run fails. Incident 2 (day 25): the adapter dies.
+`python3 -I knowledge/systems/proofs/062_alerts.py` simulates 30 days at about 3 runs a day, with 25% normal failures. Incident 1 (day 18): every run fails. Incident 2 (day 25): the adapter dies.
 ```
 simulated runs: 70; normal failures before day 18: 18
 page on every failed run          false pages 18 | incident 1 detected after 23 h, 19 pages | incident 2: never (no events to alert on)

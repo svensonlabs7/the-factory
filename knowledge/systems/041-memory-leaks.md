@@ -39,7 +39,7 @@ Live adapter RSS (`ps -o rss`) around batches of 300 `GET /command/data`:
 A  before: 11.3 MB -> after 300: 24.6 MB -> 20 s later: 24.3 MB
 A2 before round 2: 11.4 MB (idle pages compressed again) -> after 300 more: 24.7 MB -> after 300 more: 24.7 MB
 ```
-The jump is the working set being paged back in. Repeated identical load does not grow it. `pytest -s scratchpad/mastery/041_memory.py` (B uses the adapter's real `_pr` and `_pr_cache` through `tests/test_adapter.py`'s fixture, with `gh` stubbed):
+The jump is the working set being paged back in. Repeated identical load does not grow it. `pytest -s knowledge/systems/proofs/041_memory.py` (B uses the adapter's real `_pr` and `_pr_cache` through `tests/test_adapter.py`'s fixture, with `gh` stubbed):
 ```
 B  _pr_cache after 5,000 PRs: 5000 entries, +9823 KiB (2012 B per PR); entries ever removed: 0
 B  at 3 PRs/day, without a restart: ~2.1 MiB/year

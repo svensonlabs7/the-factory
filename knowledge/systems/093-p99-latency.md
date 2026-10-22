@@ -38,7 +38,7 @@ Track p99 (and p99.9 at scale) for every user-facing or SLO-bearing path with en
 - Not applicable at today's load: histogram metrics, latency SLO percentiles and open-loop load testing.
 
 ## Proof
-`python3.11 -I scratchpad/mastery/093_p99.py`. A to C are seeded simulations. D is 200 sequential `curl` requests to the live adapter's `/command/data` on localhost:
+`python3.11 -I knowledge/systems/proofs/093_p99.py`. A to C are seeded simulations. D is 200 sequential `curl` requests to the live adapter's `/command/data` on localhost:
 ```
 A  p99 host A 62 ms, host B 592 ms; average of the two 327 ms; true fleet p99 62 ms
 B  closed loop (coordinated omission)   samples  4914: p50     1.0 ms  p99     1.0 ms

@@ -30,7 +30,7 @@ Failover is the automatic switch from a failed primary to a redundant standby so
 - Not applicable at today's load: standby promotion, virtual IPs, DNS/LB failover, STONITH, quorum witnesses, replica promotion.
 
 ## Proof
-`python3 085_failover.py`, a primary P holding a lease and a standby S, under three scenarios, with naive vs fenced promotion:
+`python3 knowledge/systems/proofs/085_failover.py`, a primary P holding a lease and a standby S, under three scenarios, with naive vs fenced promotion:
 ```
 naive (promote on unreachable):
    healthy  : primaries=P     -> no failover needed

@@ -38,7 +38,7 @@ A health check removes a backend that fails, and the balancer must drain in-flig
 - Not applicable at today's load: least-connections/P2C policies, backend pools, health-checked rotation, connection draining, sticky sessions. They become relevant only if the factory ever runs multiple origins (046-horizontal-scaling.md), which one operator does not need.
 
 ## Proof
-`python3 003_load_balancing.py`, a discrete-event sim: 3 identical backends, Poisson arrivals at ~0.66 utilisation, service times 90% cheap (~0.5) and 10% expensive (~5.0); the same arrivals and service times fed to each policy:
+`python3 knowledge/systems/proofs/003_load_balancing.py`, a discrete-event sim: 3 identical backends, Poisson arrivals at ~0.66 utilisation, service times 90% cheap (~0.5) and 10% expensive (~5.0); the same arrivals and service times fed to each policy:
 ```
 round-robin : mean wait 6.635  p99 wait 62.079  max wait 69.774
 least-conn  : mean wait 1.436  p99 wait 14.465  max wait 16.076

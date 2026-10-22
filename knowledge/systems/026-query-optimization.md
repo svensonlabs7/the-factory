@@ -41,7 +41,7 @@ Optimize a query when it is on a request path or runs often, and measurement sho
 - Not applicable at today's load: query plans, keyset pagination and statistics maintenance. There is no database, and at most 900 run records.
 
 ## Proof
-`python3.11 -I scratchpad/mastery/026_queries.py` (SQLite 3.53.1, 1,000,000 runs, 3,000,000 events):
+`python3.11 -I knowledge/systems/proofs/026_queries.py` (SQLite 3.53.1, 1,000,000 runs, 3,000,000 events):
 ```
 A  page      1: OFFSET     0.11 ms   keyset   0.01 ms   same rows: True
 A  page   1000: OFFSET     0.08 ms   keyset   0.01 ms   same rows: True

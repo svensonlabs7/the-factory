@@ -30,7 +30,7 @@ Terraform is the most common declarative IaC tool (104-infrastructure-as-code.md
 - Not applicable at today's load: HCL, state backends, providers, workspaces, `plan`/`apply` pipelines.
 
 ## Proof
-`python3 105_terraform.py`, two concurrent "applies" adding distinct resources to one shared state, with a barrier forcing the racy interleaving:
+`python3 knowledge/systems/proofs/105_terraform.py`, two concurrent "applies" adding distinct resources to one shared state, with a barrier forcing the racy interleaving:
 ```
 no lock       : final state has ['tunnel']  -> an apply was LOST
 with state lock: final state has ['egress', 'tunnel']  -> both kept

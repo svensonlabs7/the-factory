@@ -45,7 +45,7 @@ Flags are worth it when deploying and releasing must be separate: trunk-based wo
 - Not applicable at today's load: a flag service, per-user flags and experiment flags. A PR plus a restart is the switch for one operator. The checklist matters most for what the factory builds for others.
 
 ## Proof
-`python3 -I scratchpad/mastery/051_flags.py` models the SEC order's failure (a fleet of eight, one server missed, a flag reused):
+`python3 -I knowledge/systems/proofs/051_flags.py` models the SEC order's failure (a fleet of eight, one server missed, a flag reused):
 ```
 A  repurposed flag 'power_peg', 7/8 deployed:   212 parent orders -> 26,186 child orders sent
 A  same, every server deployed:                 212 parent orders -> 212 child orders sent

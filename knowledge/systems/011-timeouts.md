@@ -35,7 +35,7 @@ Always, for any call that crosses a process or network boundary: it costs one ar
 - Gap: no GitHub Actions job sets `timeout-minutes` (see GAPS.md).
 
 ## Proof
-`python3 -I scratchpad/mastery/011_timeouts.py`:
+`python3 -I knowledge/systems/proofs/011_timeouts.py`:
 ```
 A-fail no timeout: still waiting after 5s = True
 A-fix  timeout=1: timeout after 1.0s

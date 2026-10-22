@@ -30,7 +30,7 @@ A multi-region deployment runs the system in two or more geographic regions, for
 - Not applicable at today's load: cross-region replication, active-active, GeoDNS failover, data-residency controls, regional capacity.
 
 ## Proof
-`python3 086_multi_region.py`, modelling async cross-region replication:
+`python3 knowledge/systems/proofs/086_multi_region.py`, modelling async cross-region replication:
 ```
 A  active-passive, async lag= 0 ticks:  0 writes lost on failover (RPO = the lag)
 A  active-passive, async lag= 3 ticks:  3 writes lost on failover (RPO = the lag)

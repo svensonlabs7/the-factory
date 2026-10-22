@@ -41,7 +41,7 @@ Every service needs the four signals for its main unit of work, from day one, ev
 - Not applicable at today's load: Prometheus, exporters and a time-series database. There are a few runs a day, and the event log is enough to compute the signals.
 
 ## Proof
-`python3 -I scratchpad/mastery/061_metrics.py .factory-logs`, the four signals computed from the factory's real records:
+`python3 -I knowledge/systems/proofs/061_metrics.py .factory-logs`, the four signals computed from the factory's real records:
 ```
 runs on disk: 8 (with an action log: 2)
 TRAFFIC   runs queued per day: {'2026-10-12': 3, '2026-10-14': 3, '2026-10-17': 2}

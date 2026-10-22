@@ -38,7 +38,7 @@ Replication is worth it when losing a node's data or its availability is unaccep
 - Not applicable at today's load: database replication, read replicas and lag monitoring.
 
 ## Proof
-`pytest -s scratchpad/mastery/032_replication.py` (Python 3.11). A is leader and follower on two SQLite files, with a shipper thread applying the log 0.2 s behind. B is the real `_gate_results` through `tests/test_adapter.py`'s fixture, with `_run` playing a GitHub that shows the new head on the third look:
+`pytest -s knowledge/systems/proofs/032_replication.py` (Python 3.11). A is leader and follower on two SQLite files, with a shipper thread applying the log 0.2 s behind. B is the real `_gate_results` through `tests/test_adapter.py`'s fixture, with `_run` playing a GitHub that shows the new head on the third look:
 ```
 A  async: 50 writes acknowledged, 14 lost on failover [37, 38, 39]...; ~4 ms added per write
 A  sync : 50 writes acknowledged, 0 lost on failover []; ~216 ms added per write

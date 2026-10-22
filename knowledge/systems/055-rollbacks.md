@@ -40,7 +40,7 @@ Every deployable thing needs a known way back, written down and fast, in the tim
 - Not applicable at today's load: automated rollback, canary analysis and upgrade-downgrade test fleets. There is one host and a manual deploy.
 
 ## Proof
-`pytest -s scratchpad/mastery/055_rollback.py` (Python 3.11; B restarts the adapter's real module through `tests/test_adapter.py`'s fixture, playing the old version after a rollback):
+`pytest -s knowledge/systems/proofs/055_rollback.py` (Python 3.11; B restarts the adapter's real module through `tests/test_adapter.py`'s fixture, playing the old version after a rollback):
 ```
 A  one phase: v2 wrote compressed state, roll back to v1 -> read fails: UnicodeDecodeError
 A  two phase: v1.5 deployed first, v2 wrote compressed state, roll back to v1.5 -> {'status': 'queued'}

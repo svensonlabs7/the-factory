@@ -48,7 +48,7 @@ Any data that outlives the code that wrote it, or crosses a deploy boundary, nee
 - Not applicable at today's load: schema registries, version fields and upcasters.
 
 ## Proof
-`pytest -s scratchpad/mastery/082_schema_versions.py`. A reads a real archived record. B posts signed payloads to the real adapter through `tests/test_adapter.py`'s fixture:
+`pytest -s knowledge/systems/proofs/082_schema_versions.py`. A reads a real archived record. B posts signed payloads to the real adapter through `tests/test_adapter.py`'s fixture:
 ```
 A  v2 reader on an archived v1 record (started_at='2026-10-10T17:48:38.693607'): TypeError: unsupported operand type(s) for -: 'float' and 'str'
 A  with a version field and an upcaster: age 8.3 days

@@ -36,7 +36,7 @@ It is worth it for any retry against a shared or remote dependency, and for many
 - Not applicable at today's load: jitter tuning and decorrelated backoff. One process makes every outbound call.
 
 ## Proof
-`python3 -I scratchpad/mastery/013_backoff.py`, with 50 clients contending for an exclusive write in 1 ms slots, base 2 ms, cap 1 s, median of 5 seeds:
+`python3 -I knowledge/systems/proofs/013_backoff.py`, with 50 clients contending for an exclusive write in 1 ms slots, base 2 ms, cap 1 s, median of 5 seeds:
 ```
 strategy          attempts   finished in
 no backoff         6000050never (50 stuck)

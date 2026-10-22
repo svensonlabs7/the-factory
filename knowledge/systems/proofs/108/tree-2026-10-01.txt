@@ -1,0 +1,4 @@
+error: No solution found when resolving dependencies
+  cause: Because there is no version of openhands-sdk==1.54.0 and you require openhands-sdk==1.54.0, we can conclude that your requirements are unsatisfiable.
+
+hint: `openhands-sdk` was filtered by `exclude-newer` to only include packages uploaded before 2026-10-02T04:00:00Z. The requested version, v1.54.0, was published at 2026-10-09T18:37:11.917Z. Consider using `exclude-newer-package` to override the cutoff for this package.

@@ -50,7 +50,7 @@ Hand-rolled 2PC across services is almost always over-engineering with a blockin
 - Not applicable at today's load: 2PC, XA and transaction managers. There is one local store, and GitHub's own atomicity per API call.
 
 ## Proof
-`python3.11 -I scratchpad/mastery/018_dtx.py` uses two SQLite files, moving 100 from A to B:
+`python3.11 -I knowledge/systems/proofs/018_dtx.py` uses two SQLite files, moving 100 from A to B:
 ```
 A  two independent commits, crash between them: total 1900 (was 2000)
 B  one transaction across both files: after a rollback total 2000, after a commit total 2000, A=900

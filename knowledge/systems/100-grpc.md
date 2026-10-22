@@ -32,7 +32,7 @@ gRPC is a contract-first RPC framework: you write a service and its messages in 
 - Not applicable at today's load: Protobuf schemas, generated stubs, HTTP/2 RPC, streaming, gRPC-web proxies.
 
 ## Proof
-`python3 100_grpc.py`, a minimal reimplementation of the Protobuf wire format (tag = `field_number << 3 | wire_type`, varint and length-delimited values), with a v1 reader that knows only fields {1: id, 2: name}:
+`python3 knowledge/systems/proofs/100_grpc.py`, a minimal reimplementation of the Protobuf wire format (tag = `field_number << 3 | wire_type`, varint and length-delimited values), with a v1 reader that knows only fields {1: id, 2: name}:
 ```
 A  v1 reader on v2 message: {'id': 7, 'name': 'deploy'}, skipped unknown field(s) [3]  -> compatible
 B  v1 reader on reused-number message: {'id': 7, 'name': '<TYPE MISMATCH: expected str, got wire-type 0>'}  -> field 2 read as the wrong type (corruption)

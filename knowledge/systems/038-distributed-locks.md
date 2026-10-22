@@ -36,7 +36,7 @@ Only when several machines must coordinate on a shared resource and a queue, par
 - Not applicable at today's load: Redis or Redlock, ZooKeeper or etcd, lease renewal.
 
 ## Proof
-`python3 -I scratchpad/mastery/038_fencing.py`, Kleppmann's scenario in simulated time. 10 s leases; client 1 takes token 33 and pauses 15 s; client 2 takes token 34:
+`python3 -I knowledge/systems/proofs/038_fencing.py`, Kleppmann's scenario in simulated time. 10 s leases; client 1 takes token 33 and pauses 15 s; client 2 takes token 34:
 ```
 A  lock only, no fencing : client2 token 34 wrote "client2's data"; client1 token 33 wrote "client1's stale data"; final value "client1's stale data"
 B  with fencing tokens   : client2 token 34 wrote "client2's data"; client1 token 33 REJECTED (already saw 34); final value "client2's data"

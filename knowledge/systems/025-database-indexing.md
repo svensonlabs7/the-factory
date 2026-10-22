@@ -41,7 +41,7 @@ Index the columns that frequent queries filter, join or sort on, once the table 
 - Not applicable at today's load: databases, indexes and query plans.
 
 ## Proof
-`pytest -s scratchpad/mastery/025_indexing.py` (Python 3.11's `sqlite3`, 1,000,000 rows. E uses the real adapter through `tests/test_adapter.py`'s fixture):
+`pytest -s knowledge/systems/proofs/025_indexing.py` (Python 3.11's `sqlite3`, 1,000,000 rows. E uses the real adapter through `tests/test_adapter.py`'s fixture):
 ```
 A  no index:                18.71 ms  [SCAN runs]
 A  index on run_id:          0.02 ms  [SEARCH runs USING INDEX runs_run_id (run_id=?)]

@@ -43,7 +43,7 @@ Caching is worth it when a step is slow, repeated often, and depends on inputs t
 - Not applicable at today's load: `actions/cache`, remote build caches and Docker layer caching in CI.
 
 ## Proof
-`/Users/labs/.local/bin/python3.11 -I scratchpad/mastery/107_build_cache.py` uses CPython's own bytecode cache (PEP 552). The source is changed to v2 with the same size and mtime, as a restored file keeps them:
+`/Users/labs/.local/bin/python3.11 -I knowledge/systems/proofs/107_build_cache.py` uses CPython's own bytecode cache (PEP 552). The source is changed to v2 with the same size and mtime, as a restored file keeps them:
 ```
 A  key=TIMESTAMP    source now says v2 -> program prints 'v1' (first run 'v1')
 B  key=CHECKED_HASH source now says v2 -> program prints 'v2' (first run 'v1')

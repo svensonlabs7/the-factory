@@ -30,7 +30,7 @@ On-call is the arrangement by which someone is responsible, at a given time, for
 - Not applicable at today's load: PagerDuty/Opsgenie, rotation schedules, escalation policies, on-call compensation.
 
 ## Proof
-`python3 110_oncall.py`, the same real incidents under two alerting configs, with responder fatigue modelled as acknowledgement delay growing per preceding false page:
+`python3 knowledge/systems/proofs/110_oncall.py`, the same real incidents under two alerting configs, with responder fatigue modelled as acknowledgement delay growing per preceding false page:
 ```
 noisy (alert on every blip)        precision   2%   9.0 pages/shift  real-page ack ~  29 min  BURNOUT + cry-wolf
 tuned (symptom / SLO-burn only)    precision  67%   0.4 pages/shift  real-page ack ~   2 min  sustainable

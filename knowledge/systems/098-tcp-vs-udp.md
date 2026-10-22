@@ -34,7 +34,7 @@ TCP and UDP are the two transport protocols over IP. **TCP** gives "a reliable, 
 - Not applicable at today's load: custom UDP protocols, QUIC, framing libraries, MTU tuning.
 
 ## Proof
-`python3 098_tcp_udp.py`, real kernel sockets on `127.0.0.1`:
+`python3 knowledge/systems/proofs/098_tcp_udp.py`, real kernel sockets on `127.0.0.1`:
 ```
 A  UDP: sent [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 A  UDP: received [0, 2, 4, 5, 7, 9]  -> 4 datagram(s) lost for good [1, 3, 6, 8], no retransmit

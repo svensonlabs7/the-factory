@@ -37,7 +37,7 @@ It matters wherever more than one thread exists. In web services that is almost 
 - Not applicable at today's load: a lock or single-flight on `_pr_cache`, and concurrent collections.
 
 ## Proof
-`pytest -s scratchpad/mastery/043_thread_safety.py` (Python 3.11; B uses the adapter's real `_pr` through `tests/test_adapter.py`'s fixture, with `gh` stubbed to take 0.2 s):
+`pytest -s knowledge/systems/proofs/043_thread_safety.py` (Python 3.11; B uses the adapter's real `_pr` through `tests/test_adapter.py`'s fixture, with `gh` stubbed to take 0.2 s):
 ```
 A  8 threads x 200,000 `n += 1`: n = 1,600,000 (expected 1,600,000; lost 0)
 B  8 concurrent _pr() for one URL, cold cache: gh called 8 times in 0.2 s; cached after: True

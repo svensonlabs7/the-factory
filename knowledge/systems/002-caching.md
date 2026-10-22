@@ -50,7 +50,7 @@ A cache is worth it when the same results are read repeatedly, the source is slo
 - Not applicable at today's load: shared caches (Redis, Memcached), request coalescing and cache warm-up.
 
 ## Proof
-`pytest -s scratchpad/mastery/002_caching.py` (Python 3.11). A is a seeded Zipf workload of 20,000 reads over 10,000 keys, with a 50 ms backend. B uses real threads and a 100 ms backend. C is the real `_pr` through `tests/test_adapter.py`'s fixture:
+`pytest -s knowledge/systems/proofs/002_caching.py` (Python 3.11). A is a seeded Zipf workload of 20,000 reads over 10,000 keys, with a 50 ms backend. B uses real threads and a 100 ms backend. C is the real `_pr` through `tests/test_adapter.py`'s fixture:
 ```
 A  LRU size    10: hit ratio 22.8%, mean latency  38.6 ms; backend calls: first 1,000 requests 773, a later 1,000 771
 A  LRU size   100: hit ratio 53.1%, mean latency  23.4 ms; backend calls: first 1,000 requests 482, a later 1,000 468

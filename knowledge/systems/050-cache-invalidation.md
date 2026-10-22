@@ -41,7 +41,7 @@ Explicit invalidation is worth it when data must be fresh soon after a write and
 - Not applicable at today's load: leases, versioned keys and invalidation messaging.
 
 ## Proof
-`pytest -s scratchpad/mastery/050_invalidation.py` (Python 3.11). A and B use real threads, with the interleaving forced by events: the reader reads the old value, then the writer updates and invalidates, then the reader fills. C is the real `_pr` through `tests/test_adapter.py`'s fixture:
+`pytest -s knowledge/systems/proofs/050_invalidation.py` (Python 3.11). A and B use real threads, with the interleaving forced by events: the reader reads the old value, then the writer updates and invalidates, then the reader fills. C is the real `_pr` through `tests/test_adapter.py`'s fixture:
 ```
 A  update db, then set cache:    db 12, cache 10 -> STALE until TTL
 A  update db, then delete cache: db 12, cache 10 -> STALE until TTL

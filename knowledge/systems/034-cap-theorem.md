@@ -48,7 +48,7 @@ The factory is one node. Its CAP choices are about its dependency, GitHub, and t
 - Not applicable at today's load: quorums, consensus and multi-writer reconciliation. There is one writer.
 
 ## Proof
-`pytest -s scratchpad/mastery/034_cap.py` (Python 3.11). A is three replicas partitioned {n1, n2} | {n3}, each side taking a write, then healed. B is the real adapter through `tests/test_adapter.py`'s fixture, with every `gh` call failing as "no route to host":
+`pytest -s knowledge/systems/proofs/034_cap.py` (Python 3.11). A is three replicas partitioned {n1, n2} | {n3}, each side taking a write, then healed. B is the real adapter through `tests/test_adapter.py`'s fixture, with every `gh` call failing as "no route to host":
 ```
 A  CP: write via n1 -> ok; write via n3 -> rejected (no quorum); after heal every node holds {'order A (majority side)'}
 A  AP: write via n1 -> ok; write via n3 -> ok; after heal every node holds {'order B (minority side)'}

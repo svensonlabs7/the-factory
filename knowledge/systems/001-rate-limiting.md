@@ -40,7 +40,7 @@ Any endpoint that is reachable by callers you do not fully control, or that star
 - Not applicable at today's load: shared limiter stores, per-tenant tiers and load shedders. There is one process and one caller.
 
 ## Proof
-`pytest -s scratchpad/mastery/001_rate_limiting.py` (A uses the real adapter through `tests/test_adapter.py`'s fixture):
+`pytest -s knowledge/systems/proofs/001_rate_limiting.py` (A uses the real adapter through `tests/test_adapter.py`'s fixture):
 ```
 A  6 valid triggers with 25 unsigned ones in between, MAX_PENDING=5: [202, 202, 202, 202, 202, 429]
 A  4 valid triggers, MAX_RUNS_PER_DAY=3: [202, 202, 202, 429]

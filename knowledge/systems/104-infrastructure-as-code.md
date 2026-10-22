@@ -34,7 +34,7 @@ Declarative tools (Terraform — 105, CloudFormation, Kubernetes manifests) do t
 - Not applicable at today's load: Terraform/Ansible, remote state backends, multi-environment pipelines.
 
 ## Proof
-`python3 104_iac.py`, a model of a declarative apply vs an imperative create:
+`python3 knowledge/systems/proofs/104_iac.py`, a model of a declarative apply vs an imperative create:
 ```
 A  imperative create, run twice:
     created tunnel (now 1 of it)

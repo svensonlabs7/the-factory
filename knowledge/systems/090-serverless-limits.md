@@ -53,7 +53,7 @@ Work that runs for tens of minutes, needs Docker, or keeps state between request
 - Not applicable at today's load: functions, durable executions and serverless concurrency limits.
 
 ## Proof
-`python3.11 -I scratchpad/mastery/090_serverless.py`. A runs a real child process killed at a 2 s limit, doing a 12-step job at 0.25 s per step (3 s in total). B checks the factory's measured workload against Lambda's published limits:
+`python3.11 -I knowledge/systems/proofs/090_serverless.py`. A runs a real child process killed at a 2 s limit, doing a 12-step job at 0.25 s per step (3 s in total). B checks the factory's measured workload against Lambda's published limits:
 ```
 A  straight through     : 4 invocations, finished False, steps kept 0/12
 A  checkpoint + re-invoke: 2 invocations, finished True, steps kept 12/12

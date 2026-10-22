@@ -46,7 +46,7 @@ The cheap rules: monotonic clocks for durations, NTP on every host, windows wide
 - Not applicable at today's load: logical clocks, hybrid clocks and lease fencing. There is one host and one writer.
 
 ## Proof
-`pytest -s scratchpad/mastery/096_clock_skew.py` (Python 3.11). A and B use the real adapter through `tests/test_adapter.py`'s fixture. In B, the module's `time` is replaced by a stand-in whose wall clock jumps 1,300 s after the first poll, while monotonic time is untouched. The fixture's `CHECKS_TIMEOUT` is 3 s; the jump also exceeds production's 1,200 s.
+`pytest -s knowledge/systems/proofs/096_clock_skew.py` (Python 3.11). A and B use the real adapter through `tests/test_adapter.py`'s fixture. In B, the module's `time` is replaced by a stand-in whose wall clock jumps 1,300 s after the first poll, while monotonic time is untouched. The fixture's `CHECKS_TIMEOUT` is 3 s; the jump also exceeds production's 1,200 s.
 ```
 A  sender clock skew: +0 s -> 202; +299 s -> 202; +301 s -> 401 Stale request; -301 s -> 401 Stale request
 B  wall clock steps +1,300 s during the wait: 'timed out waiting for checks' after 0.000 s of real time and 2 gh calls (CHECKS_TIMEOUT 3 s)

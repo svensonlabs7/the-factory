@@ -34,7 +34,7 @@ The defining hard part is not registration but **deregistration**: a crashed ins
 - Not applicable at today's load: Consul/etcd/ZooKeeper, health-checked instance pools, client-side load-balancing with discovery, lease TTLs. They arrive only with a dynamic, multi-instance fleet, which one operator does not have.
 
 ## Proof
-`python3 009_service_discovery.py`, a registry of 3 instances where B crashes at t=20 and stops heartbeating:
+`python3 knowledge/systems/proofs/009_service_discovery.py`, a registry of 3 instances where B crashes at t=20 and stops heartbeating:
 ```
 no-expiry  : B advertised for 40 ticks after it died at t=20; 10 client calls hit the dead instance
 ttl-expiry : B advertised for  8 ticks after it died at t=20;  3 client calls hit the dead instance

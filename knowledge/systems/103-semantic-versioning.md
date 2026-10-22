@@ -56,7 +56,7 @@ A, the real packages: `uv run --with starlette==<v> python -c "Starlette(on_star
 starlette 0.47.3: Starlette(on_startup=...) -> accepted; on_event exists: True
 starlette 1.9.0: Starlette(on_startup=...) -> TypeError: Starlette.__init__() got an unexpected keyword argument 'on_startup'; on_event exists: False
 ```
-B: `pytest -s scratchpad/mastery/103_semver.py`. This is the real `_gate_results`, through `tests/test_adapter.py`'s fixture, with `_run` playing gh: two "no checks yet" polls, then results:
+B: `pytest -s knowledge/systems/proofs/103_semver.py`. This is the real `_gate_results`, through `tests/test_adapter.py`'s fixture, with `_run` playing gh: two "no checks yet" polls, then results:
 ```
 B  gh 2.101.0 wording: waited, then {'tests': 'pass'}
 B  reworded by a gh release: RuntimeError after 1 poll(s): gh pr checks: no required status checks found for 'factory/x'

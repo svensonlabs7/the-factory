@@ -39,7 +39,7 @@ Every long-running service needs a liveness check that something actually watche
 - Not applicable at today's load: separate liveness and readiness endpoints for a balancer, fail-open routing, fleet anomaly detection. There is one instance and no balancer.
 
 ## Proof
-`pytest -s scratchpad/mastery/056_health_checks.py`. A uses the real adapter through `tests/test_adapter.py`'s fixture, with `gh` replaced by one that is logged out:
+`pytest -s knowledge/systems/proofs/056_health_checks.py`. A uses the real adapter through `tests/test_adapter.py`'s fixture, with `gh` replaced by one that is logged out:
 ```
 A  /health before: {'status': 'ok'}  after: {'status': 'ok'}
 A  run: status='error' events=['queued', 'round_started', 'round_finished', 'pushed', 'finished']

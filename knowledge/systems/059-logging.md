@@ -38,7 +38,7 @@ Always. Every service needs timestamped, attributable logs of requests, security
 - Gap: uvicorn's own lines, including the whole access log, have no timestamps (0 of 5,874 lines), and `intake.out.log` is never rotated. `rejected.jsonl` stops growing at 5 MB by dropping new entries (see GAPS.md).
 
 ## Proof
-`python3 -I scratchpad/mastery/059_logging.py .factory-logs/intake.out.log`:
+`python3 -I knowledge/systems/proofs/059_logging.py .factory-logs/intake.out.log`:
 ```
 A  plain text: 1 event became 2 lines; a reader sees a forged 'completed' entry: True
 A  JSON line:  1 event is 1 line; the newline is escaped inside the field: True

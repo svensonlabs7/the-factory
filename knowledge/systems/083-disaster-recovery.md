@@ -36,7 +36,7 @@ The rule that bites is that an **untested DR plan has an unknown RTO**: any step
 - Not applicable at today's load: pilot light, warm standby, multi-site, cross-region replication, automated DR orchestration.
 
 ## Proof
-`python3 083_disaster_recovery.py`, the factory's rebuild modelled as an ordered runbook where a step whose input is not backed up must be improvised:
+`python3 knowledge/systems/proofs/083_disaster_recovery.py`, the factory's rebuild modelled as an ordered runbook where a step whose input is not backed up must be improvised:
 ```
 today (secrets/creds NOT backed up)   : RTO = 40 min runbooked + UNKNOWN (improvised: ['restore .env secrets (OAuth, HMAC, CF Access)', 'restore / recreate tunnel credentials'])
 after Backups fix (off-machine copy)  : RTO ~= 50 min, every step runbooked

@@ -42,7 +42,7 @@ Pub/sub is worth it when several independent consumers react to the same events,
 - Not applicable at today's load: brokers, durable topics and webhook subscriptions.
 
 ## Proof
-`python3 -I scratchpad/mastery/016_pubsub.py` uses real sockets. A publisher fans each event out to the subscribers connected at that moment, as Redis `PUBLISH` does. One subscriber is disconnected for two events:
+`python3 -I knowledge/systems/proofs/016_pubsub.py` uses real sockets. A publisher fans each event out to the subscribers connected at that moment, as Redis `PUBLISH` does. One subscriber is disconnected for two events:
 ```
 A  fire-and-forget: steady subscriber got 4/4; flaky subscriber got 2/4 -> ['checks: pending', 'pr: merged']
 B  durable log + offset: flaky subscriber reads from offset 1 on reconnect -> ['checks: running', 'checks: completed (pass)', 'pr: merged']

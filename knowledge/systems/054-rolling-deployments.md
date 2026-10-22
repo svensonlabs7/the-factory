@@ -38,7 +38,7 @@ A rolling deploy needs at least two instances behind something that routes aroun
 - Not applicable at today's load: a second adapter instance, a load balancer, rollout batches and automated rollback. There is one host, one queue and one operator, and a gap under a second is acceptable once runs are not killed.
 
 ## Proof
-`python3 -I scratchpad/mastery/054_rolling.py <repo>` runs this working copy's real adapter under uvicorn on scratch ports with a scratch `FACTORY_ROOT`, so the live adapter and its logs are untouched. A client sends `GET /health` every 10 ms throughout:
+`python3 -I knowledge/systems/proofs/054_rolling.py <repo>` runs this working copy's real adapter under uvicorn on scratch ports with a scratch `FACTORY_ROOT`, so the live adapter and its logs are untouched. A client sends `GET /health` every 10 ms throughout:
 ```
 A  recreate, 1 instance:             44 of 118 requests failed; deploy took 0.7 s
 B  rolling, 2 instances, no gate:    22 of 171 requests failed; deploy took 1.4 s

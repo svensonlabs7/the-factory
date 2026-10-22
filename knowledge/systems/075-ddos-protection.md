@@ -42,7 +42,7 @@ factory.svensonlabs.dev: 172.67.213.143 104.21.45.110 | 2606:4700:3034::6815:2d6
 OrgName: Cloudflare, Inc.   NetName: CLOUDFLARENET
 origin=2601:40:cb00… appears in DNS answers: 0
 ```
-`python3 -I scratchpad/mastery/075_ddos.py`, simulated in virtual time with no network traffic. The origin has 20 slots. For 60 s, 5 slow connections a second (each 300 s long) arrive alongside 10 normal requests a second:
+`python3 -I knowledge/systems/proofs/075_ddos.py`, simulated in virtual time with no network traffic. The origin has 20 slots. For 60 s, 5 slow connections a second (each 300 s long) arrive alongside 10 normal requests a second:
 ```
 direct, no read timeout      normal requests served   38/600  (6%)
 direct, 10 s read timeout    normal requests served   38/600  (6%)

@@ -38,7 +38,7 @@ A saga is worth it when one business operation spans services or stores that can
 - Not applicable at today's load: compensation frameworks, choreographed sagas and saga orchestration engines.
 
 ## Proof
-`python3.11 -I scratchpad/mastery/019_saga.py` runs a trip-booking saga across three SQLite files (flight, hotel, card), with compensations:
+`python3.11 -I knowledge/systems/proofs/019_saga.py` runs a trip-booking saga across three SQLite files (flight, hotel, card), with compensations:
 ```
 A  card declined: saga compensated; left reserved {'flight': 0, 'hotel': 0, 'card': 0}
 B  crash after 2 steps, no saga log    : recovery found []; left reserved {'flight': 1, 'hotel': 1, 'card': 0}

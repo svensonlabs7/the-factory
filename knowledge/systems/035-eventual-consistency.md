@@ -39,7 +39,7 @@ Eventual consistency is worth accepting where availability and latency matter mo
 - Not applicable at today's load: quorums, CRDTs and anti-entropy. There is one writer.
 
 ## Proof
-`pytest -s scratchpad/mastery/035_eventual.py` (Python 3.11). A is N = 3 replicas with seeded propagation delays of 0 to 100 ms over 10,000 trials. C is the real `_pr` through `tests/test_adapter.py`'s fixture:
+`pytest -s knowledge/systems/proofs/035_eventual.py` (Python 3.11). A is N = 3 replicas with seeded propagation delays of 0 to 100 ms over 10,000 trials. C is the real `_pr` through `tests/test_adapter.py`'s fixture:
 ```
 A  W=1 R=1 (W+R<=3): read 10 ms after the write sees it 34.4% of the time
 A  W=2 R=2 (W+R>3): read 10 ms after the write sees it 100.0% of the time

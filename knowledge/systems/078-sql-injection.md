@@ -37,7 +37,7 @@ Always, wherever untrusted input meets an interpreter: SQL, a shell, a command's
 - Gap (low): `.github/workflows/qa-gate.yml:49,61` paste `${{ github.base_ref }}` into `run:` scripts in the privileged `pull_request_target` job. A branch named `main$(cmd)` passes git's name rules, and the emulation ran `cmd` (see GAPS.md).
 
 ## Proof
-`python3 -I scratchpad/mastery/078_injection.py`. A uses an in-memory sqlite3 database. B is git's own name check plus an emulation of GitHub's text substitution, run by bash in a scratch directory. C runs real `git` in a scratch repo:
+`python3 -I knowledge/systems/proofs/078_injection.py`. A uses an in-memory sqlite3 database. B is git's own name check plus an emulation of GitHub's text substitution, run by bash in a scratch directory. C runs real `git` in a scratch repo:
 ```
 A  login with password "' OR '1'='1":
 A    string-built: [('operator',)]

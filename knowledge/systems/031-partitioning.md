@@ -41,7 +41,7 @@ Partition a table when it is very large and its access and lifecycle follow one 
 - Not applicable at today's load: table partitioning, pruning and partition management. There is no database.
 
 ## Proof
-`pytest -s scratchpad/mastery/031_partitioning.py` (Python 3.11). A uses SQLite with 1.2M rows over 12 months, one table against one table per month. B is the real adapter through `tests/test_adapter.py`'s fixture:
+`pytest -s knowledge/systems/proofs/031_partitioning.py` (Python 3.11). A uses SQLite with 1.2M rows over 12 months, one table against one table per month. B is the real adapter through `tests/test_adapter.py`'s fixture:
 ```
 A  one month's count: whole table   35.9 ms, its partition only    0.8 ms
 A  retention, drop the oldest month (100k rows): DELETE   46.2 ms, DROP partition    1.4 ms

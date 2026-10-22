@@ -43,7 +43,7 @@ Choose the key from the dominant access pattern, usually a tenant or entity ID, 
 - Not applicable at today's load: shard keys, consistent hashing and resharding.
 
 ## Proof
-`python3 -I scratchpad/mastery/030_sharding.py` (100,000 keys, MD5 hash):
+`python3 -I knowledge/systems/proofs/030_sharding.py` (100,000 keys, MD5 hash):
 ```
 A  4 -> 5 shards, hash % N:            80% of keys move
 A  4 -> 5 shards, consistent hashing:  20% of keys move (ideal 20%); per-shard load [18947, 19390, 19689, 20008, 21966]

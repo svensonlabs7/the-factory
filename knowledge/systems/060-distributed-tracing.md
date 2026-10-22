@@ -31,7 +31,7 @@ Full tracing (OpenTelemetry SDKs, collectors, a trace store, sampling) pays off 
 - Not applicable at today's load: OpenTelemetry, W3C `traceparent` propagation and a trace backend. There is one pipeline, and the run ID already joins every component.
 
 ## Proof
-`python3 -I scratchpad/mastery/060_trace.py .factory-logs 920d7293`: the run's records joined to GitHub Actions by its pushed SHA (read-only API):
+`python3 -I knowledge/systems/proofs/060_trace.py .factory-logs 920d7293`: the run's records joined to GitHub Actions by its pushed SHA (read-only API):
 ```
 trace for run 920d7293: join keys run_id=920d7293, head sha=2c8fb9a2f606, 3 workflow runs found by sha
 

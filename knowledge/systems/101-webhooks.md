@@ -41,7 +41,7 @@ Receiving: whenever another system must start work here, and polling would be sl
 - Not applicable at today's load: sending webhooks. Grok Bot polls `/heartbeat` instead.
 
 ## Proof
-`pytest -s scratchpad/mastery/101_webhooks.py`, against the real adapter through `tests/test_adapter.py`'s fixture:
+`pytest -s knowledge/systems/proofs/101_webhooks.py`, against the real adapter through `tests/test_adapter.py`'s fixture:
 ```
 1  tampered body: {'detail': 'Invalid signature'}
 2  signed 400 s ago: {'detail': 'Stale request'}

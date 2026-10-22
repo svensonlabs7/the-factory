@@ -31,7 +31,7 @@ Every system needs enough of it to answer its operators' real questions: why did
 - Not applicable at today's load: an observability platform or event store. The question battery runs in seconds over local files.
 
 ## Proof
-`python3 -I scratchpad/mastery/066_observability.py .factory-logs`, 8 new questions put to the existing telemetry:
+`python3 -I knowledge/systems/proofs/066_observability.py .factory-logs`, 8 new questions put to the existing telemetry:
 ```
 [yes    ] How long do runs wait in the queue?  median 0.0 min, max 29.8 min (meta.json)
 [partial] Which gate check blocks most often?  action log covers 2/8 runs; older runs need the GitHub API
