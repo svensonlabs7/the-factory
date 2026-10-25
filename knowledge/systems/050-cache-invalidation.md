@@ -2,6 +2,8 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)invalidat|_cache\b|cache\[|pr_cache`
+
 ## What it is
 Cache invalidation is making cached copies stop being served once the source changes. There are three ways:
 - **Expiry:** a TTL, simple and bounded, but stale for up to the TTL.

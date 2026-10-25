@@ -2,6 +2,8 @@
 
 Track: E. Delivery and change · Status: proven · Updated: 2026-10-19
 
+Triggers: files `requirements[^/]*\.txt$|pyproject\.toml$|uv\.lock$|package(-lock)?\.json$` · lines `--with \w|pip install|npm (install|i) |uses: \S+@|^\s*FROM |@sha256|:latest\b|requires-python|# /// script|dependencies = `
+
 ## What it is
 Dependency hell is what happens when the packages a program depends on, and the packages they depend on, stop fitting together or stop staying still:
 - **Conflicts:** two dependencies need incompatible versions of a shared one (the "diamond"), so no install satisfies both. pip and uv report this as "no solution" (`ResolutionImpossible`).

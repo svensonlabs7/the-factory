@@ -2,6 +2,8 @@
 
 Track: H. Distributed systems · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `time\.time\(|datetime\.now|utcnow|REPLAY_WINDOW|X-Factory-Timestamp|alive_at|strftime|monotonic`
+
 ## What it is
 Every machine's clock drifts. NTP keeps it near true time, but each machine is a little off (skew), and corrections can step the clock forward or backward. So can leap seconds, VM migration and wake from sleep. Two facts follow.
 

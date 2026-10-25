@@ -2,6 +2,8 @@
 
 Track: F. Async and messaging · Status: proven · Updated: 2026-10-19
 
+Triggers: files `\.plist$` · lines `(?i)\bcron|schedule|StartCalendarInterval|StartInterval|ALIVE_INTERVAL|RUN_RETENTION|crontab`
+
 ## What it is
 A cron job runs work on a schedule ("every day at 03:00", "every 5 minutes") instead of in response to a request: cleanups, syncs, reports, renewals, backups. The scheduler only decides when to start a run. Everything else is the job's problem:
 - **Overlap:** a run that outlasts the interval overlaps the next. Kubernetes' default `concurrencyPolicy` is `Allow`; `Forbid` skips the new run, and `Replace` kills the old one.

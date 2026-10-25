@@ -2,6 +2,8 @@
 
 Track: D. Concurrency and correctness · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `threading|ThreadPool|asyncio|\bawait\b|\bglobal |\.exists\(|_check_capacity|os\.replace|tempfile`
+
 ## What it is
 A race condition is a bug whose outcome depends on the timing of concurrent actors (threads, processes, requests, machines) touching shared state. The classic shapes:
 - **Lost update:** two read-modify-write cycles interleave, and one write erases the other.

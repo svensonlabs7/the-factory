@@ -2,6 +2,8 @@
 
 Track: B. Security · Status: proven · Updated: 2026-10-18
 
+Triggers: files `(^|/)\.env|(^|/)\.gitignore$|\.gitleaks` · lines `(?i)(token|secret|password|passwd|api_?key|credential)|forward_env|gitleaks|git push`
+
 ## What it is
 Secrets are the values that grant access: API keys, OAuth tokens, signing secrets, passwords. Managing them means:
 - keeping them out of source control and logs;

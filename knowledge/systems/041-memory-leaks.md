@@ -2,6 +2,8 @@
 
 Track: D. Concurrency and correctness · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `^[A-Za-z_]\w*\s*(:[^=]+)?=\s*(\{\}|\[\]|dict\(\)|set\(\)|deque\(|defaultdict\()|lru_cache|\bglobal `
+
 ## What it is
 In a garbage-collected language such as Python, a memory leak is memory that is still reachable but will never be used again: a global cache, list, registry or listener set that keeps growing. CPython frees unreachable objects through reference counting and its cycle collector, but anything still referenced from a live object is kept forever, by design.
 

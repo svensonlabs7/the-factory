@@ -2,6 +2,8 @@
 
 Track: K. Infrastructure · Status: proven · Updated: 2026-10-19
 
+Triggers: files `(^|/)Dockerfile|\.dockerignore$|(^|/)compose\.ya?ml$` · lines `docker (run|build|pull|create)|DockerWorkspace|SERVER_IMAGE|--restart|platform=|^\s*FROM `
+
 ## What it is
 Docker packages an application and its dependencies into an **image** — a stack of read-only **layers**, one per build instruction — and runs it as a **container**, an isolated process using Linux namespaces (its own view of processes, network, mounts) and cgroups (CPU/memory limits). Unlike a VM, containers share the host kernel, so they start in milliseconds and are light. An image is built from a `Dockerfile`; each instruction adds a layer, and Docker **caches** layers: on rebuild it reuses a layer if that instruction and everything it depends on are unchanged, and rebuilds from the first changed instruction onward. Images are identified by a tag (mutable) or a content-addressed **digest** (`sha256:…`, immutable). A container writes to a thin writable layer on top that is lost when it is removed, so persistent data lives in **volumes** or bind mounts. The isolation is strong but not a security boundary as hard as a VM: the shared kernel is the attack surface.
 

@@ -2,6 +2,8 @@
 
 Track: E. Delivery and change · Status: proven · Updated: 2026-10-18
 
+Triggers: files `^\.github/workflows/|^factory/qa/` · lines `(?i)branch.?protection|enforce_admins|required.?check|auto.?merge`
+
 ## What it is
 Continuous integration (CI) means everyone merges small changes into one mainline often, at least daily, and every merge is checked by an automated, self-testing build. A red build is fixed first, usually by reverting. Continuous delivery (CD) keeps the mainline releasable at all times, with a scripted deploy to any environment. Continuous deployment goes one step further and ships every green change automatically.
 

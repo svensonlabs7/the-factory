@@ -2,6 +2,8 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)\bp9[59]\b|percentile|quantile|histogram`
+
 ## What it is
 The p99 latency is the value that 99% of requests come in under: the slowest 1% take longer. Percentiles describe the experience averages hide (091-latency.md). They are also easy to compute wrongly, and a wrong p99 is worse than none, because it gives false confidence.
 

@@ -2,6 +2,8 @@
 
 Track: B. Security · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)\boauth|\boidc\b|redirect_uri|scope=|claude_code_oauth_token|gh auth`
+
 ## What it is
 OAuth 2.0 lets a user grant an application limited access to their account on another service without sharing their password. The user signs in at an authorization server. The app receives a short authorization code at a registered redirect URI and exchanges it for an access token, plus optionally a refresh token, that is scoped to what was approved. Access tokens are usually bearer tokens: whoever holds one can use it, so they should be short-lived, narrowly scoped, kept out of URLs and logs, and revocable.
 

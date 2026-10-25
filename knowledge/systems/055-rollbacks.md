@@ -2,6 +2,8 @@
 
 Track: E. Delivery and change · Status: proven · Updated: 2026-10-18
 
+Triggers: files `^\.github/workflows/qa-gate\.yml$` · lines `\.meta\.json|_load\(|json\.loads|enforce_admins|pull_request_target|(?i:\brevert)`
+
 ## What it is
 A rollback returns a system to its last known-good version after a bad change. It is the fastest mitigation for a deploy that broke something: restore service first, then debug the change at leisure. Roll forward (shipping a fix) is the other option, but it means writing and testing new code under pressure.
 

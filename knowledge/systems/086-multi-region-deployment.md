@@ -2,6 +2,8 @@
 
 Track: L. Operations · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)multi.?region|cross.?region|geo.?dns|\b(us|eu|ap)-(east|west|central|south|north)` · tripwire
+
 ## What it is
 A multi-region deployment runs the system in two or more geographic regions, for **latency** (serve each user from a nearby region) and **survival** (a whole region — not just a host — can fail and the service continues). The shapes mirror failover (085) at continental scale: **active-passive** (one region serves, another stands by and is promoted on regional failure) and **active-active** (all regions serve traffic at once). The unavoidable physics is the speed of light: a cross-region round trip is tens of milliseconds, so **synchronous** replication across regions is too slow for most writes, and you replicate **asynchronously**. Async replication means the other region lags, and that lag has two hard consequences (proof): on an active-passive failover, every write not yet replicated is lost — the data loss (RPO) equals the lag; and in active-active, two regions can accept conflicting writes to the same key, which an async last-write-wins merge silently resolves by dropping one, unless you add real conflict resolution (CRDTs, vector clocks — 035-eventual-consistency.md). Multi-region is CAP (034) made geographic: a partition between regions forces the choice between consistency and availability.
 

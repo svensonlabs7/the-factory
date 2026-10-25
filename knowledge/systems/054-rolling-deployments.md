@@ -2,6 +2,8 @@
 
 Track: E. Delivery and change · Status: proven · Updated: 2026-10-18
 
+Triggers: files `\.plist$` · lines `(?i)launchctl|kickstart|\bdrain|graceful|sigterm|lifespan`
+
 ## What it is
 A rolling deployment replaces the instances of a service a few at a time instead of all at once, so the service keeps serving throughout. Each step:
 1. Take an instance out of the load balancer and let its in-flight work drain.

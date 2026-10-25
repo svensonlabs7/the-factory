@@ -2,6 +2,8 @@
 
 Track: D. Concurrency and correctness · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)\bredis\b|redlock|distributed.?lock|lock.?service` · tripwire
+
 ## What it is
 A distributed lock gives one process at a time, across machines, the right to act on a shared resource. Implementations range from a single Redis key (`SET key token NX PX ttl`, released only if the token still matches) and Redlock (a majority of independent Redis nodes) to consensus systems (ZooKeeper, etcd) and database rows.
 

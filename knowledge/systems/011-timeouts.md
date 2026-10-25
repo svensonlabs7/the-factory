@@ -2,6 +2,8 @@
 
 Track: A. Resilience of calls · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `subprocess\.|Popen|urlopen|requests\.|httpx\.|timeout|\.wait\(|wait_for|create_connection|\bcurl |docker (run|exec)|\bgh (pr|api|run)\b|git (fetch|push|clone)`
+
 ## What it is
 A timeout is the longest a caller will wait for something outside its control: a network call, a subprocess, a container, a lock, a queue. When it expires, the caller stops waiting, and it should also stop the work it started, then report what timed out. Without one, a single stuck dependency holds a thread, a connection or a queue slot forever, and everything queued behind it waits too.
 

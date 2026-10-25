@@ -2,6 +2,8 @@
 
 Track: H. Distributed systems · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `\bgh (pr|api)\b|git (push|fetch|clone)|requests\.|httpx\.|urlopen|\bcurl |_push\(|_gate_results`
+
 ## What it is
 A network partition is any failure that leaves two parts of a system unable to talk while both keep running: a link down, a switch dropping packets, a firewall change, an overloaded node, or a long GC pause that looks the same from outside. Partitions are routine. Bailis and Kingsbury collected the evidence:
 - a Microsoft datacenter study saw about 40.8 link failures a day;

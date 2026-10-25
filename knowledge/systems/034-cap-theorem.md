@@ -2,6 +2,8 @@
 
 Track: H. Distributed systems · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)mergeable|_gate_results|gh pr (merge|view)|consisten`
+
 ## What it is
 The CAP theorem (Brewer's conjecture, proved by Gilbert and Lynch in 2002) says that when the network partitions, a replicated system cannot give both:
 - **Consistency:** atomic, linearizable reads and writes. Every operation "looks as if it were completed at a single instant."

@@ -2,6 +2,8 @@
 
 Track: J. Networking · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)upstream |least_conn|load.?balanc|round.?robin|--workers` · tripwire
+
 ## What it is
 A load balancer spreads incoming requests across several interchangeable backends so no one of them is overwhelmed while others sit idle, and so a dead backend is taken out of rotation. It sits behind one address (often the reverse proxy or CDN — 004-reverse-proxies.md) and picks a backend per request by some policy:
 - **Round-robin:** rotate through backends in order. Simple, stateless, but blind to how busy each one is.

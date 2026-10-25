@@ -2,6 +2,8 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)gather\(|as_completed|fan.?out|\bhedg|speculativ`
+
 ## What it is
 Tail latency is the slow end of the latency distribution (p99, p99.9), and at scale it, not the median, decides how a system feels. Dean and Barroso's "The Tail at Scale" shows why. When one user request fans out to many servers and waits for all of them, rare slowness becomes common. A server that answers in 10 ms but takes a second once in 100 requests makes 63% of user requests slow when each request needs 100 such servers. In Google's measurement of a real fan-out service, one leaf's p99 was 10 ms, while waiting for all leaves took 140 ms at p99. Waiting for the slowest 5% was responsible for half of that total.
 

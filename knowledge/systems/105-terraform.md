@@ -2,6 +2,8 @@
 
 Track: K. Infrastructure · Status: proven · Updated: 2026-10-19
 
+Triggers: files `\.tf(vars)?$|\.terraform\.lock\.hcl$` · lines `(?i)\bterraform\b|\bopentofu\b` · tripwire
+
 ## What it is
 Terraform is the most common declarative IaC tool (104-infrastructure-as-code.md). You describe desired resources in HCL config; Terraform keeps a **state file** recording what it has created and each resource's real attributes; and it works in two steps: `plan` diffs config against state (and the live provider) to show exactly what it will add, change or destroy, and `apply` makes those changes and updates state. **Providers** translate Terraform's resources into API calls for AWS, Cloudflare, GitHub, Kubernetes and so on. The state file is the heart of the model and its biggest hazard: it is the record of reality, often holds resource attributes (and sometimes secrets) in plaintext, and must be shared carefully. Because two applies editing one state concurrently race on read-modify-write, Terraform **locks** the state for the duration of an apply (via the backend — S3+DynamoDB, Terraform Cloud, etc.), and stores it in a shared **remote backend** so a team sees the same state.
 

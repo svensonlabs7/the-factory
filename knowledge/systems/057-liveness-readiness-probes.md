@@ -2,6 +2,8 @@
 
 Track: A. Resilience of calls · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)liveness|readiness|\bprobe|watchdog|keepalive|alive_at|stale_s`
+
 ## What it is
 Probes are health checks with an automatic action attached. A **liveness** probe asks whether the process is stuck in a way only a restart can fix, such as a deadlock; on failure the supervisor restarts it. A **readiness** probe asks whether it can take traffic right now (warming up, waiting on a dependency, overloaded); on failure it is taken out of rotation but left running. A **startup** probe holds the other two off while a slow starter initializes. The rule that prevents most probe outages: liveness checks only the process itself, and dependencies belong in readiness, because restarting a healthy process never fixes a broken dependency. A process that simply exits needs no liveness probe; any supervisor already restarts it.
 

@@ -2,6 +2,8 @@
 
 Track: G. Data · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)\bshard|partition key|consistent.?hash` · tripwire
+
 ## What it is
 Sharding splits a dataset across several independent databases or nodes (shards). Each shard holds the rows whose shard key maps to it, so storage and write throughput scale with the number of shards. Partitioning (031-partitioning.md) does this split within one database; sharding does it across machines.
 

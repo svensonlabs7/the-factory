@@ -2,6 +2,8 @@
 
 Track: G. Data · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)\bselect\b|\.execute\(|\bexplain\b|\blimit \d|\boffset\b|\.glob\(`
+
 ## What it is
 Query optimization is making a data request do less work: read fewer rows, touch fewer pages, make fewer round trips. The tool is the query plan. `EXPLAIN` shows the planner's chosen tree and its estimates, and `EXPLAIN ANALYZE` runs the query and adds actual rows and times. Postgres's docs say the thing "most important to look for is whether the estimated row counts are reasonably close to reality". A large gap means bad statistics and, usually, a bad plan.
 

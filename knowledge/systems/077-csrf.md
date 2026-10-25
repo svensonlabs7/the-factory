@@ -2,6 +2,8 @@
 
 Track: B. Security · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `@app\.(post|put|patch|delete)|(?i:set-cookie|samesite|\bcsrf|<form)`
+
 ## What it is
 Cross-site request forgery (CSRF) is when another website makes a logged-in user's browser send a request to your site. The browser attaches that user's cookies automatically, so your site sees an authenticated request the user never meant to make: a transfer, a delete, a settings change. It only works against ambient credentials, meaning cookies and browser-managed auth. A request authenticated by a header the client must add itself (an `Authorization` token, an HMAC signature, a custom header) cannot be forged this way. A cross-site page cannot set such a header without a CORS preflight the server would have to approve.
 

@@ -2,6 +2,8 @@
 
 Track: E. Delivery and change · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `actions/cache|setup-python|setup-node|(?i:cache:|uv cache|~/\.cache|--no-cache)`
+
 ## What it is
 A build cache stores the output of a build step (installed dependencies, compiled code, container layers, test results) under a key, and reuses it when the key matches instead of redoing the work. Everything depends on the key. A correct key is derived from every input that affects the output: source content, tool and compiler versions, flags, platform, environment. Bazel calls such a build hermetic.
 

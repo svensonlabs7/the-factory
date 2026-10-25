@@ -2,6 +2,8 @@
 
 Track: H. Distributed systems · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)prepare transaction|two.?phase|\bxa\b|_push\(|gh pr create|_finish\(`
+
 ## What it is
 A distributed transaction makes changes in several independent stores (two databases, a database and a queue, a database and an external API) commit or roll back together. The classic protocol is two-phase commit (2PC):
 1. **Prepare:** a coordinator asks every participant to prepare. Each one makes its changes durable but undecided, holding its locks, and votes yes or no.

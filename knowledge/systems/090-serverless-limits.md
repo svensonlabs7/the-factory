@@ -2,6 +2,8 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)aws.?lambda|lambda_handler|cloud.?functions?|wrangler|\bserverless\b|vercel|netlify` · tripwire
+
 ## What it is
 Serverless platforms run your code on demand and scale it for you, in exchange for hard limits you must design around. AWS says Lambda "is designed for short-lived compute tasks that do not retain or rely upon state between invocations". Its published limits include:
 - a function timeout of 900 seconds (15 minutes);

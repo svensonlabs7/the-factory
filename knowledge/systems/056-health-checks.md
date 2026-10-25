@@ -2,6 +2,8 @@
 
 Track: A. Resilience of calls · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `/health\b|/status\b|/heartbeat\b|healthz|KeepAlive|alive_at|_stamp_alive`
+
 ## What it is
 A health check is a cheap request a monitor or load balancer sends to ask whether a service can do its job. AWS separates four depths:
 - **Liveness:** the process answers.

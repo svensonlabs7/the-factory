@@ -2,6 +2,8 @@
 
 Track: A. Resilience of calls · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `_replayed|REPLAY_|exist_ok=False|O_EXCL|@app\.(post|put)|(?i:idempoten)`
+
 ## What it is
 An operation is idempotent when doing it twice has the same effect as doing it once. That matters because a caller often cannot know whether its request worked: the response can be lost after the server acted. Reads, setting a value, pushing a fixed commit and deleting by id are idempotent by nature. Creating, sending, charging and enqueueing are not, so they need an idempotency key: the client picks a unique key per intended action, and the server records it with the outcome and returns that same outcome for any repeat. The same idea applies to startup and maintenance steps: a step that runs again after a crash should converge on the same end state.
 

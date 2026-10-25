@@ -2,6 +2,8 @@
 
 Track: C. Observability · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `_log_action|logging\.|\blog\.(info|warning|error|exception)|_set_heartbeat|(?i:\busage\b|\bcost\b)`
+
 ## What it is
 Observability is how well you can understand a system's internal state from its outputs, especially for questions nobody anticipated, without shipping new code to answer them. Monitoring covers the known unknowns: checks and thresholds you defined in advance. Observability covers the unknown unknowns: the novel failure you are debugging right now.
 

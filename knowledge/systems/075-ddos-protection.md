@@ -2,6 +2,8 @@
 
 Track: B. Security · Status: proven · Updated: 2026-10-18
 
+Triggers: files `^infra/cloudflare-tunnel/` · lines `--host\b|0\.0\.0\.0|hostname:|(?i:body.?limit|max.?body)`
+
 ## What it is
 A distributed denial-of-service (DDoS) attack overwhelms a service with traffic from many sources until real users cannot get through. It comes in three kinds:
 - **Volumetric floods** (layer 3/4: UDP reflection, SYN floods) that fill links;

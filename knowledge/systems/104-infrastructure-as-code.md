@@ -2,6 +2,8 @@
 
 Track: K. Infrastructure · Status: proven · Updated: 2026-10-19
 
+Triggers: files `^infra/|\.plist$|^factory/build/egress\.sh$|(^|/)install\.sh$|\.tf$`
+
 ## What it is
 Infrastructure as Code (IaC) means the servers, networks, DNS records, certificates and services that make up a system are defined in version-controlled files and created by a tool that makes reality match those files — instead of being clicked together in a console or set up by hand. The files are the source of truth: they are reviewed, diffed, and rolled back like any code. Two properties separate IaC from a setup shell script:
 - **Idempotence:** applying the same definition twice is safe and a no-op the second time. You describe the *desired end state*, and the tool computes the difference from the current state and makes only the changes needed, rather than running create-steps that duplicate or error on a second run (proof A).

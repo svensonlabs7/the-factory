@@ -2,6 +2,8 @@
 
 Track: B. Security · Status: proven · Updated: 2026-10-18
 
+Triggers: files `^factory/build/(egress|run_agent)` · lines `(?i)urlopen|requests\.(get|post)|httpx\.|\bcurl |fetch\(|--network|https?_proxy|no_proxy`
+
 ## What it is
 Server-side request forgery (SSRF) is when an attacker makes your server send a request to a place they choose. The server sits inside your network, so it can reach what the attacker cannot: cloud metadata (`169.254.169.254`, which hands out credentials), admin ports on localhost, databases and internal APIs. The classic entry is a URL parameter: "fetch this image", "call this webhook". The modern entry is an AI agent that makes requests on behalf of text an attacker controls.
 

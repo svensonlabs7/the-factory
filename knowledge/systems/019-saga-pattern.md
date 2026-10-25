@@ -2,6 +2,8 @@
 
 Track: H. Distributed systems · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)compensat|\bsaga\b|_push\(|gh pr create`
+
 ## What it is
 A saga replaces one long or distributed transaction with a sequence of local transactions T1 … Tn, each committed on its own, each paired with a compensating transaction C1 … Cn that semantically undoes it. Garcia-Molina and Salem (1987) defined the guarantee: either T1 … Tn all run, or T1 … Tj followed by Cj … C1. A compensation "undoes, from a semantic point of view" what its step did (cancel a reservation, refund a charge). It does not restore the old bytes.
 

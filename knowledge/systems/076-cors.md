@@ -2,6 +2,8 @@
 
 Track: B. Security · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)\bcors\b|access-control-allow|allow_origins|trustedhost|--host\b`
+
 ## What it is
 Browsers stop a page's scripts from reading responses from other origins (scheme, host and port): the same-origin policy. Cross-origin resource sharing (CORS) is how a server *relaxes* that rule. By sending `Access-Control-Allow-Origin`, the server tells the browser which other origins may read its responses. CORS adds no protection: a server with no CORS headers is the safe default.
 

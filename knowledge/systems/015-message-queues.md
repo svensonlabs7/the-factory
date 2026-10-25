@@ -2,6 +2,8 @@
 
 Track: F. Async and messaging · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `RUN_EXECUTOR|\.submit\(|Queue\(|IN_FLIGHT|_recover\(|(?i:redeliver|dequeue)`
+
 ## What it is
 A message queue sits between a producer and a consumer. The producer hands work over and returns at once; the consumer takes it when it has capacity. This decouples their speed and availability: bursts wait in the queue instead of overloading the consumer, and the producer keeps accepting work while the consumer is down.
 

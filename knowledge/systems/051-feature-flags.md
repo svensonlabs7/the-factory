@@ -2,6 +2,8 @@
 
 Track: E. Delivery and change · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)feature.?flag|\btoggle|os\.environ\.get\(|getenv\(`
+
 ## What it is
 A feature flag (or toggle) is a switch that chooses between code paths at runtime. Deploying the code and releasing the behaviour then become separate steps: new code ships dark and is turned on later, for everyone or for some users, and turned off again without a deploy.
 

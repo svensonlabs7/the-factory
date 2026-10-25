@@ -2,6 +2,8 @@
 
 Track: F. Async and messaging · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)webhook|publish|subscribe|_gate_results|gh pr checks|\bpoll`
+
 ## What it is
 Publish/subscribe decouples who emits an event from who reacts to it. Publishers send to a topic or channel without knowing the subscribers, and every subscriber gets its own copy (fan-out). A queue is different: each message goes to one consumer.
 

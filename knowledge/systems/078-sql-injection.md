@@ -2,6 +2,8 @@
 
 Track: B. Security · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)\.execute\(|\bselect\b.+\bfrom\b|\binsert into\b|\bupdate\b.+\bset\b|shell=|shlex|os\.system`
+
 ## What it is
 SQL injection happens when user input is pasted into the text of a query, so input such as `' OR '1'='1` or `' UNION SELECT ...` changes what the query does: logging in without a password, reading other tables, deleting data. The fix is structural: send the query and the values separately (parameterized queries or prepared statements), so the database never parses input as SQL. Escaping is fragile and a last resort. Anything that cannot be a parameter, such as a table name, column or sort order, is mapped from an allow-list defined in code.
 

@@ -2,6 +2,8 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `max_workers|--workers|ThreadPool|MAX_PENDING|MAX_RUNS_PER_DAY|(?i:\bbatch|concurren)`
+
 ## What it is
 Throughput is how much work a system completes per unit of time: requests a second, jobs an hour, bytes a second. It is bounded by the slowest resource on the path, the bottleneck. Adding capacity anywhere else changes nothing.
 

@@ -2,6 +2,8 @@
 
 Track: E. Delivery and change · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)alter table|drop (table|column)|\bmigrat|\.meta\.json|heartbeat\.template`
+
 ## What it is
 A migration is a scripted, versioned change to stored data or its schema: add a column, rename a field, split a table, backfill values. It runs once, in order, as part of a deploy.
 

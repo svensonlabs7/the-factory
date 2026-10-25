@@ -2,6 +2,8 @@
 
 Track: F. Async and messaging · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)long.?poll|setInterval|REFRESH_MS|CHECKS_POLL`
+
 ## What it is
 Long polling is how a client waits for server-side changes over plain HTTP without asking over and over. The client sends a request. The server holds it open until there is something new or a timeout passes, then answers. The client immediately sends the next one. Compared with short polling (ask every N seconds), changes arrive within about one network transit instead of up to N seconds later, and idle periods cost one request per timeout instead of one per interval.
 

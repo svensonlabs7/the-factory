@@ -2,6 +2,8 @@
 
 Track: A. Resilience of calls · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)\bretr(y|ies|ied)\b|max_retries|backoff|for _ in |while true|\buntil `
+
 ## What it is
 A retry repeats a failed call in the hope the failure was temporary: a dropped connection, a busy server, a brief outage. Retries turn many short blips into successes, but every retry adds load to a dependency that may already be struggling. They are safe only when the error is temporary, the operation can be repeated without a double effect, and the total number of attempts is bounded.
 

@@ -2,6 +2,8 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)colima (start|edit)|--cpus?\b|--memory\b|mem_limit|cpu_count\(` · tripwire
+
 ## What it is
 Vertical scaling (scaling up) means giving one machine or process more resources: more CPU cores, more memory, faster disks or a bigger instance type. Nothing about the architecture changes, which makes it the simplest scaling move and usually the first.
 

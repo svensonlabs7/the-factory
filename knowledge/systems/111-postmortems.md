@@ -2,6 +2,8 @@
 
 Track: L. Operations · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)workaround|\bhack\b|\btodo\b|\bfixme\b|\bxxx\b|shortcut:|postmortem`
+
 ## What it is
 A postmortem is the written record and analysis of an incident (109-production-incidents.md) after it is resolved: what happened, the timeline, the impact, the **root cause and contributing factors**, and — the part that actually matters — a list of **action items** that remove or mitigate the cause so it cannot recur, each owned and tracked to completion. The defining practice is that it is **blameless**: it examines the systems and decisions that let the failure happen, not the person who pushed the button, on the premise that people acting reasonably with the information they had cannot be the root cause. Blamelessness is not politeness; it is what makes the analysis *honest*. If people fear blame, they hide the real cause, and the latent fault fires again (proof: the share of incidents whose true cause is actually removed is what separates a system that drains its faults from one that keeps hitting them). A postmortem without tracked action items is a story; the value is in closing the loop (065-error-budgets.md).
 

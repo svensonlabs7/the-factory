@@ -2,6 +2,8 @@
 
 Track: H. Distributed systems · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)\bleader|\blease\b|election|singleton|_recover\b|flock`
+
 ## What it is
 Leader election picks one node to do work that must not be done twice at once: coordinate writes, run a scheduler, own a queue. The others stand by and take over if it fails.
 

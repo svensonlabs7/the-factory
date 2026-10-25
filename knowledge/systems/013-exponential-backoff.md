@@ -2,6 +2,8 @@
 
 Track: A. Resilience of calls · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)backoff|jitter|retry.?after|\*\* ?attempt|2 ?\*\* `
+
 ## What it is
 Backoff is how long a caller waits before retrying. Exponential backoff doubles the wait after each failure, up to a cap (2 ms, 4, 8 ... 1 s), so a struggling dependency gets fewer calls the longer it struggles. Jitter adds randomness to each wait. Without jitter, callers that failed together retry together and keep colliding. If the server says when to come back (`Retry-After`, a rate-limit reset time, "resets 5:40am"), that time beats any formula.
 

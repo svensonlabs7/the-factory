@@ -2,6 +2,8 @@
 
 Track: J. Networking · Status: proven · Updated: 2026-10-19
 
+Triggers: files `\.proto$` · lines `(?i)\bgrpc|protobuf|_pb2\b` · tripwire
+
 ## What it is
 gRPC is a contract-first RPC framework: you write a service and its messages in a `.proto` file (Protocol Buffers), compile it to typed client and server stubs in many languages, and call remote methods as if they were local functions. On the wire it uses **Protocol Buffers** — a compact binary format — over **HTTP/2** (099-http2-http3.md), so it gets multiplexed streams, header compression and long-lived connections. It offers four call types: unary (one request, one response), server-streaming, client-streaming, and bidirectional streaming. The contract is the point: the `.proto` is the single source of truth, stubs are generated, and Protobuf's compatibility rules let the contract evolve. Those rules turn on **field numbers**: every field has a number, the number (not the name or position) identifies it on the wire, and a reader skips field numbers it does not know — which is exactly what makes adding fields safe and reusing a number catastrophic (proof).
 

@@ -2,6 +2,8 @@
 
 Track: L. Operations · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `_set_heartbeat\(|open_incidents|pipeline_status|blocking_reason|_finish\(`
+
 ## What it is
 A production incident is an unplanned disruption — an outage, data problem, or degraded service — that needs a coordinated response to restore normal operation. Incident *management* is the process that handles it: **detect** (an alert or report), **declare** and set a **severity** (how bad, how urgent), **coordinate** under a clear owner (an incident commander who runs the response, with others handling operations and communications), **mitigate** to stop user impact, then **resolve** and hand off to a postmortem (111-postmortems.md). The central arithmetic is that customer impact lasts from when the problem starts until it *stops hurting users* — which is the moment you mitigate, not the moment you find root cause. Two rules follow (proof): detection dominates (an undetected incident runs until someone stumbles on it), and you mitigate before you diagnose (roll back, fail over, or disable the feature to end impact, then root-cause off the clock). Severity decides how much response to spin up; most events are low-severity and handled routinely, a few warrant waking people.
 

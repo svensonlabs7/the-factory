@@ -2,6 +2,8 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)cache-control|s-maxage|stale-while-revalidate|stale-if-error|\bvary\b|max-age`
+
 ## What it is
 Edge caching is serving responses from a cache at the network edge (a CDN POP, a reverse proxy) under rules the origin sets per response. Beyond the basic freshness lifetime (`max-age`, or `s-maxage` for shared caches only), two directives from RFC 5861 change what happens after expiry:
 - **`stale-while-revalidate=N`:** caches "MAY serve the response in which it appears after it becomes stale" for N seconds, while refreshing in the background. No client waits on the origin when an entry expires.

@@ -2,6 +2,8 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)\bcache\b|_cache\b|lru_cache|cache_ttl|\bttl\b`
+
 ## What it is
 A cache keeps copies of results so later requests skip the slow or expensive source: a backend call, a database query, a computation, a network fetch. Its value is the hit ratio times the cost it saves. Its price is staleness and complexity, because every cached value is an eventually consistent copy (035-eventual-consistency.md).
 

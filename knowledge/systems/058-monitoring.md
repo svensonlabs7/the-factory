@@ -2,6 +2,8 @@
 
 Track: C. Observability · Status: proven · Updated: 2026-10-18
 
+Triggers: files `^infra/cloudflare-tunnel/` · lines `/heartbeat\b|/health\b|alive_at|(?i:\bmonitor)`
+
 ## What it is
 Monitoring is something other than the system watching the system, continuously, so that problems are noticed without a person happening to look. There are two kinds:
 - **Black-box:** probes the service from outside, the way a user would, and tells you what is broken now.

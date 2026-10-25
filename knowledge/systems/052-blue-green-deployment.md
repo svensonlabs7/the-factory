@@ -2,6 +2,8 @@
 
 Track: E. Delivery and change · Status: proven · Updated: 2026-10-18
 
+Triggers: files `\.plist$` · lines `_recover\(|lifespan|on_event|launchctl|EADDRINUSE|--port`
+
 ## What it is
 Blue-green deployment runs two production environments. Blue is live; green is idle. The new version is deployed to green and tested there while blue serves. A router or DNS switch then sends all traffic to green. Rolling back is switching the router back to blue, which is still running the old version. After the release settles, the idle side becomes the staging area for the next one.
 

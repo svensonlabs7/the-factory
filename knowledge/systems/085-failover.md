@@ -2,6 +2,8 @@
 
 Track: L. Operations · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)failover|\bpromot(e|ion)\b|\bstandby\b|virtual.?ip` · tripwire
+
 ## What it is
 Failover is the automatic switch from a failed primary to a redundant standby so service continues with minimal interruption. A health check watches the primary; when it fails, a standby is **promoted** to take over, usually with traffic redirected by DNS, a load balancer, or a virtual IP (003-load-balancing.md, 097-dns.md). Failover handles the loss of a *component* while the rest of the environment stands — distinct from disaster recovery, which rebuilds a whole lost environment (083-disaster-recovery.md). The defining difficulty is that a health check cannot tell "the primary is **dead**" from "I can't **reach** the primary" (a network partition — 095-network-partitions.md). Promoting a standby on unreachability alone, when the old primary is actually alive, produces **split-brain**: two primaries accept conflicting writes that diverge (proof). The guard is **fencing** — a lease the old primary must hold, STONITH ("shoot the other node in the head"), or a quorum/witness — so a standby may promote only once the old primary provably can no longer act (033-leader-election.md).
 

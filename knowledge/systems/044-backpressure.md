@@ -2,6 +2,8 @@
 
 Track: A. Resilience of calls · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `Queue\(|deque\(|ThreadPoolExecutor|max_workers|\.submit\(|MAX_PENDING|maxsize|status_code=429`
+
 ## What it is
 Backpressure is how a slow consumer tells a fast producer to slow down. When work arrives faster than it can be done, something has to give. The producer is blocked or refused (backpressure), the excess is dropped (load shedding), or an unbounded queue grows until memory, disk or latency runs out. A queue does not fix overload: it absorbs short bursts, and under sustained overload it only delays the failure and makes it bigger, because every queued item waits behind everything ahead of it. Operating systems apply backpressure all the time: a full pipe or socket buffer blocks the writer until the reader catches up.
 

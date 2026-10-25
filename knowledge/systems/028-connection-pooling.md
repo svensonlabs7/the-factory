@@ -2,6 +2,8 @@
 
 Track: G. Data · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)httpx\.client|requests\.session|connectionpool|pool_size|max_connections|keep.?alive|create_connection`
+
 ## What it is
 Opening a connection is expensive: a TCP handshake, a TLS handshake, then authentication and, for a database, a server process or session. A connection pool opens a small set of connections once and lends them to requests, which return them when done. Requests skip the setup cost, and the server sees a bounded number of connections instead of one per request.
 

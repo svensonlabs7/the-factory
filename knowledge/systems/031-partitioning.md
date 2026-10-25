@@ -2,6 +2,8 @@
 
 Track: G. Data · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)\.jsonl|\brotat|retention|rejection_log_max|truncate|\bprune`
+
 ## What it is
 Partitioning splits one large table into smaller pieces by a key, within one database: a time range (one partition per month), a list of values (per region), or a hash. The database, or the application, routes each row to its partition.
 

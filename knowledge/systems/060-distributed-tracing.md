@@ -2,6 +2,8 @@
 
 Track: C. Observability · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)\btrac(e|ing)\b|span_?id|correlation|_log_action\(`
+
 ## What it is
 A trace follows one request or job through every component it touches. Each unit of work is a span, with a name, a start and end time, a parent span, and attributes. All spans of one operation share a trace ID. The ID is passed between components (context propagation) so the spans can be joined into a tree that shows where the time went and where it failed.
 

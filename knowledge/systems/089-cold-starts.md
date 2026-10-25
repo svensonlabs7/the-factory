@@ -2,6 +2,8 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `lifespan|on_event|_recover\(|SERVER_IMAGE|(?i:scale.?to.?zero|min_?instances|initialdelayseconds)`
+
 ## What it is
 A cold start is the extra time a request pays when no warm instance is ready: provisioning the environment, loading code and dependencies, and running initialization before the first request is handled. AWS Lambda's documentation describes the phases: an `Init` phase that starts extensions, bootstraps the runtime and runs the function's static code, limited to 10 seconds. Warm invocations then reuse the environment and skip all of it. It notes cold starts "typically occur in under 1% of invocations" and range "from under 100 ms to over 1 second". The largest contributor is usually initialization code: imported libraries, package size, and connections set up at start.
 

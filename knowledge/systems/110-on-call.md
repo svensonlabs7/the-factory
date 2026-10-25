@@ -2,6 +2,8 @@
 
 Track: L. Operations · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)\balert|\bpager|notif(y|ication)|open_incidents|escalat`
+
 ## What it is
 On-call is the arrangement by which someone is responsible, at a given time, for responding to production incidents (109-production-incidents.md) — carrying the pager, acknowledging alerts, and either mitigating or escalating. A healthy on-call rests on a few principles from the SRE practice: **pages must be actionable** (every page needs a human to do something now; if not, it should be a ticket or a dashboard, not a page), **the load must be sustainable** (Google caps on-call at roughly two incidents per shift so each gets real attention, and limits operational load to ~50% of an SRE's time), there must be a clear **escalation path** (if the primary cannot handle or does not respond, it goes to a secondary or the owner), and the responder needs **runbooks and authority** to act. The failure this card proves is **alert fatigue**: when most pages are noise, the responder learns to distrust the pager, and the one real page is answered slowly or missed — the boy-who-cried-wolf effect, plus burnout from the sheer volume.
 

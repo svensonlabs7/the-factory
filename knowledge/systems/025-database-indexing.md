@@ -2,6 +2,8 @@
 
 Track: G. Data · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)create (unique )?index|sqlite3|\bselect\b.+\bwhere\b|order by|\.execute\(`
+
 ## What it is
 An index is a sorted copy of one or more columns, with pointers back to the rows. It turns a lookup from a full table scan (read every row, O(N)) into a tree search (O(log N)). SQLite's planner docs put it at "about 1 million times faster" for 10 million rows.
 

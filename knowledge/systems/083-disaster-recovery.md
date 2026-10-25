@@ -2,6 +2,8 @@
 
 Track: L. Operations · Status: proven · Updated: 2026-10-19
 
+Triggers: files `^infra/|\.plist$|(^|/)\.gitignore$` · lines `(?i)\.env\b|credentials-file|cert\.pem|launchagents|brew install`
+
 ## What it is
 Disaster recovery (DR) is restoring service after the whole environment is lost — a dead disk, a destroyed host, a region outage, a ransomware event — as opposed to a single component failing (85-failover.md). It is defined by two targets: **RPO** (recovery point objective — how much recent data you may lose, set by backup frequency — 084-backups.md) and **RTO** (recovery time objective — how long recovery may take). AWS's DR whitepaper lays out four strategies that trade cost against those targets:
 - **Backup & restore** — rebuild from backups on demand; cheapest, RTO of hours;

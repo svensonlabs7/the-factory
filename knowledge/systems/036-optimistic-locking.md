@@ -2,6 +2,8 @@
 
 Track: D. Concurrency and correctness · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)\betag\b|if-match|compare.?and.?(set|swap)|--force-with-lease|git push|os\.replace|optimistic`
+
 ## What it is
 Optimistic locking lets everyone read and work without holding a lock, and checks for conflicts only at write time: "save this only if it is still the version I read". The record carries a version number, timestamp or content hash. The write is a compare-and-swap. If someone else changed the record in the meantime, the write is refused, and the writer must re-read, re-apply and try again (or ask a human to merge).
 

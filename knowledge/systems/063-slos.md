@@ -2,6 +2,8 @@
 
 Track: C. Observability · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)\bslo\b|error.?budget`
+
 ## What it is
 A service level objective (SLO) is a target for an SLI over a window, such as "90% of runs ship within 60 minutes, over a rolling 90 days". It turns "is it reliable enough?" into a number both builders and users agreed on. The SRE book's rules:
 - never aim for 100%, because each extra nine costs far more and users rarely notice;

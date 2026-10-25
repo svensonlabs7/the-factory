@@ -2,6 +2,8 @@
 
 Track: G. Data · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)\breplica|replicat|\bmirror\b`
+
 ## What it is
 Replication keeps copies of the same data on several nodes, for durability (survive losing one), availability (fail over), and read scaling (serve reads from copies). The common shape is leader/follower: the leader accepts writes and ships its change log, and followers apply it.
 

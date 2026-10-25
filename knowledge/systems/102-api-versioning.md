@@ -2,6 +2,8 @@
 
 Track: E. Delivery and change · Status: proven · Updated: 2026-10-19
 
+Triggers: files `^factory/intake/command\.html$` · lines `@app\.(get|post|put|patch|delete)|/command/data|JSONResponse|response_model`
+
 ## What it is
 API versioning lets an API change without breaking the clients already using it. The first rule is to avoid needing a new version.
 

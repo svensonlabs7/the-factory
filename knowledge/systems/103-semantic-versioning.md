@@ -2,6 +2,8 @@
 
 Track: E. Delivery and change · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `==\d|>=\d|~=\d|@v\d|--with \w|requires-python|(?i:returncode|in (result\.)?(stdout|stderr))`
+
 ## What it is
 Semantic Versioning (SemVer) gives a version number, `MAJOR.MINOR.PATCH`, a promise about compatibility:
 - **MAJOR** goes up for incompatible API changes.

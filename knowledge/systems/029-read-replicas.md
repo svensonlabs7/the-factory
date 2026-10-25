@@ -2,6 +2,8 @@
 
 Track: G. Data · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)\breplica|\bfollower\b`
+
 ## What it is
 A read replica is a read-only copy of a database that serves queries, so read traffic scales beyond one server's capacity. AWS RDS describes routing queries to replicas to "reduce the load on your primary", plus reporting workloads and serving reads while the primary is busy. Writes still go to the primary, and RDS copies them to replicas asynchronously. Every replica is therefore somewhat behind (RDS reports this as `ReplicaLag`), and each replica is behind by a different amount.
 

@@ -2,6 +2,8 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)autoscal|horizontalpodautoscaler|min_?instances|max_?instances` · tripwire
+
 ## What it is
 Autoscaling changes capacity automatically as load changes: adding instances when a metric rises above target, removing them when it falls. Kubernetes' Horizontal Pod Autoscaler is the reference design. It computes `desiredReplicas = ⌈currentReplicas × currentMetricValue / desiredMetricValue⌉` and "skips any scaling action if the ratio is sufficiently close to 1.0 (within a configurable tolerance, 0.1 by default)". It damps the loop in several ways:
 - a downscale stabilization window, "which defaults to 5 minutes", so that "scaledowns will occur gradually, smoothing out the impact of rapidly fluctuating metric values";

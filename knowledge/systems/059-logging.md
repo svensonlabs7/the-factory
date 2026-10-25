@@ -2,6 +2,8 @@
 
 Track: C. Observability · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `\blog\.(debug|info|warning|error|exception)|logging\.|_log_action|_log_rejection|LOG_DIR|_append_jsonl`
+
 ## What it is
 Logs are the time-ordered record of discrete events: a request arrived, a run started, a check failed, a login was refused. Good logs answer five questions for each event (OWASP's when, where, who, what, result):
 - a timestamp in an international format;

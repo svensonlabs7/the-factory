@@ -2,6 +2,8 @@
 
 Track: C. Observability · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)error.?budget|\bslo\b|burn.?rate`
+
 ## What it is
 An error budget is the amount of unreliability an SLO allows: 100% minus the target, over the SLO's window. With a 99.9% monthly SLO, 0.1% of the month's requests may fail. The budget turns reliability into a shared, spendable resource. While budget remains, teams ship features, experiments and risky changes. When it is spent, an agreed error budget policy takes over.
 

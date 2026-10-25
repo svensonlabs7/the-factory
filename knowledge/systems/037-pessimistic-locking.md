@@ -2,6 +2,8 @@
 
 Track: D. Concurrency and correctness · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)\block\(|\bflock\b|for update|fcntl|eaddrinuse|\.acquire\(`
+
 ## What it is
 Pessimistic locking prevents conflicts by taking an exclusive lock before touching shared data, so nobody else can change it until you release it. Examples: a mutex, `SELECT ... FOR UPDATE`, a database write lock, a file lock, a single-worker queue, or a port only one process can bind. It never wastes finished work on a conflict, because there is no conflict. The cost is waiting: every other actor waits for as long as the lock is held. So the rules are:
 - hold locks for as short a time as possible;

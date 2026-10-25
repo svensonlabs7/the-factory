@@ -2,6 +2,8 @@
 
 Track: A. Resilience of calls · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `MAX_PENDING|MAX_RUNS_PER_DAY|status_code=429|REJECTION_BURST|@app\.(post|put|patch)|(?i:rate.?limit)`
+
 ## What it is
 Rate limiting caps how much one caller may ask of a service: requests per second, requests in flight, runs per day. Requests over the cap are refused, usually with HTTP 429 and ideally a `Retry-After`, so one caller cannot starve the others or drive up costs. The common algorithms:
 - **Fixed window:** count per clock window. Simple, but it allows double the limit across a window edge.

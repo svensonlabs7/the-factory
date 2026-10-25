@@ -2,6 +2,8 @@
 
 Track: G. Data · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `\.glob\(|_runs\(\)|_pr\(|gh api|gh pr view`
+
 ## What it is
 The N+1 problem is one query for a list followed by one more query per item, to fetch each item's related data. It usually hides inside lazy loading: SQLAlchemy says "for any N objects loaded, accessing their lazy-loaded attributes means there will be N+1 SELECT statements emitted." Django's docs give the same diagnosis: fetching parts of one set of data separately "is less efficient than retrieving it all in one query", especially "in a loop."
 

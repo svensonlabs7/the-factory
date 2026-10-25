@@ -2,6 +2,8 @@
 
 Track: F. Async and messaging · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)websocket|\bwss?://|@app\.websocket`
+
 ## What it is
 WebSocket (RFC 6455) upgrades an HTTP request into a persistent, two-way, message-framed TCP connection. After the opening handshake, client and server can each send messages at any time. Client frames are masked so intermediaries cannot be tricked into treating them as HTTP. Ping and Pong frames "serve either as a keepalive or as a means to verify that the remote endpoint is still responsive." Close frames end the session with a code.
 

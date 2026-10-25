@@ -2,6 +2,8 @@
 
 Track: F. Async and messaging · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)text/event-stream|EventSource|StreamingResponse|server.?sent`
+
 ## What it is
 Server-Sent Events (SSE) stream events from server to client over one long-lived HTTP response with `Content-Type: text/event-stream`. Browsers consume it with `EventSource`. The format is plain text:
 - `data:` lines carry the payload;

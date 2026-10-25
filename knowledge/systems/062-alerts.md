@@ -2,6 +2,8 @@
 
 Track: C. Observability · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)\balert|open_incidents|rejection_burst|\bnotif(y|ication)|\bpager`
+
 ## What it is
 An alert is monitoring that interrupts a person. Every alert should be urgent, important, actionable and real. Page on symptoms users feel (requests failing, work not completing, the service unreachable), not on causes such as high CPU, which belong on dashboards or tickets. The SRE workbook scores an alert rule four ways:
 - **Precision:** how many pages are real.

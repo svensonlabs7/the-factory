@@ -2,6 +2,8 @@
 
 Track: D. Concurrency and correctness · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `\bopen\(|socket\.|Popen|ThreadPoolExecutor|tempfile|mkdtemp|\bgc\.`
+
 ## What it is
 Garbage collection frees memory the program can no longer reach. CPython does it in two layers. Reference counting is primary: every object counts the references to it and is freed the moment the count hits zero, so most memory is released immediately and predictably. Reference counting cannot free a cycle (A refers to B, B refers to A), so a second layer, the cyclic collector, periodically walks container objects (lists, dicts, class instances) and frees groups that are reachable only from each other.
 

@@ -2,6 +2,8 @@
 
 Track: D. Concurrency and correctness · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `threading|ThreadPool|\bglobal |async def|nonlocal|^[A-Za-z_]\w*\s*(:[^=]+)?=\s*(\{\}|\[\]|deque\(|defaultdict\()`
+
 ## What it is
 Code is thread-safe when it behaves correctly while several threads run it, or touch its data, at the same time. In CPython, the global interpreter lock (GIL) makes single operations on built-in types atomic: `list.append`, `d[k] = v`, `deque.append`. Compound operations are not: `i = i + 1`, `d[k] = d[k] + 1`, and check-then-act. A thread can be switched out between the read and the write.
 

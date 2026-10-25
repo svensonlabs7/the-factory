@@ -2,6 +2,8 @@
 
 Track: A. Resilience of calls · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)dead.?letter|\bdlq\b|OUTCOMES|_finish\(|\"(failed|blocked|error|timeout)\"`
+
 ## What it is
 A dead letter queue (DLQ) is where work goes after it has failed too many times to keep retrying. Without one, a poison message, meaning one that always fails, is retried forever. It wastes capacity and, in an ordered queue, blocks everything behind it. With one, the message is moved aside after a set number of attempts (`maxReceiveCount` in SQS), the rest of the queue flows, someone is alerted, and after the bug is fixed the dead messages are redriven, that is, sent back through the normal path. The idea applies to any system that retries work, not just message brokers: a job table with a `failed` status and its reason is a DLQ.
 

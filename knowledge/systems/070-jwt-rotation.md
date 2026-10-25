@@ -2,6 +2,8 @@
 
 Track: B. Security · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)\bjwt\b|\bjwks|cf-access-jwt|\bjose\b|pyjwt`
+
 ## What it is
 A JSON Web Token (JWT) is a signed set of claims: who (`sub`), for whom (`aud`), from whom (`iss`), until when (`exp`). Anyone holding the verification key can check it without calling the issuer. Validation must be strict:
 - pin the accepted algorithms, never trusting the token's own `alg` header, since `none` and RS256-to-HS256 confusion are classic forgeries;

@@ -2,6 +2,8 @@
 
 Track: C. Observability · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)\bmetric|_capacity\(|\bcounter\b|histogram|elapsed|\busage\b|\bquota`
+
 ## What it is
 Metrics are numbers measured over time: counts, rates, durations and levels. They are cheap to store, easy to graph and the basis of alerts. Google's SRE book names four golden signals for any service:
 - **Latency:** how long work takes, including how long failures take.

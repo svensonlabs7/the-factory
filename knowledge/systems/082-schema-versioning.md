@@ -2,6 +2,8 @@
 
 Track: E. Delivery and change · Status: proven · Updated: 2026-10-19
 
+Triggers: files `^HEARTBEAT\.template\.md$` · lines `\(BaseModel\)|\.meta\.json|json\.(dump|load)|_load\(|_update\(|/command/data`
+
 ## What it is
 Schema versioning is how the shape of data changes over time without breaking the code that writes or reads it: stored records, messages, API payloads, files. Two directions matter:
 - **Backward compatibility:** new readers can read old data.

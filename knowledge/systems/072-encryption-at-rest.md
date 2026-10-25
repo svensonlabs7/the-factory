@@ -2,6 +2,8 @@
 
 Track: B. Security · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)encrypt|decrypt|\bkms\b|fernet|\baes\b|keychain|cert\.pem`
+
 ## What it is
 Encryption at rest means stored data (disks, volumes, databases, backups, files) is unreadable without a key. Its threat model is narrow and important: it protects against someone getting the storage while the system is not unlocked, such as a stolen laptop, a removed drive, a discarded disk or a copied backup. It does **not** protect against anything running on the unlocked system. The app, the logged-in user and any malware in that session read plaintext as normal, and access control has to cover that.
 

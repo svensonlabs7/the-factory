@@ -2,6 +2,8 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)latency|perf_counter|time\.monotonic|\belapsed|refresh_ms`
+
 ## What it is
 Latency is how long one operation takes, from request to response. It is one of the SRE book's four golden signals. The operations a system performs span many orders of magnitude. Norvig's well-known table runs from a main-memory fetch (100 ns) and reading 1 MB from memory (250 µs), through a disk seek (8 ms), to a packet from the US to Europe and back (150 ms). Where a request's time goes is decided mostly by how many of the slow steps it takes, not by how fast the fast ones are.
 

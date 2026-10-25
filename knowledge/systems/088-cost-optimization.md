@@ -2,6 +2,8 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
+Triggers: files `^\.github/workflows/qa-gate\.yml$|^factory/qa/` · lines `claude -p|--model\b|MAX_RETRIES|AGENT_TIMEOUT|MAX_RUNS_PER_DAY|(?i:\b(opus|sonnet|haiku)\b)`
+
 ## What it is
 Cost optimization is delivering the same output for less: less money, or less of whatever resource is scarce. The AWS Well-Architected cost pillar's design principles name the method:
 - **Measure overall efficiency:** "measure the business output of the workload and the costs associated with delivery".

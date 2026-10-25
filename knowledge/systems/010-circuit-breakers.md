@@ -2,6 +2,8 @@
 
 Track: A. Resilience of calls · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)circuit.?break|\bbreaker\b|half.?open|consecutive.?failure`
+
 ## What it is
 A circuit breaker sits in front of calls to a dependency and counts failures. While the dependency works, the breaker is closed and calls pass through. After a threshold of failures it opens: calls fail at once without reaching the dependency, so callers stop waiting on timeouts and the dependency gets room to recover. After a set time it goes half-open and lets a trial call through: success closes it, failure opens it again. It answers a different question from retries. Retries ask whether this call might succeed if repeated. A breaker asks whether calls are worth making at all right now.
 

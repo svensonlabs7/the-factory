@@ -2,6 +2,8 @@
 
 Track: J. Networking · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `BaseModel|Field\(|pattern=|HTTPException|@app\.(get|post|put|patch|delete)|Depends\(`
+
 ## What it is
 An API gateway is the single entry point in front of one or more backend APIs that handles the concerns every request needs but no backend should re-implement: authentication and authorization, request validation, rate limiting and quotas, routing to the right service, and often TLS termination, response shaping, logging and metrics. It overlaps a reverse proxy (004-reverse-proxies.md) and a load balancer (003-load-balancing.md) — a gateway is a reverse proxy specialised for APIs, with policy enforcement moved to the edge. The point is *one enforcement boundary*: a rule added at the gateway covers every route behind it, and a backend cannot be reached without passing it, so backends stay thin and trust what arrives. In microservices it also hides topology (one public URL, many services) and gives clients a stable contract while services change behind it.
 

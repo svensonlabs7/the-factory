@@ -2,6 +2,8 @@
 
 Track: D. Concurrency and correctness · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `Lock\(|\.acquire\(|\.submit\(|\.result\(|\.join\(\)|\.wait\(`
+
 ## What it is
 A deadlock is a set of actors each waiting for something another one holds, so none can ever proceed. It needs four conditions at once (Coffman's conditions):
 1. exclusive resources;

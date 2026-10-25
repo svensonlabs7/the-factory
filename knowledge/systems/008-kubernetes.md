@@ -2,6 +2,8 @@
 
 Track: K. Infrastructure · Status: proven · Updated: 2026-10-19
 
+Triggers: files `(^|/)(k8s|kubernetes|manifests)/` · lines `^\s*kind:\s*(Deployment|StatefulSet|DaemonSet|Pod|Ingress)\b|apiVersion:\s*apps/|kubectl ` · tripwire
+
 ## What it is
 Kubernetes (k8s) is a container orchestrator: you declare the desired state of your workloads as objects (a Deployment wanting 3 replicas, a Service exposing them, a ConfigMap, resource limits) and k8s's **controllers** run continuous **reconciliation loops** that observe actual state and act to close the gap. That control model is the whole point. A **Pod** is the smallest unit (one or more containers sharing a network namespace); a **Deployment** manages a replica set of pods and does rolling updates (054-rolling-deployments.md); a **Service** gives a stable virtual address and load-balances across pods (003-load-balancing.md); the **scheduler** places pods on nodes by their resource requests; **probes** decide readiness and liveness (057-liveness-readiness-probes.md); **HPA** autoscales replicas (045-autoscaling.md). Because reconciliation is continuous, k8s self-heals: kill a pod and the Deployment recreates it; change the replica count and it converges (proof). The price is a large, complex distributed system (etcd, API server, controllers, networking) that is itself infrastructure to run.
 

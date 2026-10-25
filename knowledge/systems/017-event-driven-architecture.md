@@ -2,6 +2,8 @@
 
 Track: F. Async and messaging · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `_log_action|actions\.jsonl|workflow_run|repository_dispatch|\.emit\(`
+
 ## What it is
 In an event-driven architecture, components communicate by emitting events ("this happened") rather than calling each other ("do this"). Fowler separates four patterns that share the label:
 - **Event notification:** a component announces a change and others react. Coupling is low, but "the overall logical flow" is no longer visible in any one piece of code.

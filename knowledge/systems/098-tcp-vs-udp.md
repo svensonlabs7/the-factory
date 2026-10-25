@@ -2,6 +2,8 @@
 
 Track: J. Networking · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `socket\.socket|SOCK_DGRAM|SOCK_STREAM|recvfrom|sendto|\.recv\(`
+
 ## What it is
 TCP and UDP are the two transport protocols over IP. **TCP** gives "a reliable, in-order, byte-stream service" (RFC 9293): it sets up a connection, numbers every byte, retransmits what is lost, drops duplicates, and reorders what arrives out of order, so the application reads exactly the bytes that were sent, in order. The cost is that boundaries disappear — "TCP guarantees no correlation between the boundaries of TCP segments sent and received", so three `send()` calls can arrive as one `recv()` or be split across several. **UDP** is a thin wrapper over IP: one datagram in, one datagram out, with "delivery and duplicate protection … not guaranteed" (RFC 768) and no ordering and no connection. A UDP datagram keeps its boundary, but it may be lost, duplicated or reordered, and nothing recovers it. Applications that need reliability over UDP must build it themselves (as QUIC and DNS-over-UDP-with-retry do).
 

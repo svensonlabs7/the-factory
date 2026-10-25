@@ -2,6 +2,8 @@
 
 Track: L. Operations · Status: proven · Updated: 2026-10-19
 
+Triggers: files `(^|/)\.gitignore$|^infra/cloudflare-tunnel/` · lines `(?i)\bbackups?\b|\brestore\b|log_dir|credentials-file`
+
 ## What it is
 A backup is a separate, recoverable copy of data that lets you restore it after loss — hardware failure, deletion, corruption, ransomware, a bad migration. The widely used discipline is **3-2-1**: at least three copies, on two different media, with one off-site. Two parameters frame how good a backup needs to be: **RPO** (recovery point objective — how much recent data you can afford to lose, which sets backup frequency) and **RTO** (recovery time objective — how fast you must be able to restore, which sets the backup *mechanism*). The rule that catches people is that a backup is worthless until a **restore** has been proven: a job that reports success can still produce an archive that will not restore — truncated, corrupted, missing a file, or encrypted with a lost key — and only an actual test-restore compared against the source reveals it (proof). Backups also need the same care as the data: off-site copies and retention protect against site loss and against a corruption that is itself backed up before anyone notices.
 

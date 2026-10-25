@@ -2,6 +2,8 @@
 
 Track: J. Networking · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)\b(consul|etcd|zookeeper|eureka)\b|service.?registry` · tripwire
+
 ## What it is
 Service discovery lets a caller find a live instance of a service by *name* instead of a hard-coded address, so instances can come and go (autoscaling, restarts, failover) without every caller being reconfigured. A **registry** holds the mapping from service name to the set of current instance addresses. Instances **register** when they start and are **deregistered** when they stop or fail; callers **resolve** the name to get the current set and pick one (often via a load balancer — 003-load-balancing.md). Two common shapes:
 - **DNS-based:** instances are published as DNS records; callers just resolve the name. Kubernetes gives every Service a cluster DNS name this way, and Docker's embedded resolver maps container names to IPs on a user-defined network.

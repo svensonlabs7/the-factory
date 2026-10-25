@@ -2,6 +2,8 @@
 
 Track: L. Operations · Status: proven · Updated: 2026-10-19
 
+Triggers: files `^factory/build/egress\.sh$` · lines `(?i)chaos|fault.?inject|sigkill|os\.kill|docker (stop|kill)`
+
 ## What it is
 Chaos engineering is the discipline of deliberately injecting real-world faults into a system to verify that the resilience you *believe* you have is actually there — before a real failure proves it is not. The method (principlesofchaos.org) is scientific: state a **steady-state hypothesis** (a measurable "healthy" metric — a success rate, a latency target), **inject a fault** that mimics a real event (a dependency outage, a slow network, a killed instance — Netflix's Chaos Monkey terminates instances; AWS FIS injects faults), and check whether the hypothesis still holds. If it does, the resilience is real; if it breaks, you have found a weakness cheaply, in a controlled window, instead of during an incident (proof). The non-negotiable safety rule is **minimise the blast radius**: run on a small slice of traffic, during business hours with people watching, with an abort switch, so the experiment itself cannot become the outage. It verifies, it does not create, resilience — the fallbacks, retries and failover (010, 012, 085) must already exist; chaos checks they work.
 

@@ -2,6 +2,8 @@
 
 Track: C. Observability · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `(?i)\bsli\b|success.?rate`
+
 ## What it is
 A service level indicator (SLI) is a carefully defined measure of how well a service is doing, from the point of view of the people who use it. The SRE workbook's form is one ratio: good events ÷ valid events, between 0% and 100%. A **specification** says what users care about ("feature requests that end up shipped"). An **implementation** says how it is measured, and where ("PRs merged, counted from GitHub"). The menu differs by kind of system:
 - **Request-driven:** availability, latency, quality.

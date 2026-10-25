@@ -2,6 +2,8 @@
 
 Track: E. Delivery and change · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)\bcanary|progressive.?rollout|traffic.?(split|percent)`
+
 ## What it is
 A canary release sends a new version to a small part of production first, such as a few percent of servers or users, and compares it with the rest (the control) before rolling it out further. If the canary's error rate or latency is worse than the control's, the rollout stops and the canary is rolled back. Only that small slice ever saw the bad version.
 

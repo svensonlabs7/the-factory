@@ -2,6 +2,8 @@
 
 Track: H. Distributed systems · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)\bstale|eventual|pr_cache_ttl|stale_s|cache`
+
 ## What it is
 Eventual consistency promises only that if writes stop, all replicas will converge on the same value. Until then, a read may return an older value. Vogels calls the gap the inconsistency window, and frames it with N replicas, W of them written before a write returns, and R of them read:
 - with W + R > N, every read overlaps the latest write;

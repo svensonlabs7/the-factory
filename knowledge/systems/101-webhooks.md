@@ -2,6 +2,8 @@
 
 Track: A. Resilience of calls · Status: proven · Updated: 2026-10-18
 
+Triggers: lines `X-Hub-Signature|_verify_signature|X-Factory-Timestamp|(?i:webhook|\bhmac\b)`
+
 ## What it is
 A webhook is an HTTP request one system sends another when something happens, so the receiver does not have to poll. The receiver's URL is public, so it must prove each request is genuine, fresh and new:
 - **Genuine:** an HMAC signature over the raw body with a shared secret, compared in constant time.

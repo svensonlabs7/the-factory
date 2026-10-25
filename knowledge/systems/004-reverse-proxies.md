@@ -2,6 +2,8 @@
 
 Track: J. Networking · Status: proven · Updated: 2026-10-19
 
+Triggers: lines `(?i)x-forwarded|x-real-ip|cf-connecting-ip|request\.client|proxy_pass|service: http`
+
 ## What it is
 A reverse proxy sits in front of one or more backend servers and takes client requests on their behalf: the client connects to the proxy, the proxy forwards to a backend, and relays the response back. (A *forward* proxy is the mirror image — it sits in front of clients and reaches out to arbitrary servers; the sandbox's `tinyproxy` is one.) A reverse proxy is the single front door, and that position lets it do work the backends should not each reimplement: TLS termination, routing by host/path, load balancing (003-load-balancing.md), caching (048-cdn.md), compression, rate limiting (001-rate-limiting.md), auth, and hiding the backend topology. Because it terminates the client's TCP connection, the backend's socket peer is the *proxy*, not the client — so the proxy must pass the real client identity on in headers (`X-Forwarded-For`, `X-Forwarded-Proto`, `Host`, or a vendor header like Cloudflare's `CF-Connecting-IP`), and the backend must trust those only from a known proxy.
 

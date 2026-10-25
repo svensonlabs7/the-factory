@@ -2,6 +2,8 @@
 
 Track: B. Security · Status: proven · Updated: 2026-10-18
 
+Triggers: files `^infra/cloudflare-tunnel/|^factory/build/egress` · lines `(?i)\bhttp://|\bws://|connectport|plaintext`
+
 ## What it is
 Encryption in transit means data is encrypted on every network hop where someone other than you could read or change it: Wi-Fi, ISPs, cloud networks, shared VLANs, other tenants. In practice that is TLS for HTTP, git and APIs, QUIC (TLS 1.3 built in) for tunnels, and SSH. Encryption hides content, not metadata. An on-path observer still sees who talks to whom, when and how much, and with TLS also the server name (SNI), unless Encrypted Client Hello is in use. A hop may stay plaintext only where nobody else can observe it: loopback on one machine, or inside an already-encrypted tunnel.
 

@@ -2,6 +2,8 @@
 
 Track: K. Infrastructure · Status: proven · Updated: 2026-10-19
 
+Triggers: files `(^|/)Chart\.ya?ml$|(^|/)values\.ya?ml$` · lines `(?i)\bhelm\b` · tripwire
+
 ## What it is
 Helm is the package manager for Kubernetes (008-kubernetes.md). A **chart** bundles a set of templated manifests plus a `values.yaml` of defaults; you install it with your own value overrides, and Helm renders the templates into concrete manifests and applies them as a tracked **release**. Because a release is versioned, `helm upgrade` moves it forward and `helm rollback` returns it to a previous revision (055-rollbacks.md). Charts are the unit of reuse and distribution for k8s apps: parameterise once (image tag, replica count, resource limits, hostnames) and deploy the same chart to many environments with different values. The templates produce YAML by **string substitution** (Go templates), and since YAML is whitespace-significant, the characteristic Helm hazard is a templating bug — usually indentation — that renders structurally wrong or invalid YAML (proof). `helm template` and `helm lint` render and parse locally, catching that before `helm install` touches a cluster.
 
