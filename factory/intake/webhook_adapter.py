@@ -347,6 +347,8 @@ def _push(branch: str, workdir: Path, since: str) -> str:
     # A fix that deletes the work leaves nothing for the gate to object to, so an empty PR is not a pass.
     if not _run("git", "diff", "--name-only", f"origin/main...{head}"):
         raise RuntimeError("the branch has no net changes against main")
+    # The repo is public: a secret in the agent's commits would be published on push, so a finding ends the run here.
+    _run("gitleaks", "git", "--no-banner", "--redact", f"--log-opts={since}..{head}")
     _run("git", "push", "origin", f"{head}:refs/heads/{branch}")
     return head
 
