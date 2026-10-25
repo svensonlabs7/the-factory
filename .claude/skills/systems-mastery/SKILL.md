@@ -25,7 +25,7 @@ No `todo` rows left: write `knowledge/systems/SYNTHESIS.md` (the 20 checklist it
 
 ## 3. Prove
 
-Write the smallest experiment that shows the failure and then the fix. Run it in your scratchpad, never in the repo. Examples: a retry loop with no jitter making a thundering herd, two threads racing a check-then-write, an N+1 query counted against SQLite.
+Write the smallest experiment that shows the failure and then the fix. Run it in your scratchpad, never against the repo, then save the script as `knowledge/systems/proofs/<NNN>_<slug>.py` so the proof outlives the session. Examples: a retry loop with no jitter making a thundering herd, two threads racing a check-then-write, an N+1 query counted against SQLite.
 
 - It ran and showed both the failure and the fix: status `proven`. Record the command and the output that matters.
 - It cannot run on this machine (CDN, multi-region, WAF): write the decision rule instead and set status `learned`. Never fake a result.
@@ -44,6 +44,8 @@ Write `knowledge/systems/<NNN>-<slug>.md`. Only the file name is zero-padded to 
 # <NN>. <Topic>
 
 Track: <letter. name> · Status: <learned|proven> · Updated: <YYYY-MM-DD>
+
+Triggers: files `<regex>` · lines `<regex>`
 
 ## What it is
 <One paragraph a junior engineer understands.>
@@ -72,11 +74,13 @@ Track: <letter. name> · Status: <learned|proven> · Updated: <YYYY-MM-DD>
 
 The review checklist is the part the factory will enforce. Write three to six items. Every item names its trigger and an exact block condition. "Consider X" is not an item.
 
+The `Triggers` line is how `route.py` decides which diffs see this card, so make it specific. `files` fires when a changed path matches; `lines` fires when a changed line of code (not tests, prose or `knowledge/`) matches. Give at least one. When the card's verdict is that this load does not need the technique, append ` · tripwire`: the card then shows only its "is it justified" item, and only when a diff introduces the technique. Check it with `python3 knowledge/systems/route.py <range>` on a real diff that should and one that should not match.
+
 Then update the topic's ledger row: set the status, and link the card in the `Card` column as `[<file>](<file>)`.
 
 ## 6. Review iteration (every tenth card)
 
-Re-read every card written so far. Fix contradictions between cards and add missing `Related` links. Re-run one earlier experiment to check it still holds. Tighten any checklist item that would block a change the factory's real load does not need. Append the date, the count, and what changed to `knowledge/systems/REVIEWS.md`.
+Re-read every card written so far. Fix contradictions between cards and add missing `Related` links. Re-run one earlier experiment to check it still holds. Tighten any checklist item that would block a change the factory's real load does not need, and any `Triggers` regex that fired on recent PRs with nothing to check (run `route.py` over them). Append the date, the count, and what changed to `knowledge/systems/REVIEWS.md`.
 
 ## 7. Report
 

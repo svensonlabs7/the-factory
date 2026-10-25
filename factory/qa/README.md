@@ -10,7 +10,8 @@ The gate runs `main`'s copy of the workflow and the skill, so a PR cannot edit t
 Fork PRs fail the check.
 
 1. **Thermo-Nuclear review**: `.claude/skills/thermo-nuclear-code-quality-review/SKILL.md`.
-   Strict maintainability review. Its approval bar decides pass or fail.
+   Strict maintainability review. Its approval bar decides pass or fail. Its prompt also carries the systems
+   checks `knowledge/systems/route.py` routes to the PR's diff, built from the base branch's cards.
    The skill has `disable-model-invocation: true`, so the gate must invoke it
    explicitly (`/thermo-nuclear-code-quality-review`).
 2. **Ponytail review**: `.claude/skills/ponytail-review/SKILL.md`, vendored from `vendor/ponytail/`.
@@ -32,6 +33,6 @@ Fork PRs fail the check.
 - [x] Output: pass/fail status check, review in the job summary
 - [ ] Output: PR review comments
 - [x] Enforcement: `thermo-nuclear`, `ponytail-review`, `ux-laws` and `tests` are required checks on `main` (branch protection)
-- [x] Deterministic lanes (`.github/workflows/static.yml`): `lint` (ruff errors only, mypy on the adapter) and `secrets` (gitleaks over the whole history). No Claude quota.
+- [x] Deterministic lanes (`.github/workflows/static.yml`): `lint` (ruff errors only, mypy on the adapter, and `factory/qa/rules.py`: checks compiled from the systems cards) and `secrets` (gitleaks over the whole history). No Claude quota.
 - [x] Failure loop: the adapter sends findings to a fresh builder, up to 2 fix rounds, then marks the run blocked in `HEARTBEAT.md` for a human
 - [ ] Order relative to CI
