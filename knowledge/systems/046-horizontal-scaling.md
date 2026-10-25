@@ -2,7 +2,7 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
-Triggers: lines `--workers|max_workers=(?!1\b)|(?i:replicas:|instance_count)` · tripwire
+Triggers: lines `--workers|gunicorn|RUN_EXECUTOR = .*max_workers=(?!1\b)|(?i:replicas:|instance_count|scale.?out)` · tripwire
 
 ## What it is
 Horizontal scaling (scaling out) adds more instances of a service behind a load balancer, instead of a bigger machine. It removes the single-machine ceiling and the single point of failure, but only for services whose instances do not depend on local state. The Twelve-Factor App states the requirement:

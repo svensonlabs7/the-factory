@@ -36,7 +36,7 @@ It matters wherever a server, job or agent makes network requests whose destinat
 - `factory/build/egress.sh:23-30`: a `DOCKER-USER` firewall chain lets only the proxy leave the subnet, and every run proves it first. Right: the proof blocked the internet and the Mac's services (`192.168.5.2:5000`, `:53`).
 - `factory/intake/com.svenson.factory-intake.plist:21`: the adapter binds `127.0.0.1` only. Right.
 - The adapter never fetches a user-chosen URL. Its only outbound calls are `git` and `gh` against the configured origin, and PR URLs come from `gh`'s own output, so no URL validation is needed there.
-- Gap: `DOCKER-USER` filters only forwarded traffic, so a sandbox container can open the Colima VM's own `sshd` (`172.30.0.1:22`) (see GAPS.md).
+- Fixed in #58: `DOCKER-USER` filters only forwarded traffic, so a sandbox container could open the Colima VM's own `sshd` (`172.30.0.1:22`). A `FACTORY-INPUT` chain now drops new connections from the subnet to the VM (`factory/build/egress.sh:41-44`), and `egress.sh` proves the port is closed before every run. The proof below shows the state before the fix.
 - Known and documented in `factory/build/README.md`: DNS lookups still go through Docker's resolver, a low-bandwidth way out.
 
 ## Proof

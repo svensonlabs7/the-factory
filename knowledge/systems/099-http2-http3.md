@@ -2,7 +2,7 @@
 
 Track: J. Networking · Status: proven · Updated: 2026-10-19
 
-Triggers: lines `(?i)\bhttp/?2\b|\bh2c?\b|\bh3\b|http/?3|\bquic\b|alt-svc|hypercorn` · tripwire
+Triggers: lines `(?i)\bhttp/?[23]\b|\bh2c\b|--http2|\bquic\b|alt-svc|hypercorn` · tripwire
 
 ## What it is
 HTTP/1.1 sends one request/response at a time per TCP connection, so a slow response blocks the connection and browsers open ~6 connections per host to get parallelism. **HTTP/2** (RFC 9113) fixes this by multiplexing: many independent *streams* share one TCP connection, each request/response carried as interleaved frames, plus header compression (HPACK) and server push. That removes HTTP/1.1's request-level head-of-line blocking — but all streams still ride one TCP byte stream, so one lost TCP segment stalls every stream behind it until the retransmit arrives (TCP-level HOL blocking). **HTTP/3** (RFC 9114) keeps HTTP/2's stream model but runs it over **QUIC** (RFC 9000), a reliable transport built on UDP with independent per-stream delivery and its own TLS 1.3 and loss recovery. A packet loss on one QUIC stream delays only that stream, not the others, and QUIC folds the transport and TLS handshake together for a faster connection setup. Clients discover HTTP/3 from an `Alt-Svc: h3` advertisement and switch on later visits.

@@ -5,7 +5,7 @@ All 111 topics in [LEDGER.md](LEDGER.md) are proven. This is the distilled resul
 The factory's recurring lesson sits above all of them: **match the fix to one host's real load.** Most scale techniques (load balancing, multi-region, Kubernetes, Terraform, service discovery) are correctly *absent*; the cards mark them so, and the checks below are the ones that actually bite here. The live defects these surfaced are tracked in [GAPS.md](GAPS.md).
 
 ## Safety of the autonomous pipeline
-1. **No secret reaches a commit.** The agent writes code into a public repo; block a change that could let a token, key or credential be committed without a pre-push scan. — [067-secrets-management.md](067-secrets-management.md) *(the one `high` gap: add a pre-push gitleaks scan)*
+1. **No secret reaches a commit.** The agent writes code into a public repo; block a change that could let a token, key or credential be committed without a pre-push scan. — [067-secrets-management.md](067-secrets-management.md) *(the pre-push gitleaks scan landed in #58)*
 2. **Untrusted code holds no standing privilege.** Agent-generated code must hold no credential that can change production; the trusted component does the privileged step. — [068-iam.md](068-iam.md)
 3. **The sandbox cannot reach the internet except through the allowlist.** Block any change that lets the build network egress directly, or that opens an unscoped side channel (including DNS). — [080-ssrf.md](080-ssrf.md), [097-dns.md](097-dns.md)
 4. **Every trigger is validated at the boundary.** A request may not direct work at a base branch or an out-of-range target; validate before acting. — [005-api-gateways.md](005-api-gateways.md)
