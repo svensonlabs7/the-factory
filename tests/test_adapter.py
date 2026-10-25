@@ -5,7 +5,9 @@ import importlib
 import itertools
 import json
 import os
+import random
 import re
+import string
 import subprocess
 import sys
 import threading
@@ -61,7 +63,7 @@ if [ -n "$FAKE_USAGE_LIMIT" ]; then
     fi
 fi
 if [ "${FAKE_COMMIT:-1}" = 1 ]; then
-    echo "change $$" > change.txt
+    echo "change $$ ${FAKE_SECRET:-}" > change.txt
     git add -A
     git commit -q -m fake
 fi
@@ -413,6 +415,18 @@ def test_run_without_commits_is_an_error(adapter, monkeypatch):
     monkeypatch.setenv("FAKE_COMMIT", "0")
     run = wait_done(client, trigger(client).json()["run_id"])
     assert run["status"] == "error" and "no commits" in run["error"]
+
+
+def test_a_secret_the_agent_commits_is_never_pushed(adapter, monkeypatch):
+    _, root, client = adapter
+    # Built at run time, so this file holds no key for the repo's own secret scan to find.
+    key = "sk-ant-api03-" + "".join(random.choices(string.ascii_letters + string.digits, k=93)) + "AA"
+    monkeypatch.setenv("FAKE_SECRET", f"ANTHROPIC_API_KEY={key}")
+    run_id = trigger(client).json()["run_id"]
+    run = wait_done(client, run_id)
+    assert run["status"] == "error" and "gitleaks" in run["error"]
+    assert key not in run["error"]
+    assert f"factory/{run_id}" not in git(root, "ls-remote", "origin")
 
 
 def test_reused_branch_is_rejected_and_the_next_run_still_runs(adapter):
