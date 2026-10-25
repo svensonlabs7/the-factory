@@ -28,7 +28,7 @@ PROXY = "http://172.30.0.2:8888"  # factory-egress, set up by egress.sh
 # The Docker VM mounts only the home directory, so <workdir> must live under it.
 workdir, prompt, timeout = sys.argv[1:]
 # Fail closed: no run starts unless egress.sh has locked the sandbox network down and proven it.
-subprocess.run([str(Path(__file__).with_name("egress.sh"))], check=True)
+subprocess.run([str(Path(__file__).with_name("egress.sh"))], check=True, timeout=600)
 # Set here, not by the caller, so only the container uses the proxy (forward_env copies these names in).
 os.environ.update(HTTPS_PROXY=PROXY, HTTP_PROXY=PROXY, NO_PROXY="localhost,127.0.0.1", CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1")
 # The caller passes a timeout shorter than its own kill limit, so a stuck agent ends here and the container is removed.

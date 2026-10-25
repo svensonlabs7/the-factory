@@ -1,3 +1,4 @@
+import importlib.util
 import pathlib
 import subprocess
 
@@ -106,3 +107,30 @@ def test_only_the_systems_lane_routes_and_its_review_receives_the_checks():
     assert 'knowledge/systems/route.py "origin/${{ github.base_ref }}...pr-head"' in route["run"]
     assert "CLAUDE_CODE_OAUTH_TOKEN" not in str(route)
     assert "${systems:+" in steps["Review"]["run"]
+
+
+_spec = importlib.util.spec_from_file_location("rules", ROOT / "factory/qa/rules.py")
+rules = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(rules)
+
+
+def test_the_repo_passes_every_rule():
+    assert list(rules.findings()) == []
+
+
+@pytest.mark.parametrize("name, bad, safe, card", [
+    ("factory/a.py", "import subprocess\nsubprocess.run(['x'])\n", "import subprocess\nsubprocess.run(['x'], timeout=5)\n",
+     "011-timeouts.md"),
+    ("factory/a.py", "import subprocess\nsubprocess.run('x', shell=True, timeout=5)\n",
+     "import subprocess\nsubprocess.run(['x'], timeout=5)\n", "078-sql-injection.md"),
+    (".github/workflows/w.yml", "steps:\n  - uses: actions/checkout@v4\n",
+     "steps:\n  - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0\n", "108-dependency-hell.md"),
+    ("factory/a.html", "<script>el.innerHTML = data</script>\n", "<script>el.textContent = data</script>\n", "079-xss.md"),
+])
+def test_each_rule_catches_its_case_and_accepts_the_safe_form(tmp_path, name, bad, safe, card):
+    path = tmp_path / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(bad)
+    assert [finding for finding in rules.findings(tmp_path) if card in finding]
+    path.write_text(safe)
+    assert list(rules.findings(tmp_path)) == []
