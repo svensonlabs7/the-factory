@@ -1,7 +1,7 @@
 # Load assumptions
 
 Many cards say a technique is "not needed at today's load". These are the facts that verdict rests on. When a diff
-changes a line matching an assumption's `lines` regex, `route.py` re-opens the cards listed, because their verdict may
+changes a line matching an assumption's `lines` regex, `factory/qa/route.py` re-opens the cards listed, because their verdict may
 no longer hold. Keep each `where` pointing at the line that sets the fact.
 
 - **One build worker: runs never overlap** · where `factory/intake/webhook_adapter.py:151` · lines `RUN_EXECUTOR|ProcessPool` · re-check 015 039 043 044 092

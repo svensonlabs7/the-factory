@@ -104,7 +104,7 @@ def test_only_the_systems_lane_routes_and_its_review_receives_the_checks():
     assert [name for name, lane in LANES.items() if lane.get("systems")] == ["thermo-nuclear"]
     route = steps["Route the systems checks"]
     assert route["if"] == "steps.scope.outputs.run == 'true' && matrix.systems"
-    assert 'knowledge/systems/route.py "origin/${{ github.base_ref }}...pr-head"' in route["run"]
+    assert 'factory/qa/route.py "origin/${{ github.base_ref }}...pr-head"' in route["run"]
     assert "CLAUDE_CODE_OAUTH_TOKEN" not in str(route)
     assert "${systems:+" in steps["Review"]["run"]
 

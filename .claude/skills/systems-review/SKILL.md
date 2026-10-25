@@ -14,7 +14,7 @@ Skim the topic names in `knowledge/systems/LEDGER.md` and list the cards the pla
 
 ## After building
 
-1. Run `python3 knowledge/systems/route.py` (or pass a range such as `origin/main...HEAD`). It prints only the open gaps, changed load assumptions and checklist items this diff triggers. Never read every card: that costs about 170,000 tokens.
+1. Run `python3 factory/qa/route.py` (or pass a range such as `origin/main...HEAD`). It prints only the open gaps, changed load assumptions and checklist items this diff triggers. Never read every card: that costs about 170,000 tokens.
 2. Read the diff and the code it touches. Check each printed item whose `Applies when` matches the diff, and skip the rest. Read a card only when you need its reasoning.
 3. An item fails only when its `Block if` condition is true in this diff. Cite the card file and the `file:line`.
 4. Never block for a scale or infrastructure technique the card's `When it is worth it` says this load does not need. Missing sharding on a single-host service is not a finding. This is the same rule as Ponytail: the smallest change that is correct at the real load.

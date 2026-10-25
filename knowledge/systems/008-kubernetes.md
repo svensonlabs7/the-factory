@@ -2,7 +2,7 @@
 
 Track: K. Infrastructure · Status: proven · Updated: 2026-10-19
 
-Triggers: files `(^|/)(k8s|kubernetes|manifests)/` · lines `^\s*kind:\s*(Deployment|StatefulSet|DaemonSet|Pod|Ingress)\b|apiVersion:\s*apps/|kubectl ` · tripwire
+Triggers: files `(^|/)(k8s|kubernetes|manifests)/` · lines `^\s*kind:\s*(Deployment|StatefulSet|DaemonSet|Pod|Ingress)\b|apiVersion:\s*apps/|kubectl `
 
 ## What it is
 Kubernetes (k8s) is a container orchestrator: you declare the desired state of your workloads as objects (a Deployment wanting 3 replicas, a Service exposing them, a ConfigMap, resource limits) and k8s's **controllers** run continuous **reconciliation loops** that observe actual state and act to close the gap. That control model is the whole point. A **Pod** is the smallest unit (one or more containers sharing a network namespace); a **Deployment** manages a replica set of pods and does rolling updates (054-rolling-deployments.md); a **Service** gives a stable virtual address and load-balances across pods (003-load-balancing.md); the **scheduler** places pods on nodes by their resource requests; **probes** decide readiness and liveness (057-liveness-readiness-probes.md); **HPA** autoscales replicas (045-autoscaling.md). Because reconciliation is continuous, k8s self-heals: kill a pod and the Deployment recreates it; change the replica count and it converges (proof). The price is a large, complex distributed system (etcd, API server, controllers, networking) that is itself infrastructure to run.
@@ -23,7 +23,7 @@ Kubernetes (k8s) is a container orchestrator: you declare the desired state of y
 - [ ] **Do containers declare resource requests and limits?** · Applies when: the diff adds or changes a workload manifest (Deployment, Pod, etc.). · Block if: a container has no memory limit/request where contention or OOM is possible, so it can be OOMKilled or starve the node.
 - [ ] **Do probes allow for real startup and mean what they check?** · Applies when: the diff sets liveness/readiness probes. · Block if: the liveness probe is shorter than measured startup (crash loop), or readiness passes before the service can actually serve (057-liveness-readiness-probes.md).
 - [ ] **Is declared state the only source of truth?** · Applies when: the diff manages a resource that a controller reconciles. · Block if: the change is expected to be made by hand on the live cluster, where reconciliation will revert it.
-- [ ] **Is Kubernetes proportionate to this workload?** · Applies when: the diff introduces k8s (or a one-node cluster) for a service. · Block if: a single host or few containers are involved and a restart policy / Compose / launchd would manage them, so the cluster is complexity without a fleet to justify it.
+- [ ] **Is Kubernetes proportionate to this workload?** · Applies when: the diff introduces k8s (or a one-node cluster) for a service. · Block if: a single host or few containers are involved and a restart policy / Compose / launchd would manage them, so the cluster is complexity without a fleet to justify it. · tripwire
 
 ## In the factory
 - **No Kubernetes, deliberately, and that is unarguably right.** The factory is one Mac running one adapter process and one sandbox container per build. A k8s cluster here would mean operating etcd, an API server and a scheduler to manage a single service — the textbook over-engineering this card warns about.

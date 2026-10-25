@@ -2,7 +2,7 @@
 
 Track: K. Infrastructure · Status: proven · Updated: 2026-10-19
 
-Triggers: files `(^|/)Chart\.ya?ml$|(^|/)values\.ya?ml$` · lines `(?i)\bhelm\b` · tripwire
+Triggers: files `(^|/)Chart\.ya?ml$|(^|/)values\.ya?ml$` · lines `(?i)\bhelm\b`
 
 ## What it is
 Helm is the package manager for Kubernetes (008-kubernetes.md). A **chart** bundles a set of templated manifests plus a `values.yaml` of defaults; you install it with your own value overrides, and Helm renders the templates into concrete manifests and applies them as a tracked **release**. Because a release is versioned, `helm upgrade` moves it forward and `helm rollback` returns it to a previous revision (055-rollbacks.md). Charts are the unit of reuse and distribution for k8s apps: parameterise once (image tag, replica count, resource limits, hostnames) and deploy the same chart to many environments with different values. The templates produce YAML by **string substitution** (Go templates), and since YAML is whitespace-significant, the characteristic Helm hazard is a templating bug — usually indentation — that renders structurally wrong or invalid YAML (proof). `helm template` and `helm lint` render and parse locally, catching that before `helm install` touches a cluster.
@@ -23,7 +23,7 @@ Helm is the package manager for Kubernetes (008-kubernetes.md). A **chart** bund
 - [ ] **Is the rendered output validated before install/upgrade?** · Applies when: the diff adds or changes a Helm chart or its values. · Block if: there is no `helm template`/`lint`/`--dry-run` step, so an indentation or templating bug can render wrong YAML that only fails (or silently misbehaves) at apply.
 - [ ] **Is the deployed configuration captured in a values file, not ad-hoc flags?** · Applies when: the diff deploys or upgrades a release. · Block if: the real configuration lives in scattered `--set` flags with no committed values file, so what is deployed is not reproducible.
 - [ ] **Are chart and subchart versions pinned?** · Applies when: the diff adds a chart dependency or an upgrade. · Block if: versions float, so a later `upgrade` changes behaviour unexpectedly.
-- [ ] **Is a chart justified over a plain manifest, and k8s over nothing?** · Applies when: the diff introduces Helm. · Block if: there is no Kubernetes cluster for it, or a single static manifest with no varying values would do — templating and releases without variation or upgrades are overhead.
+- [ ] **Is a chart justified over a plain manifest, and k8s over nothing?** · Applies when: the diff introduces Helm. · Block if: there is no Kubernetes cluster for it, or a single static manifest with no varying values would do — templating and releases without variation or upgrades are overhead. · tripwire
 
 ## In the factory
 - **No Helm, because there is no Kubernetes** (008-kubernetes.md). A chart here would be a templating and release layer over manifests the factory has no cluster to apply. Clear over-engineering.

@@ -74,13 +74,13 @@ Triggers: files `<regex>` · lines `<regex>`
 
 The review checklist is the part the factory will enforce. Write three to six items. Every item names its trigger and an exact block condition. "Consider X" is not an item.
 
-The `Triggers` line is how `route.py` decides which diffs see this card, so make it specific. `files` fires when a changed path matches; `lines` fires when a changed line of code (not tests, prose or `knowledge/`) matches. Give at least one. When the card's verdict is that this load does not need the technique, append ` · tripwire`: the card then shows only its "is it justified" item, and only when a diff introduces the technique. Check it with `python3 knowledge/systems/route.py <range>` on a real diff that should and one that should not match.
+The `Triggers` line is how `factory/qa/route.py` decides which diffs see this card, so make it specific. `files` fires when a changed path matches; `lines` fires when a changed line of code (not tests, prose or `knowledge/`) matches. Give at least one. When the card's verdict is that this load does not need the technique, end that card's "is it justified" checklist item with ` · tripwire`: the card then shows only that item, and only when a diff introduces the technique. Mark one item. Check the card with `python3 factory/qa/route.py <range>` on a real diff that should and one that should not match.
 
 Then update the topic's ledger row: set the status, and link the card in the `Card` column as `[<file>](<file>)`.
 
 ## 6. Review iteration (every tenth card)
 
-Re-read every card written so far. Fix contradictions between cards and add missing `Related` links. Re-run one earlier experiment to check it still holds. Tighten any checklist item that would block a change the factory's real load does not need, and any `Triggers` regex that fired on recent PRs with nothing to check (run `route.py` over them). Append the date, the count, and what changed to `knowledge/systems/REVIEWS.md`.
+Re-read every card written so far. Fix contradictions between cards and add missing `Related` links. Re-run one earlier experiment to check it still holds. Tighten any checklist item that would block a change the factory's real load does not need, and any `Triggers` regex that fired on recent PRs with nothing to check (run `factory/qa/route.py` over them). Append the date, the count, and what changed to `knowledge/systems/REVIEWS.md`.
 
 ## 7. Report
 

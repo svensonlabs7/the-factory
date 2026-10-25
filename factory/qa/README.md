@@ -11,7 +11,7 @@ Fork PRs fail the check.
 
 1. **Thermo-Nuclear review**: `.claude/skills/thermo-nuclear-code-quality-review/SKILL.md`.
    Strict maintainability review. Its approval bar decides pass or fail. Its prompt also carries the systems
-   checks `knowledge/systems/route.py` routes to the PR's diff, built from the base branch's cards.
+   checks `factory/qa/route.py` routes to the PR's diff, built from the base branch's cards.
    The skill has `disable-model-invocation: true`, so the gate must invoke it
    explicitly (`/thermo-nuclear-code-quality-review`).
 2. **Ponytail review**: `.claude/skills/ponytail-review/SKILL.md`, vendored from `vendor/ponytail/`.

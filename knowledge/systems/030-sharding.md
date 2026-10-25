@@ -2,7 +2,7 @@
 
 Track: G. Data · Status: proven · Updated: 2026-10-19
 
-Triggers: lines `(?i)\bshard|partition key|consistent.?hash` · tripwire
+Triggers: lines `(?i)\bshard|partition key|consistent.?hash`
 
 ## What it is
 Sharding splits a dataset across several independent databases or nodes (shards). Each shard holds the rows whose shard key maps to it, so storage and write throughput scale with the number of shards. Partitioning (031-partitioning.md) does this split within one database; sharding does it across machines.
@@ -36,7 +36,7 @@ Choose the key from the dominant access pattern, usually a tenant or entity ID, 
 - [ ] **Do the hot queries include the shard key?** · Applies when: the diff adds frequent queries against a sharded store. · Block if: they lack the key, so each one fans out to every shard on a request path.
 - [ ] **Can shards be added without moving most data?** · Applies when: the diff implements key-to-shard mapping. · Block if: it uses `hash % N` (or any mapping that remaps most keys when N changes) with no consistent hashing or directory.
 - [ ] **Does any operation span shards?** · Applies when: the diff writes to more than one shard in one logical operation. · Block if: it assumes atomicity across shards without a saga, outbox or two-phase protocol.
-- [ ] **Is sharding justified?** · Applies when: the diff introduces sharding. · Block if: no measurement shows a single node (vertically scaled, with replicas, caching and partitioning) cannot hold the data or the write rate.
+- [ ] **Is sharding justified?** · Applies when: the diff introduces sharding. · Block if: no measurement shows a single node (vertically scaled, with replicas, caching and partitioning) cannot hold the data or the write rate. · tripwire
 
 ## In the factory
 - The factory has no shards: one host, one adapter, one queue. Its state fits in a few megabytes.

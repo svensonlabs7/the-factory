@@ -2,7 +2,7 @@
 
 Track: L. Operations · Status: proven · Updated: 2026-10-19
 
-Triggers: lines `(?i)failover|\bpromot(e|ion)\b|\bstandby\b|virtual.?ip` · tripwire
+Triggers: lines `(?i)failover|\bpromot(e|ion)\b|\bstandby\b|virtual.?ip`
 
 ## What it is
 Failover is the automatic switch from a failed primary to a redundant standby so service continues with minimal interruption. A health check watches the primary; when it fails, a standby is **promoted** to take over, usually with traffic redirected by DNS, a load balancer, or a virtual IP (003-load-balancing.md, 097-dns.md). Failover handles the loss of a *component* while the rest of the environment stands — distinct from disaster recovery, which rebuilds a whole lost environment (083-disaster-recovery.md). The defining difficulty is that a health check cannot tell "the primary is **dead**" from "I can't **reach** the primary" (a network partition — 095-network-partitions.md). Promoting a standby on unreachability alone, when the old primary is actually alive, produces **split-brain**: two primaries accept conflicting writes that diverge (proof). The guard is **fencing** — a lease the old primary must hold, STONITH ("shoot the other node in the head"), or a quorum/witness — so a standby may promote only once the old primary provably can no longer act (033-leader-election.md).
@@ -23,7 +23,7 @@ Failover is the automatic switch from a failed primary to a redundant standby so
 - [ ] **Is promotion fenced against split-brain?** · Applies when: the diff adds or changes automatic failover/promotion of a stateful primary. · Block if: a standby can promote on unreachability alone, with no lease, quorum or fencing guaranteeing the old primary has stepped down.
 - [ ] **Is the health check tuned against flapping?** · Applies when: the diff sets the failure detection that triggers failover. · Block if: a single transient failure triggers promotion, or there is no hysteresis/cooldown, so the system can flap.
 - [ ] **Is the standby fresh enough to meet RPO on promotion?** · Applies when: the diff relies on promoting a replica. · Block if: replication lag can exceed the acceptable data loss and promotion proceeds anyway.
-- [ ] **Is failover justified over recovery-in-place?** · Applies when: the diff introduces a standby and promotion machinery. · Block if: there is no standby to switch to, or a restart/re-provision meets the downtime budget — adding a second node plus fencing where a restart would do is complexity (and new split-brain risk) for little gain.
+- [ ] **Is failover justified over recovery-in-place?** · Applies when: the diff introduces a standby and promotion machinery. · Block if: there is no standby to switch to, or a restart/re-provision meets the downtime budget — adding a second node plus fencing where a restart would do is complexity (and new split-brain risk) for little gain. · tripwire
 
 ## In the factory
 - **There is no failover, and that is correct: one instance, recovery in place.** The adapter is a single process; launchd `KeepAlive` restarts it if it dies (`com.svenson.factory-intake.plist:38`, 008-kubernetes.md). That is recovery-in-place, not failover — same machine, same identity, and crucially **there is never a second instance**, so split-brain is structurally impossible. For a one-operator tool whose restart is seconds, this is the right tier; a hot standby with fencing would add the exact split-brain risk this card warns about, for no gain.

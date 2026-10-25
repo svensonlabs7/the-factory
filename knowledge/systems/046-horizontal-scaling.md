@@ -2,7 +2,7 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
-Triggers: lines `--workers|gunicorn|RUN_EXECUTOR = .*max_workers=(?!1\b)|(?i:replicas:|instance_count|scale.?out)` · tripwire
+Triggers: lines `--workers|gunicorn|RUN_EXECUTOR = .*max_workers=(?!1\b)|(?i:replicas:|instance_count|scale.?out)`
 
 ## What it is
 Horizontal scaling (scaling out) adds more instances of a service behind a load balancer, instead of a bigger machine. It removes the single-machine ceiling and the single point of failure, but only for services whose instances do not depend on local state. The Twelve-Factor App states the requirement:
@@ -31,7 +31,7 @@ Scale out when one instance cannot carry the load or its failure is unacceptable
 - [ ] **Does any code assume it is the only instance?** · Applies when: the diff adds startup work, scheduled jobs or check-then-act logic to a horizontally scaled service. · Block if: running it on every instance at once would duplicate work or break an invariant, with no lock, leader or idempotency.
 - [ ] **Does added capacity reach the bottleneck?** · Applies when: the diff adds instances or replicas to raise throughput. · Block if: the instances share a resource (a database, lock or quota) measured to be the bottleneck, so more of them only adds contention.
 - [ ] **Are sticky sessions avoided?** · Applies when: the diff configures load balancing. · Block if: correctness depends on session affinity.
-- [ ] **Is scale-out justified?** · Applies when: the diff introduces multiple instances or a load balancer. · Block if: one instance carries the measured peak with room to spare, and its failure is acceptable or handled by a restart.
+- [ ] **Is scale-out justified?** · Applies when: the diff introduces multiple instances or a load balancer. · Block if: one instance carries the measured peak with room to spare, and its failure is acceptable or handled by a restart. · tripwire
 
 ## In the factory
 - The adapter is deliberately single-instance and cannot be scaled out as written. Its state is local:

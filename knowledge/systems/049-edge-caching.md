@@ -38,7 +38,7 @@ Edge caching rules are worth setting for public content that is read often and c
 - Not applicable at today's load: edge cache rules, `s-maxage`, `stale-while-revalidate` and `Vary` keys.
 
 ## Proof
-`python mastery/049_edge.py` (Python 3.11, httpx). It runs a real HTTP origin answering in 300 ms, behind a small caching proxy that implements `max-age`, `stale-while-revalidate`, `stale-if-error` and `Vary`-keyed entries:
+`python knowledge/systems/proofs/049_edge.py` (Python 3.11, httpx). It runs a real HTTP origin answering in 300 ms, behind a small caching proxy that implements `max-age`, `stale-while-revalidate`, `stale-if-error` and `Vary`-keyed entries:
 ```
 A  max-age=1                              first request after expiry: 200 'v2 Hello'  MISS                     314 ms
 A  max-age=1, stale-while-revalidate=30   first request after expiry: 200 'v3 Hello'  STALE (revalidating)       1 ms

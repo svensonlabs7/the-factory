@@ -2,7 +2,7 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
-Triggers: lines `(?i)autoscal|horizontalpodautoscaler|min_?instances|max_?instances` · tripwire
+Triggers: lines `(?i)autoscal|horizontalpodautoscaler|min_?instances|max_?instances`
 
 ## What it is
 Autoscaling changes capacity automatically as load changes: adding instances when a metric rises above target, removing them when it falls. Kubernetes' Horizontal Pod Autoscaler is the reference design. It computes `desiredReplicas = ⌈currentReplicas × currentMetricValue / desiredMetricValue⌉` and "skips any scaling action if the ratio is sufficiently close to 1.0 (within a configurable tolerance, 0.1 by default)". It damps the loop in several ways:
@@ -27,7 +27,7 @@ Autoscaling is worth it when load varies a lot over hours or days, capacity cost
 - [ ] **Are bounds and damping set?** · Applies when: the diff configures autoscaling. · Block if: there is no maximum instance count, or no downscale stabilization or cooldown, so a noisy or runaway metric can flap or explode capacity.
 - [ ] **Can new capacity arrive before the load does?** · Applies when: the diff relies on autoscaling for load spikes. · Block if: instance start-up and readiness take longer than the spikes it must absorb, and there is no headroom, pre-scaling or queue.
 - [ ] **Does scale-in drain work?** · Applies when: the diff lets the autoscaler remove instances that run requests or jobs. · Block if: removed instances are terminated without draining in-flight work.
-- [ ] **Is autoscaling justified?** · Applies when: the diff introduces autoscaling. · Block if: load is steady or small enough that fixed capacity with headroom covers the peak.
+- [ ] **Is autoscaling justified?** · Applies when: the diff introduces autoscaling. · Block if: load is steady or small enough that fixed capacity with headroom covers the peak. · tripwire
 
 ## In the factory
 - The factory has no autoscaling, and should not. Capacity is fixed and small: one run worker (`factory/intake/webhook_adapter.py:151`), with admission caps of 5 in flight and 30 a day (`:72-73`) at a measured 1.4 runs a day (092-throughput.md). The adapter could not scale horizontally anyway (046-horizontal-scaling.md), and the binding resource, the Claude plan, has a fixed quota.

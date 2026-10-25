@@ -2,7 +2,7 @@
 
 Track: K. Infrastructure · Status: proven · Updated: 2026-10-19
 
-Triggers: files `\.tf(vars)?$|\.terraform\.lock\.hcl$` · lines `(?i)\bterraform\b|\bopentofu\b` · tripwire
+Triggers: files `\.tf(vars)?$|\.terraform\.lock\.hcl$` · lines `(?i)\bterraform\b|\bopentofu\b`
 
 ## What it is
 Terraform is the most common declarative IaC tool (104-infrastructure-as-code.md). You describe desired resources in HCL config; Terraform keeps a **state file** recording what it has created and each resource's real attributes; and it works in two steps: `plan` diffs config against state (and the live provider) to show exactly what it will add, change or destroy, and `apply` makes those changes and updates state. **Providers** translate Terraform's resources into API calls for AWS, Cloudflare, GitHub, Kubernetes and so on. The state file is the heart of the model and its biggest hazard: it is the record of reality, often holds resource attributes (and sometimes secrets) in plaintext, and must be shared carefully. Because two applies editing one state concurrently race on read-modify-write, Terraform **locks** the state for the duration of an apply (via the backend — S3+DynamoDB, Terraform Cloud, etc.), and stores it in a shared **remote backend** so a team sees the same state.
@@ -23,7 +23,7 @@ Terraform is the most common declarative IaC tool (104-infrastructure-as-code.md
 - [ ] **Is the state backend locked and shared?** · Applies when: the diff configures Terraform state or adds applies that can run concurrently (CI, more than one operator). · Block if: state is local or on a backend without locking, so two applies can race and corrupt it.
 - [ ] **Was the `plan` reviewed before `apply`, especially for replacements?** · Applies when: the diff changes a resource that could force replacement of a stateful resource. · Block if: apply runs with no reviewed plan showing the add/change/**destroy** counts.
 - [ ] **Are provider and module versions pinned?** · Applies when: the diff adds or upgrades providers/modules. · Block if: versions float, so a later run silently changes behaviour.
-- [ ] **Is Terraform the proportionate tool here?** · Applies when: the diff introduces Terraform. · Block if: there is no cloud/provider infrastructure for it to manage and committed config plus an install script would do — but do not accept dashboard-clicking as the alternative.
+- [ ] **Is Terraform the proportionate tool here?** · Applies when: the diff introduces Terraform. · Block if: there is no cloud/provider infrastructure for it to manage and committed config plus an install script would do — but do not accept dashboard-clicking as the alternative. · tripwire
 
 ## In the factory
 - **No Terraform, and that is the right call.** The factory has no cloud infrastructure for a provider to drive: one Mac, one Colima VM, one `cloudflared` tunnel, two launchd services, a Docker network. Its IaC is committed config files applied by a runbook (104-infrastructure-as-code.md). Standing up Terraform with a remote state backend and the Cloudflare provider to manage one tunnel would be overhead with almost nothing to manage.

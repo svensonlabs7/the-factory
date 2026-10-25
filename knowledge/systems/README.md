@@ -7,7 +7,7 @@ A learning loop that works through 111 systems-engineering topics, then turns wh
 - `GAPS.md` lists places where the factory falls short of a card. The operator turns rows into factory tasks.
 - `REVIEWS.md` records each tenth-card review pass.
 - `ASSUMPTIONS.md` lists the load facts that "not needed here" verdicts rest on.
-- `route.py` routes a diff to the checks it triggers. `proofs/` holds each card's experiment.
+- `proofs/` holds each card's experiment. `factory/qa/route.py` routes a diff to the checks it triggers.
 
 ## Start the loop
 
@@ -26,7 +26,7 @@ that can enforce it.
 
 1. **Rules, no model.** `factory/qa/rules.py` runs in the `static` lane and checks what a machine can decide alone
    (subprocess timeouts, `shell=True`, unpinned actions, HTML built from strings). Each finding names its card.
-2. **Routed checklist.** `route.py` reads each card's `Triggers` line and prints only what a diff touches: open
+2. **Routed checklist.** `factory/qa/route.py` reads each card's `Triggers` line and prints only what a diff touches: open
    `GAPS.md` rows near the changed lines, `ASSUMPTIONS.md` facts it changes, and the matching cards' checklist items,
    tripwire cards first and capped at 15 items. Over the last 20 merged PRs that averaged about 1,100 tokens. The
    builder runs it before committing (`TASK_PROMPT_TEMPLATE`), and the thermo-nuclear lane appends it to its prompt,

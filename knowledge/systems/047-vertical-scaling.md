@@ -2,7 +2,7 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
-Triggers: lines `(?i)colima (start|edit)|--cpus?\b|--memory\b|mem_limit|cpu_count\(` · tripwire
+Triggers: lines `(?i)colima (start|edit)|--cpus?\b|--memory\b|mem_limit|cpu_count\(`
 
 ## What it is
 Vertical scaling (scaling up) means giving one machine or process more resources: more CPU cores, more memory, faster disks or a bigger instance type. Nothing about the architecture changes, which makes it the simplest scaling move and usually the first.
@@ -27,7 +27,7 @@ Scale up first when one node's measured resource (CPU, memory, I/O) is saturated
 - **Resize needs downtime:** changing the instance or VM size restarts the service, and in-flight work is lost (054-rolling-deployments.md).
 
 ## Review checklist
-- [ ] **Is the bottleneck measured before resources are added?** · Applies when: the diff raises CPU, memory or instance size, or a VM or container limit. · Block if: no utilization or saturation measurement (USE) shows that resource is the bottleneck.
+- [ ] **Is the bottleneck measured before resources are added?** · Applies when: the diff raises CPU, memory or instance size, or a VM or container limit. · Block if: no utilization or saturation measurement (USE) shows that resource is the bottleneck. · tripwire
 - [ ] **Can the workload use what is added?** · Applies when: the diff adds cores or memory. · Block if: the workload's parallelism, worker count, heap or container limit stays at the old value, or its serial fraction caps the gain far below the cost.
 - [ ] **Do inner limits move with the outer one?** · Applies when: the diff resizes a host, VM or node. · Block if: a nested limit (container `--cpus`, VM CPUs or memory, a runtime cap) still bounds the workload.
 - [ ] **Is the resize's restart planned?** · Applies when: the diff changes the size of a running service's machine or VM. · Block if: the restart would kill in-flight work, with no drain or idle check.
@@ -42,7 +42,7 @@ Scale up first when one node's measured resource (CPU, memory, I/O) is saturated
 - Not applicable at today's load: bigger hosts, instance resizing and vertical autoscaling.
 
 ## Proof
-`python -I mastery/047_vertical.py` runs 8 CPU-bound chunks across N worker processes, plus a serial step sized to 20% of the one-worker time. It ran on the host (Python 3.11) and inside the Colima VM in the local `python:3.12` image (`docker run -i --network none`, script on stdin):
+`python -I knowledge/systems/proofs/047_vertical.py` runs 8 CPU-bound chunks across N worker processes, plus a serial step sized to 20% of the one-worker time. It ran on the host (Python 3.11) and inside the Colima VM in the local `python:3.12` image (`docker run -i --network none`, script on stdin):
 ```
 host: 10 CPUs visible; 1 worker  2.87 s
 host: 2 workers -> speedup 1.56x (Amdahl with 20% serial: 1.67x)

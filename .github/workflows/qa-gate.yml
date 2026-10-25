@@ -51,7 +51,7 @@ jobs:
       # Built from the base checkout's knowledge files only, so the PR cannot write its own review instructions.
       - name: Route the systems checks
         if: steps.scope.outputs.run == 'true' && matrix.systems
-        run: python3 knowledge/systems/route.py "origin/${{ github.base_ref }}...pr-head" > "$RUNNER_TEMP/systems.md"
+        run: python3 factory/qa/route.py "origin/${{ github.base_ref }}...pr-head" > "$RUNNER_TEMP/systems.md"
       - name: Skip the review
         if: steps.scope.outputs.run == 'false'
         run: printf 'No changed file matches this lane, so the review was skipped.\n\n**PASS**\n' > "$RUNNER_TEMP/review.md"

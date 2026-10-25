@@ -39,7 +39,7 @@ Measure throughput and utilization of the bottleneck for any system with queues 
 - Not applicable at today's load: more workers, batching and load testing.
 
 ## Proof
-`python mastery/092_throughput.py <repo>` (Python 3.11):
+`python knowledge/systems/proofs/092_throughput.py <repo>` (Python 3.11):
 - A is a discrete-event simulation of one server at 10 ms a request (capacity 100/s), with clients that give up after 1 s. Shedding rejects any request at arrival whose queue wait would exceed 100 ms.
 - B load-tests a scratch uvicorn running this working copy's adapter. The client and server share the host's CPU, so B is a lower bound.
 - C reads the live run records.

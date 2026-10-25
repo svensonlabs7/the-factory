@@ -2,7 +2,7 @@
 
 Track: J. Networking · Status: proven · Updated: 2026-10-19
 
-Triggers: files `\.proto$` · lines `(?i)\bgrpc|protobuf|_pb2\b` · tripwire
+Triggers: files `\.proto$` · lines `(?i)\bgrpc|protobuf|_pb2\b`
 
 ## What it is
 gRPC is a contract-first RPC framework: you write a service and its messages in a `.proto` file (Protocol Buffers), compile it to typed client and server stubs in many languages, and call remote methods as if they were local functions. On the wire it uses **Protocol Buffers** — a compact binary format — over **HTTP/2** (099-http2-http3.md), so it gets multiplexed streams, header compression and long-lived connections. It offers four call types: unary (one request, one response), server-streaming, client-streaming, and bidirectional streaming. The contract is the point: the `.proto` is the single source of truth, stubs are generated, and Protobuf's compatibility rules let the contract evolve. Those rules turn on **field numbers**: every field has a number, the number (not the name or position) identifies it on the wire, and a reader skips field numbers it does not know — which is exactly what makes adding fields safe and reusing a number catastrophic (proof).
@@ -26,7 +26,7 @@ gRPC is a contract-first RPC framework: you write a service and its messages in 
 - [ ] **Does a `.proto` change keep wire compatibility?** · Applies when: the diff edits a `.proto` (or any Protobuf/gRPC schema). · Block if: it reuses or renumbers an existing field, changes a field's type, or removes a field without reserving its number — any of which silently corrupts old readers.
 - [ ] **Are generated stubs regenerated and shipped with the contract change?** · Applies when: the diff changes a gRPC service or message definition. · Block if: server and clients are not regenerated from the same `.proto`, so the contract drifts at runtime.
 - [ ] **Do streams and calls have deadlines and cancellation?** · Applies when: the diff adds a gRPC call, especially a streaming one. · Block if: there is no deadline/timeout or cancellation path, so a slow or abandoned call holds server resources.
-- [ ] **Is gRPC justified for this caller and volume?** · Applies when: the diff introduces gRPC for an endpoint. · Block if: the caller is a browser, the API is public/low-volume, or there is a single JSON endpoint — where REST/JSON is simpler and gRPC's tooling buys nothing.
+- [ ] **Is gRPC justified for this caller and volume?** · Applies when: the diff introduces gRPC for an endpoint. · Block if: the caller is a browser, the API is public/low-volume, or there is a single JSON endpoint — where REST/JSON is simpler and gRPC's tooling buys nothing. · tripwire
 
 ## In the factory
 - **The factory uses JSON over HTTP, not gRPC, and that is correct.** The intake is one signed JSON webhook (`TriggerPayload`, 005-api-gateways.md) and the dashboard is a browser page fetching JSON (`/command/data`). A browser cannot speak raw gRPC, and there is one endpoint with one caller — gRPC would add a schema compiler, code generation and binary opacity for nothing. JSON is inspectable with `curl`, which suits a one-operator system.

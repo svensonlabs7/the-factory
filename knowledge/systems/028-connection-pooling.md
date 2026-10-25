@@ -43,7 +43,7 @@ Pooling is worth it whenever a process makes repeated calls to the same server o
 - Not applicable at today's load: database pools, pool sizing and pre-ping.
 
 ## Proof
-`python mastery/028_pooling.py` (Python 3.11, httpx, SQLAlchemy `QueuePool` on a SQLite file. A and C use the real GitHub API read-only, and `/rate_limit` does not count against the limit):
+`python knowledge/systems/proofs/028_pooling.py` (Python 3.11, httpx, SQLAlchemy `QueuePool` on a SQLite file. A and C use the real GitHub API read-only, and `/rate_limit` does not count against the limit):
 ```
 A  new connection per request: median   85.6 ms
 A  pooled keep-alive client:   median   22.8 ms (first request 85.6 ms opens the connection)

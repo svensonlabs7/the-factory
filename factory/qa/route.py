@@ -6,23 +6,38 @@ Usage: route.py [git-range]
   No range: the working tree, untracked files included, against its merge base with origin/HEAD, origin/main or main.
   A range (for example origin/main...pr-head): that diff only.
 
-The output is built only from this checkout's knowledge/systems files, never from the diff's text, so a PR cannot
-put words in front of its reviewer.
+The output is built only from knowledge/systems in this checkout, never from the diff's text, so a PR cannot put
+words in front of its reviewer.
 """
 import pathlib
 import re
 import subprocess
 import sys
+from typing import List, NamedTuple, Optional, Pattern
 
-KS = pathlib.Path(__file__).resolve().parent
+KS = pathlib.Path(__file__).resolve().parents[2] / "knowledge" / "systems"
 NOT_CODE = re.compile(r"^(knowledge|vendor|tests|\.claude)/|\.md$")  # prose and tests never fire a `lines` trigger
-JUSTIFY = re.compile(r"(?i)justified|proportionate|\bat all\b|measured before")  # a tripwire card's one item
+TRIPWIRE = " · tripwire"  # ends the one checklist item a "not needed at this load" card shows
+ASSUMPTION = re.compile(r"^- \*\*(.+?)\*\* · where (.+?) · lines `([^`]+)` · re-check ([\d ]+)$", re.M)
 MAX_ITEMS, MAX_GAPS, SLACK = 15, 4, 15  # SLACK: lines a gap's recorded location may have drifted
 SEVERITY = {"high": 0, "medium": 1, "low": 2}
+GIT_TIMEOUT = 60
+
+
+class Card(NamedTuple):
+    name: str
+    files: Optional[Pattern]
+    lines: Optional[Pattern]
+    items: List[str]
+    tripwire: List[str]  # the items marked with TRIPWIRE; a card with one shows only that item
+
+    @property
+    def number(self):
+        return self.name[:3]
 
 
 def cards():
-    """[(file name, files regex, lines regex, tripwire, checklist items)] for every card with a Triggers line."""
+    """Every card with a Triggers line."""
     out = []
     for path in sorted(KS.glob("[0-9][0-9][0-9]-*.md")):
         text = path.read_text()
@@ -32,9 +47,16 @@ def cards():
         keys = dict(re.findall(r"(files|lines) `([^`]+)`", triggers.group(1)))
         checklist = re.search(r"## Review checklist\n(.*?)\n## ", text, re.S)
         items = re.findall(r"^- \[ \] .+$", checklist.group(1), re.M) if checklist else []
-        out.append((path.name, keys.get("files") and re.compile(keys["files"]), keys.get("lines") and re.compile(keys["lines"]),
-                    triggers.group(1).endswith("tripwire"), items))
+        out.append(Card(path.name, re.compile(keys["files"]) if "files" in keys else None,
+                        re.compile(keys["lines"]) if "lines" in keys else None,
+                        items, [item for item in items if item.endswith(TRIPWIRE)]))
     return out
+
+
+def assumption_entries():
+    """[(name, where, lines regex, [card numbers])] from ASSUMPTIONS.md."""
+    return [(name, where, regex, nums.split())
+            for name, where, regex, nums in ASSUMPTION.findall((KS / "ASSUMPTIONS.md").read_text())]
 
 
 def parse(diff):
@@ -86,26 +108,22 @@ def gaps(changes):
 
 
 def assumptions(changes, all_cards):
-    """Load assumptions (ASSUMPTIONS.md) whose `lines` regex a changed line matches, with the cards to re-check."""
-    names = {name[:3]: name for name, *_ in all_cards}
-    lines, out = code_lines(changes), []
-    text = (KS / "ASSUMPTIONS.md").read_text()
-    for name, where, regex, nums in re.findall(r"^- \*\*(.+?)\*\* · where (.+?) · lines `([^`]+)` · re-check ([\d ]+)$", text, re.M):
-        if any(re.search(regex, line) for line in lines):
-            out.append(f"- **{name}** ({where}): re-check " + ", ".join(names[n] for n in nums.split()))
-    return out
+    """Load assumptions whose `lines` regex a changed line matches, with the cards to re-check."""
+    names = {card.number: card.name for card in all_cards}
+    lines = code_lines(changes)
+    return [f"- **{name}** ({where}): re-check " + ", ".join(names[n] for n in nums)
+            for name, where, regex, nums in assumption_entries() if any(re.search(regex, line) for line in lines)]
 
 
 def matched(changes, all_cards):
-    """[(tripwire, score, card, items)] for the cards whose triggers this diff hits; score counts the evidence."""
+    """[(card, score, items to show)] for the cards whose triggers this diff hits, tripwires first."""
     lines, hits = code_lines(changes), []
-    for name, files, regex, trip, items in all_cards:
-        score = 3 * sum(1 for path in changes if files and not path.startswith("knowledge/") and files.search(path))
-        score += sum(1 for line in lines if regex and regex.search(line))
+    for card in all_cards:
+        score = 3 * sum(1 for path in changes if card.files and not path.startswith("knowledge/") and card.files.search(path))
+        score += sum(1 for line in lines if card.lines and card.lines.search(line))
         if score:
-            chosen = [item for item in items if JUSTIFY.search(re.match(r"- \[ \] \*\*(.+?)\*\*", item).group(1))] if trip else items
-            hits.append((trip, score, name, chosen))
-    return sorted(hits, key=lambda hit: (not hit[0], -hit[1], hit[2]))
+            hits.append((card, score, card.tripwire or card.items))
+    return sorted(hits, key=lambda hit: (not hit[0].tripwire, -hit[1], hit[0].name))
 
 
 def render(changes):
@@ -114,19 +132,19 @@ def render(changes):
     if not (gap_lines or assumed or hits):
         return "Systems checks: no card in knowledge/systems applies to this diff.\n"
     out = ["## Systems checks for this diff", "",
-           "Routed from knowledge/systems by route.py. Check an item only where its 'Applies when' fits the diff, and block "
-           "only when its 'Block if' is true. Never block for a technique a card says this load does not need. Read a card "
-           "only when you need its reasoning."]
+           "Routed from knowledge/systems by factory/qa/route.py. Check an item only where its 'Applies when' fits the "
+           "diff, and block only when its 'Block if' is true. Never block for a technique a card says this load does not "
+           "need. Read a card only when you need its reasoning."]
     if gap_lines:
         out += ["", "### Known gaps in the code this diff touches", "These already exist: block only if the diff makes one worse.", *gap_lines]
     if assumed:
         out += ["", "### Load assumptions this diff changes", "These cards' 'not needed here' verdicts assumed the old value.", *assumed]
     shown, rest = 0, []
-    for trip, _, name, items in hits:
+    for card, _, items in hits:
         if shown + len(items) > MAX_ITEMS and shown:
-            rest.append(name)
+            rest.append(card.name)
             continue
-        out += ["", f"### {name}" + (" (tripwire: this load does not need it)" if trip else ""), *items]
+        out += ["", f"### {card.name}" + (" (tripwire: this load does not need it)" if card.tripwire else ""), *items]
         shown += len(items)
     if rest:
         out += ["", "Also matched, not shown (read only if relevant): " + ", ".join(rest)]
@@ -134,16 +152,17 @@ def render(changes):
 
 
 def collect(rng):
-    top = pathlib.Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True).stdout.strip())
+    top = pathlib.Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True,
+                                      check=True, timeout=GIT_TIMEOUT).stdout.strip())
 
     def git(*args):
-        return subprocess.run(["git", *args], cwd=top, capture_output=True, text=True, check=True).stdout
+        return subprocess.run(["git", *args], cwd=top, capture_output=True, text=True, check=True, timeout=GIT_TIMEOUT).stdout
 
     if rng:
         return parse(git("diff", "-U0", "--no-color", "--no-ext-diff", rng))
     base = "HEAD"
     for ref in ("origin/HEAD", "origin/main", "main"):
-        found = subprocess.run(["git", "merge-base", "HEAD", ref], cwd=top, capture_output=True, text=True)
+        found = subprocess.run(["git", "merge-base", "HEAD", ref], cwd=top, capture_output=True, text=True, timeout=GIT_TIMEOUT)
         if found.returncode == 0:
             base = found.stdout.strip()
             break

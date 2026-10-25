@@ -40,7 +40,7 @@ Measure latency on every user-facing path and every dependency call, from the st
 - Not applicable at today's load: latency budgets per hop and route-level optimization.
 
 ## Proof
-`python mastery/091_latency.py` (Python 3.11, httpx, medians) on this host. The live adapter is read with `GET /health` only. The public hostname is probed without credentials, so Cloudflare Access answers 401 at its edge, which measures the edge round trip, not the full path:
+`python knowledge/systems/proofs/091_latency.py` (Python 3.11, httpx, medians) on this host. The live adapter is read with `GET /health` only. The public hostname is probed without credentials, so Cloudflare Access answers 401 at its edge, which measures the edge round trip, not the full path:
 ```
 A  Python function call                                        0.0000 ms
 A  read a 4 KB file                                            0.0139 ms

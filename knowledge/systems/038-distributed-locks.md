@@ -2,7 +2,7 @@
 
 Track: D. Concurrency and correctness · Status: proven · Updated: 2026-10-18
 
-Triggers: lines `(?i)\bredis\b|redlock|distributed.?lock|lock.?service` · tripwire
+Triggers: lines `(?i)\bredis\b|redlock|distributed.?lock|lock.?service`
 
 ## What it is
 A distributed lock gives one process at a time, across machines, the right to act on a shared resource. Implementations range from a single Redis key (`SET key token NX PX ttl`, released only if the token still matches) and Redlock (a majority of independent Redis nodes) to consensus systems (ZooKeeper, etcd) and database rows.
@@ -25,7 +25,7 @@ Only when several machines must coordinate on a shared resource and a queue, par
 - **Using a correctness lock where an efficiency lock was enough:** a five-node Redlock cluster to prevent duplicate emails is complexity without benefit.
 
 ## Review checklist
-- [ ] **Is a distributed lock needed at all?** · Applies when: the diff adds a lock service, a Redis or etcd lock, or a lease. · Block if: the coordinating actors run on one machine, or the shared store can enforce the rule itself (a conditional write, a unique constraint, a compare-and-swap).
+- [ ] **Is a distributed lock needed at all?** · Applies when: the diff adds a lock service, a Redis or etcd lock, or a lease. · Block if: the coordinating actors run on one machine, or the shared store can enforce the rule itself (a conditional write, a unique constraint, a compare-and-swap). · tripwire
 - [ ] **For correctness locks, does the resource check a fencing token?** · Applies when: the lock protects data whose corruption matters. · Block if: writes to the protected resource do not carry and check an increasing token or version.
 - [ ] **Is release conditional on ownership?** · Applies when: the diff releases a lock in a shared store. · Block if: release deletes the key unconditionally instead of only when the stored token is still this holder's.
 - [ ] **Is work bounded by the lease?** · Applies when: the diff does work while holding a lease. · Block if: the work can outlast the lease with no renewal or fencing, and nothing stops a stale holder from writing.

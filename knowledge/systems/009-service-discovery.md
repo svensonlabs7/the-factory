@@ -2,7 +2,7 @@
 
 Track: J. Networking · Status: proven · Updated: 2026-10-19
 
-Triggers: lines `(?i)\b(consul|etcd|zookeeper|eureka)\b|service.?registry` · tripwire
+Triggers: lines `(?i)\b(consul|etcd|zookeeper|eureka)\b|service.?registry`
 
 ## What it is
 Service discovery lets a caller find a live instance of a service by *name* instead of a hard-coded address, so instances can come and go (autoscaling, restarts, failover) without every caller being reconfigured. A **registry** holds the mapping from service name to the set of current instance addresses. Instances **register** when they start and are **deregistered** when they stop or fail; callers **resolve** the name to get the current set and pick one (often via a load balancer — 003-load-balancing.md). Two common shapes:
@@ -27,7 +27,7 @@ The defining hard part is not registration but **deregistration**: a crashed ins
 - [ ] **Are dead instances removed promptly?** · Applies when: the diff registers service instances in a registry or DNS. · Block if: deregistration relies only on clean shutdown, with no TTL lease/heartbeat or health check to evict a crashed instance.
 - [ ] **Do callers refresh resolved addresses?** · Applies when: the diff resolves a service name and reuses the result. · Block if: the set is cached with no TTL or refresh, so new instances are missed and dead ones retained.
 - [ ] **Is there a fallback when the registry is unavailable?** · Applies when: the diff makes a call path depend on a discovery registry. · Block if: a registry outage or partition leaves callers with no last-known-good set and no degraded path.
-- [ ] **Is a discovery system justified for this topology?** · Applies when: the diff introduces a service registry or dynamic discovery. · Block if: the instances have stable, fixed addresses that static config or a hostname already covers — the registry adds a distributed dependency for no movement.
+- [ ] **Is a discovery system justified for this topology?** · Applies when: the diff introduces a service registry or dynamic discovery. · Block if: the instances have stable, fixed addresses that static config or a hostname already covers — the registry adds a distributed dependency for no movement. · tripwire
 
 ## In the factory
 - **Everything is statically addressed, and that is correct for one fixed host.** The adapter is `127.0.0.1:7654`, the egress proxy is pinned to `172.30.0.2`, and `run_agent.py:26` dials that IP directly (`grep` of `factory/`, `infra/`). Nothing moves, so there is nothing to discover. A registry here would be pure over-engineering.

@@ -2,7 +2,7 @@
 
 Track: J. Networking · Status: proven · Updated: 2026-10-19
 
-Triggers: lines `(?i)upstream |least_conn|load.?balanc|round.?robin|--workers` · tripwire
+Triggers: lines `(?i)upstream |least_conn|load.?balanc|round.?robin|--workers`
 
 ## What it is
 A load balancer spreads incoming requests across several interchangeable backends so no one of them is overwhelmed while others sit idle, and so a dead backend is taken out of rotation. It sits behind one address (often the reverse proxy or CDN — 004-reverse-proxies.md) and picks a backend per request by some policy:
@@ -31,7 +31,7 @@ A health check removes a backend that fails, and the balancer must drain in-flig
 - [ ] **Does the dispatch policy match the request-cost distribution?** · Applies when: the diff adds or changes load balancing across backends. · Block if: it uses round-robin (or a static hash) while request costs are heavy-tailed or backends are heterogeneous, so a busy backend keeps receiving work — use least-connections/least-load or P2C.
 - [ ] **Are unhealthy backends removed by a meaningful health check?** · Applies when: the diff configures a pool of backends. · Block if: there is no health check, or it checks only TCP/port liveness while the backend can still return errors.
 - [ ] **Is in-flight work drained before a backend leaves the pool?** · Applies when: the diff lets backends be removed (deploy, scale-in, health failure). · Block if: removal terminates in-flight requests with no drain.
-- [ ] **Is load balancing justified here at all?** · Applies when: the diff introduces a load balancer. · Block if: there is a single backend and the real need is admission control / shedding, not distribution.
+- [ ] **Is load balancing justified here at all?** · Applies when: the diff introduces a load balancer. · Block if: there is a single backend and the real need is admission control / shedding, not distribution. · tripwire
 
 ## In the factory
 - **The edge balances; the origin has nothing to balance.** Cloudflare's anycast routes each client to a nearby POP (responses carry `cf-ray …-EWR`, Newark — 097-dns.md), balancing clients across Cloudflare's own fleet. That is load balancing the factory gets for free and writes no code for.

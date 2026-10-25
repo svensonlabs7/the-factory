@@ -2,7 +2,7 @@
 
 Track: J. Networking · Status: proven · Updated: 2026-10-19
 
-Triggers: lines `(?i)\bhttp/?[23]\b|\bh2c\b|--http2|\bquic\b|alt-svc|hypercorn` · tripwire
+Triggers: lines `(?i)\bhttp/?[23]\b|\bh2c\b|--http2|\bquic\b|alt-svc|hypercorn`
 
 ## What it is
 HTTP/1.1 sends one request/response at a time per TCP connection, so a slow response blocks the connection and browsers open ~6 connections per host to get parallelism. **HTTP/2** (RFC 9113) fixes this by multiplexing: many independent *streams* share one TCP connection, each request/response carried as interleaved frames, plus header compression (HPACK) and server push. That removes HTTP/1.1's request-level head-of-line blocking — but all streams still ride one TCP byte stream, so one lost TCP segment stalls every stream behind it until the retransmit arrives (TCP-level HOL blocking). **HTTP/3** (RFC 9114) keeps HTTP/2's stream model but runs it over **QUIC** (RFC 9000), a reliable transport built on UDP with independent per-stream delivery and its own TLS 1.3 and loss recovery. A packet loss on one QUIC stream delays only that stream, not the others, and QUIC folds the transport and TLS handshake together for a faster connection setup. Clients discover HTTP/3 from an `Alt-Svc: h3` advertisement and switch on later visits.
@@ -25,7 +25,7 @@ HTTP/1.1 sends one request/response at a time per TCP connection, so a slow resp
 - [ ] **Are concurrent streams and header sizes bounded?** · Applies when: the diff configures or implements an HTTP/2/3 server endpoint. · Block if: there is no limit on concurrent streams or header-list size, so a client can exhaust memory.
 - [ ] **Is there a fallback when HTTP/3 is unreachable?** · Applies when: the diff depends on HTTP/3. · Block if: there is no h2/TCP fallback for networks that block or throttle UDP/443.
 - [ ] **Is early data (0-RTT) limited to idempotent requests?** · Applies when: the diff enables QUIC/TLS 0-RTT or h2 early data. · Block if: non-idempotent requests can be sent as early data, which can be replayed.
-- [ ] **Is h2/h3 justified for this traffic?** · Applies when: the diff enables HTTP/2 or HTTP/3 for a service. · Block if: the traffic is single-client, low-concurrency and on a near-lossless link, where HTTP/1.1 keep-alive suffices and the extra machinery buys nothing.
+- [ ] **Is h2/h3 justified for this traffic?** · Applies when: the diff enables HTTP/2 or HTTP/3 for a service. · Block if: the traffic is single-client, low-concurrency and on a near-lossless link, where HTTP/1.1 keep-alive suffices and the extra machinery buys nothing. · tripwire
 
 ## In the factory
 - **Client ↔ edge is already HTTP/2, with HTTP/3 offered, for free.** Cloudflare terminates both public hostnames: `curl -sI --http2 https://factory.svensonlabs.dev` returns `HTTP/2 401` and `curl … https://dash.svensonlabs.dev` returns `HTTP/2 302`, and both carry `alt-svc: h3=":443"; ma=86400` (measured) — so any h3-capable client upgrades. The factory wrote no code for this; the CDN provides it (048-cdn.md).

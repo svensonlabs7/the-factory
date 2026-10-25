@@ -2,7 +2,7 @@
 
 Track: I. Performance and scaling · Status: proven · Updated: 2026-10-19
 
-Triggers: lines `(?i)aws.?lambda|lambda_handler|cloud.?functions?|wrangler|\bserverless\b|vercel|netlify` · tripwire
+Triggers: lines `(?i)aws.?lambda|lambda_handler|cloud.?functions?|wrangler|\bserverless\b|vercel|netlify`
 
 ## What it is
 Serverless platforms run your code on demand and scale it for you, in exchange for hard limits you must design around. AWS says Lambda "is designed for short-lived compute tasks that do not retain or rely upon state between invocations". Its published limits include:
@@ -41,7 +41,7 @@ Work that runs for tens of minutes, needs Docker, or keeps state between request
 - [ ] **Is long work checkpointed and safe to re-invoke?** · Applies when: the diff runs multi-step work on a platform that can kill it at a limit. · Block if: progress lives only in memory, so a kill loses it, or re-invoking repeats completed side effects.
 - [ ] **Do payloads, memory and disk stay inside the limits at the largest input?** · Applies when: the diff sends, returns or buffers data in a serverless function. · Block if: the largest expected payload, memory or `/tmp` use is not checked against the platform's limits.
 - [ ] **Does the code rely only on state that survives invocations?** · Applies when: the diff keeps data in globals or `/tmp` of a serverless function. · Block if: correctness, not only speed, depends on that data persisting between invocations.
-- [ ] **Does the workload fit serverless at all?** · Applies when: the diff moves a service to a serverless platform. · Block if: it needs a daemon (Docker), long-lived connections, runs longer than the limit, or holds state across requests.
+- [ ] **Does the workload fit serverless at all?** · Applies when: the diff moves a service to a serverless platform. · Block if: it needs a daemon (Docker), long-lived connections, runs longer than the limit, or holds state across requests. · tripwire
 
 ## In the factory
 - The factory runs on a long-lived host by necessity. Its workloads break serverless limits:

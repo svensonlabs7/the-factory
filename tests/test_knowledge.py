@@ -26,7 +26,7 @@ def test_every_finished_topic_links_a_card_that_exists():
         assert (SYSTEMS / link.group(2)).is_file(), f"{number} {topic} links a missing card {link.group(2)}"
 
 
-ROUTE = SYSTEMS / "route.py"
+ROUTE = SYSTEMS.parents[1] / "factory" / "qa" / "route.py"
 _spec = importlib.util.spec_from_file_location("route", ROUTE)
 route = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(route)
@@ -41,24 +41,23 @@ def routed(*diffs):
     return route.render(route.parse("".join(diffs)))
 
 
-def test_every_card_has_triggers_and_every_tripwire_has_its_one_item():
+def test_every_card_has_triggers_and_a_tripwire_marks_one_item():
     cards = route.cards()
     assert len(cards) == len(list(SYSTEMS.glob("[0-9][0-9][0-9]-*.md"))) == 111
-    for name, files, lines, trip, items in cards:
-        assert files or lines, f"{name} has no trigger"
-        assert items, f"{name} has no checklist"
-        if trip:
-            assert any(route.JUSTIFY.search(item.split("**")[1]) for item in items), f"{name} has no is-it-justified item"
+    for card in cards:
+        assert card.files or card.lines, f"{card.name} has no trigger"
+        assert card.items, f"{card.name} has no checklist"
+        assert len(card.tripwire) <= 1, f"{card.name} marks more than one tripwire item"
+    assert len([card for card in cards if card.tripwire]) == 15
 
 
 def test_assumptions_name_cards_that_exist():
-    names = {name[:3] for name, *_ in route.cards()}
-    text = (SYSTEMS / "ASSUMPTIONS.md").read_text()
-    entries = re.findall(r"^- \*\*.+?\*\* · where .+? · lines `([^`]+)` · re-check ([\d ]+)$", text, re.M)
-    assert len(entries) == text.count("\n- **")
-    for regex, nums in entries:
+    names = {card.number for card in route.cards()}
+    entries = route.assumption_entries()
+    assert len(entries) == (SYSTEMS / "ASSUMPTIONS.md").read_text().count("\n- **")
+    for _, _, regex, nums in entries:
         re.compile(regex)
-        assert set(nums.split()) <= names
+        assert set(nums) <= names
 
 
 def test_a_subprocess_call_routes_to_the_timeouts_card():
@@ -71,7 +70,7 @@ def test_prose_tests_and_the_knowledge_base_route_to_nothing():
     assert out == "Systems checks: no card in knowledge/systems applies to this diff.\n"
 
 
-def test_a_tripwire_shows_only_its_is_it_justified_item():
+def test_a_tripwire_shows_only_its_marked_item():
     out = routed(diff("infra/main.tf", 'resource "x" "y" {}'))
     assert "### 105-terraform.md (tripwire" in out
     assert "Is Terraform the proportionate tool here?" in out
