@@ -72,7 +72,8 @@ def test_scope_bad_regex_fails_instead_of_skipping(repo):
 
 def test_lanes():
     assert {name: {k: v for k, v in lane.items() if k != "paths"} for name, lane in LANES.items()} == {
-        "thermo-nuclear": {"check": "thermo-nuclear", "skill": "/thermo-nuclear-code-quality-review", "model": "opus"},
+        "thermo-nuclear": {"check": "thermo-nuclear", "skill": "/thermo-nuclear-code-quality-review", "model": "opus",
+                           "systems": True},
         "ponytail-review": {"check": "ponytail-review", "skill": "/ponytail-review", "model": "sonnet"},
         "ux-laws": {"check": "ux-laws", "skill": "/ux-laws", "model": "sonnet"},
     }
@@ -95,3 +96,13 @@ def test_skipped_lane_writes_a_passing_review(tmp_path):
                    check=True)
     gate = next(line for line in next(step for step in JOB["steps"] if step.get("name") == "Review")["run"].splitlines() if line.lstrip().startswith("grep -E"))
     assert subprocess.run(["bash", "-o", "pipefail", "-c", gate], env={"RUNNER_TEMP": str(tmp_path), "PATH": "/usr/bin:/bin"}).returncode == 0
+
+
+def test_only_the_systems_lane_routes_and_its_review_receives_the_checks():
+    steps = {step.get("name"): step for step in JOB["steps"]}
+    assert [name for name, lane in LANES.items() if lane.get("systems")] == ["thermo-nuclear"]
+    route = steps["Route the systems checks"]
+    assert route["if"] == "steps.scope.outputs.run == 'true' && matrix.systems"
+    assert 'knowledge/systems/route.py "origin/${{ github.base_ref }}...pr-head"' in route["run"]
+    assert "CLAUDE_CODE_OAUTH_TOKEN" not in str(route)
+    assert "${systems:+" in steps["Review"]["run"]
