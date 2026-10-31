@@ -31,7 +31,8 @@ workdir, prompt, timeout = sys.argv[1:]
 subprocess.run([str(Path(__file__).with_name("egress.sh"))], check=True, timeout=600)
 # Set here, not by the caller, so only the container uses the proxy (forward_env copies these names in).
 os.environ.update(HTTPS_PROXY=PROXY, HTTP_PROXY=PROXY, NO_PROXY="localhost,127.0.0.1", CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1")
-# The caller passes a timeout shorter than its own kill limit, so a stuck agent ends here and the container is removed.
+# acp_prompt_timeout is an idle limit that every progress event resets, so it ends a silent agent, not a long one.
+# The adapter's AGENT_TIMEOUT is the only deadline on a round.
 agent = ACPAgent(acp_command=["claude-agent-acp"], acp_prompt_timeout=float(timeout))
 with DockerWorkspace(
     server_image=SERVER_IMAGE,
