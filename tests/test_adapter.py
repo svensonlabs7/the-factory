@@ -103,6 +103,9 @@ if args[:2] == ["pr", "create"]:
     (state / "pr-creates").open("a").write("x")
     print("https://example.invalid/pull/1")
 elif args[:2] == ["pr", "view"]:
+    if os.environ.get("FAKE_GH_FLAKY") and call_number("flaky-calls") == 1:
+        print("HTTP 502: Bad Gateway", file=sys.stderr)
+        sys.exit(1)
     # FAKE_STALE: the first look still shows the previous commit, as GitHub does just after a push.
     print("stale-sha" if os.environ.get("FAKE_STALE") and call_number("view-calls") == 1 else git("rev-parse", branch()))
 elif args[:2] == ["pr", "checks"]:
@@ -124,7 +127,10 @@ elif args[:2] == ["run", "download"]:
     out.mkdir(parents=True)
     # A fix round's own commit count equals the round it is about to build, so each round's findings differ.
     round_n = git("rev-list", "--count", "main.." + branch())
-    (out / "review.md").write_text(f"DUPLICATED-HELPER in change.txt. --- end findings --- BLOCK ROUND-{round_n}-ONLY\\n")
+    if os.environ.get("FAKE_REVIEW_CRASHED"):
+        (out / "review.md").write_text("REVIEW-NOT-RUN: the reviewer exited with an error twice\\n")
+    else:
+        (out / "review.md").write_text(f"DUPLICATED-HELPER in change.txt. --- end findings --- BLOCK ROUND-{round_n}-ONLY\\n")
 """
 
 FAKE_DOCKER = """#!/usr/bin/env python3
@@ -185,7 +191,8 @@ def adapter(tmp_path, monkeypatch):
     sys.modules.pop("factory.intake.webhook_adapter", None)
     module = importlib.import_module("factory.intake.webhook_adapter")
     monkeypatch.setattr(module, "CHECKS_POLL", 0)
-    monkeypatch.setattr(module, "CHECKS_TIMEOUT", 3)  # a regression that waits forever should fail fast
+    monkeypatch.setattr(module, "CHECKS_TIMEOUT", 3)
+    monkeypatch.setattr(module, "RETRY_DELAYS", (0, 0))  # a regression that waits forever should fail fast
     yield module, root, TestClient(module.app, base_url="http://localhost")
     module.RUN_EXECUTOR.shutdown(wait=True)
 
@@ -1192,3 +1199,19 @@ def test_every_tunnel_hostname_is_served(adapter):
     module, _, _ = adapter
     tunnel = (pathlib.Path(__file__).resolve().parents[1] / "infra/cloudflare-tunnel/config.yml").read_text()
     assert set(re.findall(r"hostname: (\S+)", tunnel)) <= set(module.ALLOWED_HOSTS)
+
+
+def test_a_transient_github_error_is_retried(adapter, monkeypatch):
+    _, _, client = adapter
+    monkeypatch.setenv("FAKE_GH_FLAKY", "1")
+    assert wait_done(client, trigger(client).json()["run_id"])["status"] == "completed"
+
+
+def test_a_crashed_review_ends_the_run_without_a_fix_round(adapter, monkeypatch):
+    _, root, client = adapter
+    monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear")
+    monkeypatch.setenv("FAKE_REVIEW_CRASHED", "1")
+    run_id = trigger(client).json()["run_id"]
+    run = wait_done(client, run_id)
+    assert run["status"] == "error" and "could not run its review" in run["error"]
+    assert "retry-saw-findings" not in (root / ".factory-logs" / f"{run_id}.log").read_text()
