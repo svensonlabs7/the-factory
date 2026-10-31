@@ -32,7 +32,7 @@ Only when a browser page on one origin must call an API on another, such as a se
 ## In the factory
 - `factory/intake/webhook_adapter.py`: no CORS middleware or headers anywhere. Grok Bot is server-to-server and the dashboard calls its own origin, so none is needed. Right: in a real browser, a page on another site could not read `localhost:7654/heartbeat`.
 - `factory/intake/webhook_adapter.py:588-618`: the one state-changing route needs custom HMAC headers, which force a preflight that is never approved. Right (see 077-csrf.md).
-- Gap (low): no `Host` validation. The adapter answered `200` to `Host: rebind.attacker.example`, so a DNS-rebinding page visited by the operator could read `/command/data`, `/heartbeat` and `/status` from the browser (see GAPS.md). Nothing can be written without the HMAC secret.
+- Fixed (was a low gap): the adapter answered `200` to `Host: rebind.attacker.example`, so a DNS-rebinding page visited by the operator could read `/command/data`, `/heartbeat` and `/status`. `TrustedHostMiddleware` now serves only the two tunnel hostnames and localhost, and `test_only_the_tunnel_hostnames_and_localhost_are_served` returns `400` for any other Host.
 - Not applicable at today's load: per-origin CORS policy. No browser client lives on another origin.
 
 ## Proof

@@ -34,7 +34,7 @@ Validate JWTs wherever you accept them, at any scale. That includes tokens an ed
 ## In the factory
 - The factory issues no JWTs, and nothing in `factory/` parses one. Its own signed requests use an HMAC secret with a current-plus-previous rotation (`factory/intake/webhook_adapter.py:49`, `FACTORY_WEBHOOK_SECRET_PREVIOUS`), the same overlap model as `kid`-based rotation. Right.
 - Cloudflare Access sits in front of both hostnames and adds a signed `Cf-Access-Jwt-Assertion` header to every request it lets through (`infra/cloudflare-tunnel/README.md`). Cloudflare rotates that key about every 6 weeks and keeps the previous one valid for 7 days.
-- Gap (low): the adapter never validates that header, so it cannot tell a request that passed Access from one that reached `localhost:7654` some other way (a local process, or the DNS-rebinding case in 076-cors.md) (see GAPS.md).
+- Decided not to validate it. The adapter cannot tell a request that passed Access from one that reached `localhost:7654` another way, but the Host check (076-cors.md) now closes the DNS-rebinding way, and what remains is a local process, which can already read `.env` and the logs. Validation would add a JWT library and a key fetch to block nothing new. Revisit if the adapter ever listens beyond localhost.
 - Not applicable at today's load: issuing JWTs, or a JWKS endpoint of the factory's own.
 
 ## Proof

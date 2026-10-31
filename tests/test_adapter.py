@@ -185,7 +185,7 @@ def adapter(tmp_path, monkeypatch):
     module = importlib.import_module("factory.intake.webhook_adapter")
     monkeypatch.setattr(module, "CHECKS_POLL", 0)
     monkeypatch.setattr(module, "CHECKS_TIMEOUT", 3)  # a regression that waits forever should fail fast
-    yield module, root, TestClient(module.app)
+    yield module, root, TestClient(module.app, base_url="http://localhost")
     module.RUN_EXECUTOR.shutdown(wait=True)
 
 
@@ -556,7 +556,7 @@ def test_a_fix_round_that_deletes_the_work_is_an_error_not_a_pass(adapter, monke
 def restart(root):
     sys.modules.pop("factory.intake.webhook_adapter", None)
     module = importlib.import_module("factory.intake.webhook_adapter")
-    return module, TestClient(module.app)
+    return module, TestClient(module.app, base_url="http://localhost")
 
 
 def test_run_state_survives_a_restart(adapter):
@@ -981,7 +981,7 @@ def test_alive_at_is_stamped_while_the_service_runs_and_stops_after(adapter, mon
     module, root, _ = adapter
     monkeypatch.setattr(module, "ALIVE_INTERVAL", 0.05)
     alive = lambda: re.search(r"\| \*\*alive_at\*\* \| (.*?) \|", (root / "HEARTBEAT.md").read_text())[1]
-    with TestClient(module.app):
+    with TestClient(module.app, base_url="http://localhost"):
         deadline = time.time() + 3
         while alive() == "—" and time.time() < deadline:
             time.sleep(0.02)
@@ -1178,3 +1178,10 @@ def test_command_data_limits_agree_with_what_trigger_enforces(idle_queue):
     assert client.get("/command/data").json()["limits"] == {
         "max_pending": 5, "max_runs_per_day": 30, "max_retries": 2, "pending": 5, "runs_24h": 8,
     }
+
+
+@pytest.mark.parametrize("host, code", [("rebind.attacker.example", 400), ("dash.svensonlabs.dev", 200),
+                                        ("factory.svensonlabs.dev", 200), ("127.0.0.1:7654", 200)])
+def test_only_the_tunnel_hostnames_and_localhost_are_served(adapter, host, code):
+    _, _, client = adapter
+    assert client.get("/health", headers={"Host": host}).status_code == code

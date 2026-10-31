@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.svenson.factory-beacon</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/labs/projects/the-factory/factory/intake/beacon.sh</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/labs/projects/the-factory</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/labs/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/labs</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StartInterval</key>
+    <integer>600</integer>
+    <key>StandardOutPath</key>
+    <string>/Users/labs/projects/the-factory/.factory-logs/beacon.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/labs/projects/the-factory/.factory-logs/beacon.log</string>
+</dict>
+</plist>
