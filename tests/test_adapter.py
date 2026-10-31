@@ -5,6 +5,7 @@ import importlib
 import itertools
 import json
 import os
+import pathlib
 import random
 import re
 import string
@@ -1185,3 +1186,9 @@ def test_command_data_limits_agree_with_what_trigger_enforces(idle_queue):
 def test_only_the_tunnel_hostnames_and_localhost_are_served(adapter, host, code):
     _, _, client = adapter
     assert client.get("/health", headers={"Host": host}).status_code == code
+
+
+def test_every_tunnel_hostname_is_served(adapter):
+    module, _, _ = adapter
+    tunnel = (pathlib.Path(__file__).resolve().parents[1] / "infra/cloudflare-tunnel/config.yml").read_text()
+    assert set(re.findall(r"hostname: (\S+)", tunnel)) <= set(module.ALLOWED_HOSTS)

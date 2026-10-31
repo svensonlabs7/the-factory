@@ -80,6 +80,31 @@ cp factory/intake/com.svenson.factory-intake.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.svenson.factory-intake.plist
 ```
 
+After a change to the adapter, restart it so the running process loads the new code, and check it:
+
+```bash
+launchctl kickstart -k gui/$(id -u)/com.svenson.factory-intake
+curl -s 127.0.0.1:7654/health                                     # {"status":"ok"}
+curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: x.example' 127.0.0.1:7654/health   # 400: only tunnel hostnames and localhost
+```
+
+## The off-machine alert
+
+`beacon.sh`, run by `com.svenson.factory-beacon.plist` every 10 minutes, stamps the repo variable `FACTORY_ALIVE_AT` while
+`/health` answers. `.github/workflows/watchdog.yml` runs every 15 minutes on GitHub and fails when the stamp is over 30
+minutes old. GitHub emails a failed scheduled run to whoever last changed that workflow's schedule. The beacon uses the
+host's `gh` login, which needs write access to the repo's Actions variables (the owner's token has it).
+
+```bash
+cp factory/intake/com.svenson.factory-beacon.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.svenson.factory-beacon.plist
+gh variable get FACTORY_ALIVE_AT          # a Unix time from the last 10 minutes
+gh workflow run watchdog.yml              # then: gh run list --workflow watchdog.yml --limit 1  (success)
+```
+
+GitHub turns scheduled workflows off after 60 days without repo activity. If the factory goes quiet for that long, re-enable
+`watchdog` in the Actions tab.
+
 ## Rotating the webhook secret
 
 While `FACTORY_WEBHOOK_SECRET_PREVIOUS` is set, a request signed with either secret is accepted. An empty value counts as unset.

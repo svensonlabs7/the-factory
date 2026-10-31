@@ -1,7 +1,8 @@
 name: watchdog
 
 # The off-machine alert. factory/intake/beacon.sh stamps FACTORY_ALIVE_AT every 10 minutes while the adapter answers.
-# This fails when the stamp is over 30 minutes old, and GitHub emails the owner about a failed scheduled run.
+# This fails when the stamp is over 30 minutes old. GitHub emails a failed scheduled run to whoever last changed this
+# schedule, and turns scheduled workflows off after 60 days without repo activity (factory/intake/README.md).
 on:
   schedule:
     - cron: "*/15 * * * *"
