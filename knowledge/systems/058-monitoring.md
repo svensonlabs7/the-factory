@@ -31,7 +31,7 @@ Every service that someone depends on needs at least one black-box probe of its 
 ## In the factory
 - `factory/intake/webhook_adapter.py:157-170` (`_stamp_alive`), `/heartbeat`, `/command/data`: white-box signals exist (`alive_at` every minute, run state, limits), and the dashboard shows them. Right, as signals.
 - `pmset -g custom`: on AC power the Mac is set to `sleep 0` (never), so the factory does not stop when the machine is idle. Right.
-- Gap (medium): nothing watches. Every client in the access log is local or the operator's own home addresses (the dashboard). `/heartbeat` is not routed by the tunnel (`infra/cloudflare-tunnel/config.yml:6`), so the intended watcher, Grok Bot, cannot reach it. A probe without credentials gets the same Cloudflare Access 401 for `/health` and for a path that does not exist, so it learns nothing about the origin (see GAPS.md).
+- Fixed in #60 (was a medium gap: nothing outside the Mac watched, and `/heartbeat` was not reachable). `factory/intake/beacon.sh` (launchd, every 10 minutes) stamps the repo variable `FACTORY_ALIVE_AT` while `/health` answers, and `.github/workflows/watchdog.yml` runs on GitHub every 15 minutes and fails when the stamp is over 30 minutes old, which emails the operator. Tested both ways on the live system: a 12-second-old stamp passed, a stamp backdated to 3,606 seconds failed.
 - Not applicable at today's load: multi-location probes and synthetic transactions. One authenticated probe of `/health`, plus one reader of `/heartbeat` with alerting, covers it.
 
 ## Proof
