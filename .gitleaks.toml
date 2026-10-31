@@ -1,0 +1,9 @@
+# Adds to gitleaks' default rules; without useDefault this file would replace them and every scan would go blind.
+[extend]
+useDefault = true
+
+# Card cross-references such as "067-secrets-management.md, 012-retries.md" trip generic-api-key.
+[[allowlists]]
+description = "systems card file names"
+regexTarget = "match"
+regexes = ['''\d{3}-secrets-management\.md''']

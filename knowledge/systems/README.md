@@ -6,6 +6,8 @@ A learning loop that works through 111 systems-engineering topics, then turns wh
 - `<NNN>-<slug>.md` is one card per topic, written by `/systems-mastery`.
 - `GAPS.md` lists places where the factory falls short of a card. The operator turns rows into factory tasks.
 - `REVIEWS.md` records each tenth-card review pass.
+- `ASSUMPTIONS.md` lists the load facts that "not needed here" verdicts rest on.
+- `proofs/` holds each card's experiment. `factory/qa/route.py` routes a diff to the checks it triggers.
 
 ## Start the loop
 
@@ -19,7 +21,15 @@ Paste this into an interactive Claude Code session in this repo:
 
 ## Into the factory
 
-1. **Now:** run `/systems-review` by hand. It PASSes until cards exist. It is user-invoked only (`disable-model-invocation: true`), so factory builds do not spend turns on it yet.
-2. **After track A (resilience) is done:** add `systems-review` as a lane in `.github/workflows/qa-gate.yml`, next to `ux-laws`, and make it a required check. The gate invokes it explicitly, as it does thermo-nuclear.
-3. **After track A:** remove `disable-model-invocation` from the skill, and add one line to `TASK_PROMPT_TEMPLATE` in `factory/intake/webhook_adapter.py` telling builders to run `/systems-review` before and after building.
-4. **As GAPS.md grows:** the operator turns `high` rows into factory tasks.
+The cards are never loaded whole: all of them come to about 170,000 tokens. Each check runs at the cheapest level
+that can enforce it.
+
+1. **Rules, no model.** `factory/qa/rules.py` runs in the `static` lane and checks what a machine can decide alone
+   (subprocess timeouts, `shell=True`, unpinned actions, HTML built from strings). Each finding names its card.
+2. **Routed checklist.** `factory/qa/route.py` reads each card's `Triggers` line and prints only what a diff touches: open
+   `GAPS.md` rows near the changed lines, `ASSUMPTIONS.md` facts it changes, and the matching cards' checklist items,
+   tripwire cards first and capped at 15 items. Over the last 20 merged PRs that averaged about 1,100 tokens. The
+   builder runs it before committing (`TASK_PROMPT_TEMPLATE`), and the thermo-nuclear lane appends it to its prompt,
+   so it costs no extra Claude session.
+3. **The full card, on demand.** A builder or reviewer opens a card only for its reasoning.
+4. **On a cadence, not per PR.** The tenth-card reviews, and the operator turning `GAPS.md` rows into factory tasks.

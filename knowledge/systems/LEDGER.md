@@ -9,169 +9,178 @@ Status: `todo` → `learned` (card written, proof reasoned) → `proven` (card w
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 11 | Timeouts | todo | |
-| 12 | Retries | todo | |
-| 13 | Exponential Backoff | todo | |
-| 14 | Idempotency | todo | |
-| 10 | Circuit Breakers | todo | |
-| 1 | Rate Limiting | todo | |
-| 44 | Backpressure | todo | |
-| 20 | Dead Letter Queues | todo | |
-| 101 | Webhooks | todo | |
-| 56 | Health Checks | todo | |
-| 57 | Liveness & Readiness Probes | todo | |
+| 11 | Timeouts | proven | [011-timeouts.md](011-timeouts.md) |
+| 12 | Retries | proven | [012-retries.md](012-retries.md) |
+| 13 | Exponential Backoff | proven | [013-exponential-backoff.md](013-exponential-backoff.md) |
+| 14 | Idempotency | proven | [014-idempotency.md](014-idempotency.md) |
+| 10 | Circuit Breakers | proven | [010-circuit-breakers.md](010-circuit-breakers.md) |
+| 1 | Rate Limiting | proven | [001-rate-limiting.md](001-rate-limiting.md) |
+| 44 | Backpressure | proven | [044-backpressure.md](044-backpressure.md) |
+| 20 | Dead Letter Queues | proven | [020-dead-letter-queues.md](020-dead-letter-queues.md) |
+| 101 | Webhooks | proven | [101-webhooks.md](101-webhooks.md) |
+| 56 | Health Checks | proven | [056-health-checks.md](056-health-checks.md) |
+| 57 | Liveness & Readiness Probes | proven | [057-liveness-readiness-probes.md](057-liveness-readiness-probes.md) |
 
 ## B. Security
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 67 | Secrets Management | todo | |
-| 80 | SSRF | todo | |
-| 78 | SQL Injection | todo | |
-| 79 | XSS | todo | |
-| 77 | CSRF | todo | |
-| 76 | CORS | todo | |
-| 68 | IAM | todo | |
-| 69 | OAuth | todo | |
-| 70 | JWT Rotation | todo | |
-| 71 | TLS | todo | |
-| 73 | Encryption in Transit | todo | |
-| 72 | Encryption at Rest | todo | |
-| 74 | WAF | todo | |
-| 75 | DDoS Protection | todo | |
+| 67 | Secrets Management | proven | [067-secrets-management.md](067-secrets-management.md) |
+| 80 | SSRF | proven | [080-ssrf.md](080-ssrf.md) |
+| 78 | SQL Injection | proven | [078-sql-injection.md](078-sql-injection.md) |
+| 79 | XSS | proven | [079-xss.md](079-xss.md) |
+| 77 | CSRF | proven | [077-csrf.md](077-csrf.md) |
+| 76 | CORS | proven | [076-cors.md](076-cors.md) |
+| 69 | OAuth | proven | [069-oauth.md](069-oauth.md) |
+| 70 | JWT Rotation | proven | [070-jwt-rotation.md](070-jwt-rotation.md) |
+| 71 | TLS | proven | [071-tls.md](071-tls.md) |
+| 73 | Encryption in Transit | proven | [073-encryption-in-transit.md](073-encryption-in-transit.md) |
+| 72 | Encryption at Rest | proven | [072-encryption-at-rest.md](072-encryption-at-rest.md) |
+| 74 | WAF | proven | [074-waf.md](074-waf.md) |
+| 75 | DDoS Protection | proven | [075-ddos-protection.md](075-ddos-protection.md) |
 
 ## C. Observability
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 59 | Logging | todo | |
-| 61 | Metrics | todo | |
-| 58 | Monitoring | todo | |
-| 62 | Alerts | todo | |
-| 64 | SLIs | todo | |
-| 63 | SLOs | todo | |
-| 65 | Error Budgets | todo | |
-| 60 | Distributed Tracing | todo | |
-| 66 | Observability | todo | |
+| 59 | Logging | proven | [059-logging.md](059-logging.md) |
+| 61 | Metrics | proven | [061-metrics.md](061-metrics.md) |
+| 58 | Monitoring | proven | [058-monitoring.md](058-monitoring.md) |
+| 62 | Alerts | proven | [062-alerts.md](062-alerts.md) |
+| 64 | SLIs | proven | [064-slis.md](064-slis.md) |
+| 63 | SLOs | proven | [063-slos.md](063-slos.md) |
+| 65 | Error Budgets | proven | [065-error-budgets.md](065-error-budgets.md) |
+| 60 | Distributed Tracing | proven | [060-distributed-tracing.md](060-distributed-tracing.md) |
+| 66 | Observability | proven | [066-observability.md](066-observability.md) |
 
 ## D. Concurrency and correctness
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 39 | Race Conditions | todo | |
-| 43 | Thread Safety | todo | |
-| 40 | Deadlocks | todo | |
-| 36 | Optimistic Locking | todo | |
-| 37 | Pessimistic Locking | todo | |
-| 38 | Distributed Locks | todo | |
-| 41 | Memory Leaks | todo | |
-| 42 | Garbage Collection | todo | |
+| 39 | Race Conditions | proven | [039-race-conditions.md](039-race-conditions.md) |
+| 43 | Thread Safety | proven | [043-thread-safety.md](043-thread-safety.md) |
+| 40 | Deadlocks | proven | [040-deadlocks.md](040-deadlocks.md) |
+| 36 | Optimistic Locking | proven | [036-optimistic-locking.md](036-optimistic-locking.md) |
+| 37 | Pessimistic Locking | proven | [037-pessimistic-locking.md](037-pessimistic-locking.md) |
+| 38 | Distributed Locks | proven | [038-distributed-locks.md](038-distributed-locks.md) |
+| 41 | Memory Leaks | proven | [041-memory-leaks.md](041-memory-leaks.md) |
+| 42 | Garbage Collection | proven | [042-garbage-collection.md](042-garbage-collection.md) |
 
 ## E. Delivery and change
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 6 | CI/CD | todo | |
-| 55 | Rollbacks | todo | |
-| 51 | Feature Flags | todo | |
-| 54 | Rolling Deployments | todo | |
-| 52 | Blue-Green Deployment | todo | |
-| 53 | Canary Releases | todo | |
-| 81 | Database Migrations | todo | |
-| 82 | Schema Versioning | todo | |
-| 102 | API Versioning | todo | |
-| 103 | Semantic Versioning | todo | |
-| 108 | Dependency Hell | todo | |
-| 107 | Build Caching | todo | |
+| 6 | CI/CD | proven | [006-ci-cd.md](006-ci-cd.md) |
+| 55 | Rollbacks | proven | [055-rollbacks.md](055-rollbacks.md) |
+| 51 | Feature Flags | proven | [051-feature-flags.md](051-feature-flags.md) |
+| 54 | Rolling Deployments | proven | [054-rolling-deployments.md](054-rolling-deployments.md) |
+| 52 | Blue-Green Deployment | proven | [052-blue-green-deployment.md](052-blue-green-deployment.md) |
+| 53 | Canary Releases | proven | [053-canary-releases.md](053-canary-releases.md) |
+| 81 | Database Migrations | proven | [081-database-migrations.md](081-database-migrations.md) |
+| 82 | Schema Versioning | proven | [082-schema-versioning.md](082-schema-versioning.md) |
+| 102 | API Versioning | proven | [102-api-versioning.md](102-api-versioning.md) |
+| 103 | Semantic Versioning | proven | [103-semantic-versioning.md](103-semantic-versioning.md) |
+| 108 | Dependency Hell | proven | [108-dependency-hell.md](108-dependency-hell.md) |
+| 107 | Build Caching | proven | [107-build-caching.md](107-build-caching.md) |
 
 ## F. Async and messaging
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 15 | Message Queues | todo | |
-| 16 | Pub/Sub | todo | |
-| 17 | Event-Driven Architecture | todo | |
-| 21 | Cron Jobs | todo | |
-| 23 | Long Polling | todo | |
-| 24 | Server-Sent Events | todo | |
-| 22 | WebSockets | todo | |
+| 15 | Message Queues | proven | [015-message-queues.md](015-message-queues.md) |
+| 16 | Pub/Sub | proven | [016-pub-sub.md](016-pub-sub.md) |
+| 17 | Event-Driven Architecture | proven | [017-event-driven-architecture.md](017-event-driven-architecture.md) |
+| 21 | Cron Jobs | proven | [021-cron-jobs.md](021-cron-jobs.md) |
+| 23 | Long Polling | proven | [023-long-polling.md](023-long-polling.md) |
+| 24 | Server-Sent Events | proven | [024-server-sent-events.md](024-server-sent-events.md) |
+| 22 | WebSockets | proven | [022-websockets.md](022-websockets.md) |
 
 ## G. Data
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 25 | Database Indexing | todo | |
-| 26 | Query Optimization | todo | |
-| 27 | N+1 Queries | todo | |
-| 28 | Connection Pooling | todo | |
-| 32 | Replication | todo | |
-| 29 | Read Replicas | todo | |
-| 31 | Partitioning | todo | |
-| 30 | Sharding | todo | |
+| 25 | Database Indexing | proven | [025-database-indexing.md](025-database-indexing.md) |
+| 26 | Query Optimization | proven | [026-query-optimization.md](026-query-optimization.md) |
+| 27 | N+1 Queries | proven | [027-n-plus-one-queries.md](027-n-plus-one-queries.md) |
+| 28 | Connection Pooling | proven | [028-connection-pooling.md](028-connection-pooling.md) |
+| 32 | Replication | proven | [032-replication.md](032-replication.md) |
+| 29 | Read Replicas | proven | [029-read-replicas.md](029-read-replicas.md) |
+| 31 | Partitioning | proven | [031-partitioning.md](031-partitioning.md) |
+| 30 | Sharding | proven | [030-sharding.md](030-sharding.md) |
 
 ## H. Distributed systems
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 95 | Network Partitions | todo | |
-| 34 | CAP Theorem | todo | |
-| 35 | Eventual Consistency | todo | |
-| 96 | Clock Skew | todo | |
-| 33 | Leader Election | todo | |
-| 18 | Distributed Transactions | todo | |
-| 19 | Saga Pattern | todo | |
+| 95 | Network Partitions | proven | [095-network-partitions.md](095-network-partitions.md) |
+| 34 | CAP Theorem | proven | [034-cap-theorem.md](034-cap-theorem.md) |
+| 35 | Eventual Consistency | proven | [035-eventual-consistency.md](035-eventual-consistency.md) |
+| 96 | Clock Skew | proven | [096-clock-skew.md](096-clock-skew.md) |
+| 33 | Leader Election | proven | [033-leader-election.md](033-leader-election.md) |
+| 18 | Distributed Transactions | proven | [018-distributed-transactions.md](018-distributed-transactions.md) |
+| 19 | Saga Pattern | proven | [019-saga-pattern.md](019-saga-pattern.md) |
 
 ## I. Performance and scaling
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 91 | Latency | todo | |
-| 92 | Throughput | todo | |
-| 93 | P99 Latency | todo | |
-| 94 | Tail Latency | todo | |
-| 2 | Caching | todo | |
-| 50 | Cache Invalidation | todo | |
-| 47 | Vertical Scaling | todo | |
-| 46 | Horizontal Scaling | todo | |
-| 45 | Autoscaling | todo | |
-| 48 | CDN | todo | |
-| 49 | Edge Caching | todo | |
-| 89 | Cold Starts | todo | |
-| 90 | Serverless Limits | todo | |
-| 88 | Cost Optimization | todo | |
+| 91 | Latency | proven | [091-latency.md](091-latency.md) |
+| 92 | Throughput | proven | [092-throughput.md](092-throughput.md) |
+| 93 | P99 Latency | proven | [093-p99-latency.md](093-p99-latency.md) |
+| 94 | Tail Latency | proven | [094-tail-latency.md](094-tail-latency.md) |
+| 2 | Caching | proven | [002-caching.md](002-caching.md) |
+| 50 | Cache Invalidation | proven | [050-cache-invalidation.md](050-cache-invalidation.md) |
+| 47 | Vertical Scaling | proven | [047-vertical-scaling.md](047-vertical-scaling.md) |
+| 46 | Horizontal Scaling | proven | [046-horizontal-scaling.md](046-horizontal-scaling.md) |
+| 45 | Autoscaling | proven | [045-autoscaling.md](045-autoscaling.md) |
+| 48 | CDN | proven | [048-cdn.md](048-cdn.md) |
+| 49 | Edge Caching | proven | [049-edge-caching.md](049-edge-caching.md) |
+| 89 | Cold Starts | proven | [089-cold-starts.md](089-cold-starts.md) |
+| 90 | Serverless Limits | proven | [090-serverless-limits.md](090-serverless-limits.md) |
+| 88 | Cost Optimization | proven | [088-cost-optimization.md](088-cost-optimization.md) |
 
 ## J. Networking and protocols
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 97 | DNS | todo | |
-| 98 | TCP vs UDP | todo | |
-| 99 | HTTP/2 & HTTP/3 | todo | |
-| 4 | Reverse Proxies | todo | |
-| 3 | Load Balancing | todo | |
-| 5 | API Gateways | todo | |
-| 9 | Service Discovery | todo | |
-| 100 | gRPC | todo | |
+| 97 | DNS | proven | [097-dns.md](097-dns.md) |
+| 98 | TCP vs UDP | proven | [098-tcp-vs-udp.md](098-tcp-vs-udp.md) |
+| 99 | HTTP/2 & HTTP/3 | proven | [099-http2-http3.md](099-http2-http3.md) |
+| 4 | Reverse Proxies | proven | [004-reverse-proxies.md](004-reverse-proxies.md) |
+| 3 | Load Balancing | proven | [003-load-balancing.md](003-load-balancing.md) |
+| 5 | API Gateways | proven | [005-api-gateways.md](005-api-gateways.md) |
+| 9 | Service Discovery | proven | [009-service-discovery.md](009-service-discovery.md) |
+| 100 | gRPC | proven | [100-grpc.md](100-grpc.md) |
 
 ## K. Infrastructure
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 7 | Docker | todo | |
-| 104 | Infrastructure as Code | todo | |
-| 105 | Terraform | todo | |
-| 8 | Kubernetes | todo | |
-| 106 | Helm Charts | todo | |
+| 7 | Docker | proven | [007-docker.md](007-docker.md) |
+| 104 | Infrastructure as Code | proven | [104-infrastructure-as-code.md](104-infrastructure-as-code.md) |
+| 105 | Terraform | proven | [105-terraform.md](105-terraform.md) |
+| 8 | Kubernetes | proven | [008-kubernetes.md](008-kubernetes.md) |
+| 106 | Helm Charts | proven | [106-helm-charts.md](106-helm-charts.md) |
 
 ## L. Operations and recovery
 
 | # | Topic | Status | Card |
 |---|---|---|---|
-| 109 | Production Incidents | todo | |
-| 110 | On-Call | todo | |
-| 111 | Postmortems | todo | |
-| 84 | Backups | todo | |
-| 83 | Disaster Recovery | todo | |
-| 85 | Failover | todo | |
-| 86 | Multi-Region Deployment | todo | |
-| 87 | Chaos Engineering | todo | |
+| 109 | Production Incidents | proven | [109-production-incidents.md](109-production-incidents.md) |
+| 110 | On-Call | proven | [110-on-call.md](110-on-call.md) |
+| 111 | Postmortems | proven | [111-postmortems.md](111-postmortems.md) |
+| 84 | Backups | proven | [084-backups.md](084-backups.md) |
+| 83 | Disaster Recovery | proven | [083-disaster-recovery.md](083-disaster-recovery.md) |
+| 85 | Failover | proven | [085-failover.md](085-failover.md) |
+| 86 | Multi-Region Deployment | proven | [086-multi-region-deployment.md](086-multi-region-deployment.md) |
+| 87 | Chaos Engineering | proven | [087-chaos-engineering.md](087-chaos-engineering.md) |
+
+## Deferred
+
+Revisit later. These rows are picked only after every row above is done.
+
+- **68. IAM:** paused on 2026-10-18 at the operator's request; revisit later. The audit of the factory's GitHub push identity and `main`'s protection was done, but the card was not written. When revisiting, write the card around the defensive fixes (narrowest token for the adapter, one identity per workload).
+
+| # | Topic | Status | Card |
+|---|---|---|---|
+| 68 | IAM | proven | [068-iam.md](068-iam.md) |

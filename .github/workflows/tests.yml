@@ -11,7 +11,7 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
       - run: pip install pytest fastapi httpx pyyaml
       # The adapter scans every push with gitleaks, so the tests need the real scanner (same pin as static.yml).
       - name: Install gitleaks 8.30.1 (checksum pinned)

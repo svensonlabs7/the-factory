@@ -252,6 +252,7 @@ TASK_PROMPT_TEMPLATE = """\
 /poteto-mode {user_task}
 
 Follow the ponytail skill: the smallest change that fully solves the task.
+Before you commit, run `python3 factory/qa/route.py` and handle every item it prints whose "Block if" is true for your change.
 You are in a git repository on branch {branch}. When you are done, run: git add -A && git commit -m "factory: {run_id}"
 Do not push or open a PR, and skip any playbook step that does. The factory publishes your branch.
 """
