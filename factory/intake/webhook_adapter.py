@@ -12,6 +12,7 @@ Endpoints:
 """
 
 import datetime as dt
+import fcntl
 import hashlib
 import hmac
 import json
@@ -88,6 +89,14 @@ RUNS_DIR = FACTORY_ROOT.parent / "the-factory-runs"
 HEARTBEAT_FILE = FACTORY_ROOT / "HEARTBEAT.md"
 ALIVE_INTERVAL = 60  # seconds between alive_at stamps, so the-machine can tell idle from dead
 REPLAY_DIR.mkdir(parents=True, exist_ok=True)
+# One adapter per FACTORY_ROOT. A second one (a debugging uvicorn, a second plist, a restart racing the old process)
+# would mark the live run's work as error in _recover and build alongside it, so it must not get past this line.
+# The open file keeps the lock for the life of the process; the OS releases it when the process ends.
+_INSTANCE_LOCK = open(LOG_DIR / "adapter.lock", "w")
+try:
+    fcntl.flock(_INSTANCE_LOCK, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except BlockingIOError:
+    raise RuntimeError(f"another adapter is already running against {FACTORY_ROOT}") from None
 # HEARTBEAT.md is untracked (the adapter rewrites it constantly), so a fresh checkout starts from the template.
 if not HEARTBEAT_FILE.exists():
     shutil.copy(FACTORY_ROOT / "HEARTBEAT.template.md", HEARTBEAT_FILE)
@@ -357,8 +366,10 @@ def _push(branch: str, workdir: Path, since: str) -> str:
     credentials, and git run inside the agent's clone would execute whatever hooks and config the agent wrote
     there. The fetch only reads objects from that clone."""
     _run("git", "fetch", "--quiet", "origin", "main", retry=True)
-    _run("git", "fetch", "--quiet", str(workdir), branch, retry=True)
-    head = _run("git", "rev-parse", "FETCH_HEAD")
+    # Into a ref this run owns: FETCH_HEAD is shared with every other fetch in FACTORY_ROOT, the operator's included.
+    ref = f"refs/factory/{branch}"
+    _run("git", "fetch", "--quiet", str(workdir), f"+{branch}:{ref}", retry=True)
+    head = _run("git", "rev-parse", ref)
     if _run("git", "rev-list", "--count", f"{since}..{head}") == "0":
         raise RuntimeError("agent made no commits")
     # A fix that deletes the work leaves nothing for the gate to object to, so an empty PR is not a pass.

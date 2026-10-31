@@ -79,10 +79,11 @@ mkdir -p .factory-logs  # launchd opens its log files before the adapter can cre
 infra/install.sh        # installs and loads this agent, the beacon and the tunnel (infra/README.md)
 ```
 
-After a change to the adapter, restart it so the running process loads the new code, and check it:
+After a change to the adapter, restart it so the running process loads the new code, and check it. The script refuses
+while a run is in flight, because a restart ends every in-flight run as `error` and loses its build:
 
 ```bash
-launchctl kickstart -k gui/$(id -u)/com.svenson.factory-intake
+factory/intake/restart.sh          # --force restarts anyway
 curl -s 127.0.0.1:7654/health                                     # {"status":"ok"}
 curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: x.example' 127.0.0.1:7654/health   # 400: only tunnel hostnames and localhost
 ```
