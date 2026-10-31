@@ -64,6 +64,8 @@ USAGE_LIMIT_MAX_WAIT = 5 * 3600
 CHECKS_TIMEOUT = 1200  # seconds to wait for the required checks, per round
 CHECKS_POLL = 15
 RETRY_DELAYS = (2, 8)  # seconds before the second and third tries of a command that is safe to repeat
+TRANSIENT = re.compile(r"(?i)HTTP 5\d\d|connection (reset|refused|closed)|could not resolve host|unexpected disconnect|"
+                       r"TLS handshake timeout|i/o timeout|temporary failure")  # worth retrying; anything else is not
 COMMAND_TIMEOUT = 300  # seconds for any single git or gh call, so a hang cannot hold the queue
 FINDINGS_LIMIT = 12000  # caps one round's own review text (tail) and the combined rendered history (prefix, oldest rounds first)
 LOG_TAIL = 4000  # characters of a failed run's log kept as findings
@@ -320,19 +322,19 @@ def _stop_containers(workdir: Path) -> None:
 
 def _run(*cmd: str, cwd: Path = FACTORY_ROOT, retry: bool = False) -> str:
     """Run a command and return its stdout, or raise RuntimeError. retry=True is only for commands that are safe to
-    repeat (reads, fetches, pushing the same commit): a GitHub 5xx or a dropped connection is tried again after each of
-    RETRY_DELAYS. A hung command is reported as an error, never as the agent's timeout."""
+    repeat (reads, fetches, pushing the same commit): a failure whose stderr looks TRANSIENT is tried again after each
+    of RETRY_DELAYS. Any other failure, and a hung command, raises at once, so callers keep their own deadlines; a hang
+    is reported as an error, never as the agent's timeout."""
     delays = list(RETRY_DELAYS) if retry else []
     while True:
         try:
             result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=COMMAND_TIMEOUT)
-            error = f"{' '.join(cmd)}: {result.stderr.strip()}" if result.returncode else None
         except subprocess.TimeoutExpired:
-            error = f"{' '.join(cmd)}: timed out after {COMMAND_TIMEOUT}s"
-        if error is None:
+            raise RuntimeError(f"{' '.join(cmd)}: timed out after {COMMAND_TIMEOUT}s")
+        if not result.returncode:
             return result.stdout.strip()
-        if not delays:
-            raise RuntimeError(error)
+        if not (delays and TRANSIENT.search(result.stderr)):
+            raise RuntimeError(f"{' '.join(cmd)}: {result.stderr.strip()}")
         time.sleep(delays.pop(0))
 
 
@@ -387,20 +389,24 @@ def _gate_results(pr_url: str, head: str) -> dict[str, str]:
     raise RuntimeError("timed out waiting for checks")
 
 
-def _findings(head: str, failed: list[str]) -> str:
-    """The reviewers' text for each failed check: its review artifact from the gate, else its failed run's log."""
+def _findings(head: str, failed: list[str]) -> tuple[str, list[str]]:
+    """The reviewers' text for each failed check (its review artifact from the gate, else its failed run's log), and
+    the failed checks whose reviewer itself crashed (its review starts with REVIEW_NOT_RUN)."""
     ci_runs = {r["name"]: r for r in json.loads(_run(GH_BIN, "run", "list", "--commit", head, "--json", "databaseId,name,conclusion", retry=True))}
-    parts = []
+    parts, not_run = [], []
     with tempfile.TemporaryDirectory() as tmp:
         if ci_runs.get(GATE_WORKFLOW, {}).get("conclusion") == "failure":
             _run(GH_BIN, "run", "download", str(ci_runs[GATE_WORKFLOW]["databaseId"]), "--pattern", REVIEW_ARTIFACT.format(check="*"), "--dir", tmp, retry=True)
         for check in failed:
             review = Path(tmp) / REVIEW_ARTIFACT.format(check=check) / "review.md"
             if review.exists():
-                parts.append(f"### {check}\n{review.read_text()}")
+                text = review.read_text()
+                parts.append(f"### {check}\n{text}")
+                if text.startswith(REVIEW_NOT_RUN):
+                    not_run.append(check)
             elif check in ci_runs:
                 parts.append(f"### {check}\n{_run(GH_BIN, 'run', 'view', str(ci_runs[check]['databaseId']), '--log-failed', retry=True)[-LOG_TAIL:]}")
-    return "\n\n".join(parts)[-FINDINGS_LIMIT:] or f"Failed checks: {', '.join(failed)}. No review text was available."
+    return "\n\n".join(parts)[-FINDINGS_LIMIT:] or f"Failed checks: {', '.join(failed)}. No review text was available.", not_run
 
 
 def _fix_prompt(task: str, findings_history: list[dict], branch: str, run_id: str) -> str:
@@ -533,9 +539,9 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
             failed = sorted(name for name, result in results.items() if result == "fail")
             if not failed:
                 return _finish(run_id, "completed")
-            findings = _findings(head, failed)
+            findings, not_run = _findings(head, failed)
             # A reviewer that crashed found nothing to fix, so a fix round would only feed the builder its error text.
-            if all(f"### {check}\n{REVIEW_NOT_RUN}" in findings for check in failed):
+            if sorted(not_run) == failed:
                 return _finish(run_id, "error", error=f"{', '.join(failed)} could not run its review; rerun the failed checks")
             if attempt > MAX_RETRIES:
                 return _finish(run_id, "blocked", blocking_reason=f"{', '.join(failed)} still failing after {MAX_RETRIES} fix rounds")

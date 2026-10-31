@@ -1215,3 +1215,15 @@ def test_a_crashed_review_ends_the_run_without_a_fix_round(adapter, monkeypatch)
     run = wait_done(client, run_id)
     assert run["status"] == "error" and "could not run its review" in run["error"]
     assert "retry-saw-findings" not in (root / ".factory-logs" / f"{run_id}.log").read_text()
+
+
+@pytest.mark.parametrize("stderr, tries", [("HTTP 502: Bad Gateway", 3), ("authentication required", 1),
+                                           ("no required checks reported on the 'factory/x' branch", 1)])
+def test_only_transient_failures_are_retried(adapter, tmp_path, stderr, tries):
+    module, _, _ = adapter
+    script = tmp_path / "flaky.sh"
+    script.write_text(f'#!/bin/sh\necho x >> "{tmp_path}/calls"\necho "{stderr}" >&2\nexit 1\n')
+    script.chmod(0o755)
+    with pytest.raises(RuntimeError):
+        module._run(str(script), retry=True)
+    assert len((tmp_path / "calls").read_text().split()) == tries
