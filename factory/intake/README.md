@@ -76,8 +76,7 @@ curl -X POST http://localhost:7654/trigger \
 ```bash
 echo "FACTORY_WEBHOOK_SECRET=$(openssl rand -hex 32)" >> .env
 mkdir -p .factory-logs  # launchd opens its log files before the adapter can create this
-cp factory/intake/com.svenson.factory-intake.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.svenson.factory-intake.plist
+infra/install.sh        # installs and loads this agent, the beacon and the tunnel (infra/README.md)
 ```
 
 After a change to the adapter, restart it so the running process loads the new code, and check it:
@@ -95,9 +94,9 @@ curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: x.example' 127.0.0.1:7654/hea
 minutes old. GitHub emails a failed scheduled run to whoever last changed that workflow's schedule. The beacon uses the
 host's `gh` login, which needs write access to the repo's Actions variables (the owner's token has it).
 
+`infra/install.sh` installs the beacon agent with the others. Then check it:
+
 ```bash
-cp factory/intake/com.svenson.factory-beacon.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.svenson.factory-beacon.plist
 gh variable get FACTORY_ALIVE_AT          # a Unix time from the last 10 minutes
 gh workflow run watchdog.yml              # then: gh run list --workflow watchdog.yml --limit 1  (success)
 ```

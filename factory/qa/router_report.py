@@ -11,7 +11,8 @@ import subprocess
 import sys
 import tempfile
 
-CARD = re.compile(r"\b\d{3}-[a-z0-9-]+\.md\b")
+NAME = r"\d{3}-[a-z0-9-]+\.md"
+CARD = re.compile(rf"\b{NAME}\b")
 GH_TIMEOUT = 120
 
 
@@ -19,7 +20,7 @@ def tally(pairs):
     """pairs: [(systems.md text, review.md text)] -> {card: [routed, cited when routed, cited when not routed]}."""
     counts = collections.defaultdict(lambda: [0, 0, 0])
     for systems, review in pairs:
-        routed = set(re.findall(r"^### (\d{3}-[a-z0-9-]+\.md)", systems, re.M))
+        routed = set(re.findall(rf"^### ({NAME})", systems, re.M))
         cited = set(CARD.findall(review))
         for card in routed:
             counts[card][0] += 1
@@ -29,17 +30,16 @@ def tally(pairs):
     return counts
 
 
-def gh(*args):
-    return subprocess.run(["gh", *args], capture_output=True, text=True, check=True, timeout=GH_TIMEOUT).stdout
+def gh(*args, check=True):
+    return subprocess.run(["gh", *args], capture_output=True, text=True, check=check, timeout=GH_TIMEOUT)
 
 
 def fetch(runs):
     pairs = []
-    ids = [run["databaseId"] for run in json.loads(gh("run", "list", "--workflow", "qa-gate.yml", "--limit", str(runs), "--json", "databaseId"))]
+    ids = [run["databaseId"] for run in json.loads(gh("run", "list", "--workflow", "qa-gate.yml", "--limit", str(runs), "--json", "databaseId").stdout)]
     for run_id in ids:
         with tempfile.TemporaryDirectory() as tmp:
-            got = subprocess.run(["gh", "run", "download", str(run_id), "-n", "review-thermo-nuclear", "-D", tmp],
-                                 capture_output=True, text=True, timeout=GH_TIMEOUT)
+            got = gh("run", "download", str(run_id), "-n", "review-thermo-nuclear", "-D", tmp, check=False)
             systems, review = pathlib.Path(tmp, "systems.md"), pathlib.Path(tmp, "review.md")
             if got.returncode == 0 and systems.exists() and review.exists():  # runs before the router have no systems.md
                 pairs.append((systems.read_text(), review.read_text()))

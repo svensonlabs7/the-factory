@@ -28,8 +28,8 @@ for pair in "${pairs[@]}"; do
   if [[ $dst == *.plist ]]; then  # a changed plist only takes effect when launchd reloads it
     launchctl bootout "gui/$uid/$label" 2>/dev/null || true
     launchctl bootstrap "gui/$uid" "$dst"
-  else
-    launchctl kickstart -k "gui/$uid/$label"
+  elif launchctl print "gui/$uid/$label" >/dev/null 2>&1; then  # restart only a loaded service; on a fresh host
+    launchctl kickstart -k "gui/$uid/$label"                    # its plist's own row loads it, reading this file
   fi
   echo "   installed and reloaded $label"
 done
