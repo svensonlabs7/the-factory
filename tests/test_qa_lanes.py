@@ -134,3 +134,20 @@ def test_each_rule_catches_its_case_and_accepts_the_safe_form(tmp_path, name, ba
     assert [finding for finding in rules.findings(tmp_path) if card in finding]
     path.write_text(safe)
     assert list(rules.findings(tmp_path)) == []
+
+
+_spec = importlib.util.spec_from_file_location("router_report", ROOT / "factory/qa/router_report.py")
+router_report = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(router_report)
+
+
+def test_router_report_counts_routed_cited_and_missed_cards():
+    systems = "## Systems checks\n### 011-timeouts.md\n- [ ] x\n### 039-race-conditions.md\n- [ ] y\n"
+    review = "Finding 1 (011-timeouts.md): no timeout. Also see 067-secrets-management.md."
+    assert dict(router_report.tally([(systems, review)])) == {
+        "011-timeouts.md": [1, 1, 0], "039-race-conditions.md": [1, 0, 0], "067-secrets-management.md": [0, 0, 1]}
+
+
+def test_the_gate_keeps_the_routed_checks_with_the_review():
+    keep = next(step for step in JOB["steps"] if step.get("name") == "Keep the review")
+    assert "systems.md" in keep["with"]["path"] and "review.md" in keep["with"]["path"]

@@ -14,13 +14,14 @@ The tunnel's credentials file (`~/.cloudflared/<tunnel-id>.json`) and `cert.pem`
 
 ```bash
 cloudflared tunnel login                                    # authorize in a browser
-cloudflared tunnel create the-factory                       # prints the tunnel id
-# put the id in config.yml, then copy it to ~/.cloudflared/
+cloudflared tunnel create the-factory                       # prints the tunnel id; put it in config.yml
 cloudflared tunnel route dns the-factory factory.svensonlabs.dev
 cloudflared tunnel route dns the-factory dash.svensonlabs.dev
-cp com.cloudflare.cloudflared.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.cloudflare.cloudflared.plist
+infra/install.sh                                            # from the repo root: installs config.yml and the agent
 ```
+
+Only needed when the tunnel itself is lost. With a secrets backup, restore the credentials and run `infra/install.sh`
+instead (`infra/README.md`).
 
 ## Why the plist is checked in
 
