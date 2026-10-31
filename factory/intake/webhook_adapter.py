@@ -35,6 +35,7 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.datastructures import Headers
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
@@ -170,7 +171,11 @@ async def _lifespan(_app):
 
 
 # No schema means no /docs, /redoc or /openapi.json: FastAPI serves the first two only on top of the third.
+ALLOWED_HOSTS = ["factory.svensonlabs.dev", "dash.svensonlabs.dev", "localhost", "127.0.0.1"]  # the tunnel config's hostnames, plus local
 app = FastAPI(title="Factory Intake", version="1.0.0", openapi_url=None, lifespan=_lifespan)
+# Requests arrive through the tunnel (its hostnames) or from this machine. Any other Host is a page whose domain re-resolved to
+# 127.0.0.1 (DNS rebinding) trying to read the dashboard from the operator's browser.
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
 
 
 # ---------------------------------------------------------------------------
