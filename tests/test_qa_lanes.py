@@ -151,3 +151,25 @@ def test_router_report_counts_routed_cited_and_missed_cards():
 def test_the_gate_keeps_the_routed_checks_with_the_review():
     keep = next(step for step in JOB["steps"] if step.get("name") == "Keep the review")
     assert "systems.md" in keep["with"]["path"] and "review.md" in keep["with"]["path"]
+
+
+STUB_CLAUDE = """#!/bin/sh
+# Fails while the count file is below FAIL_TIMES, then prints a passing review.
+n=$(cat "$RUNNER_TEMP/n" 2>/dev/null || echo 0); echo $((n + 1)) > "$RUNNER_TEMP/n"
+[ "$n" -lt "${FAIL_TIMES:-0}" ] && exit 1
+echo "Looks fine."; echo "**PASS**"
+"""
+
+
+@pytest.mark.parametrize("fail_times, code, tries, text", [(0, 0, 1, "**PASS**"), (1, 0, 2, "**PASS**"), (5, 1, 2, "REVIEW-NOT-RUN")])
+def test_a_crashing_reviewer_gets_one_retry_then_is_marked_not_run(tmp_path, fail_times, code, tries, text):
+    (tmp_path / "bin").mkdir()
+    (tmp_path / "bin/claude").write_text(STUB_CLAUDE)
+    (tmp_path / "bin/claude").chmod(0o755)
+    run = next(step for step in JOB["steps"] if step.get("name") == "Review")["run"]
+    run = run.replace("${{ matrix.skill }}", "/x").replace("${{ matrix.model }}", "m").replace("${{ github.base_ref }}", "main")
+    env = {"RUNNER_TEMP": str(tmp_path), "PATH": f"{tmp_path}/bin:/usr/bin:/bin", "FAIL_TIMES": str(fail_times), "REVIEW_RETRY_PAUSE": "0"}
+    result = subprocess.run(["bash", "-eo", "pipefail", "-c", "git() { echo abc; }; " + run], env=env, capture_output=True, text=True)
+    assert (result.returncode != 0) == bool(code)
+    assert (tmp_path / "n").read_text().strip() == str(tries)
+    assert text in (tmp_path / "review.md").read_text()
