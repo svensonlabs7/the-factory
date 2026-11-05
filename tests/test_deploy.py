@@ -74,3 +74,9 @@ def test_restart_refuses_while_a_run_is_in_flight(tmp_path):
     assert busy.returncode == 1 and "in flight" in busy.stderr and not (tmp_path / "log").exists()
     assert run("0").returncode == 0 and "kickstart -k" in (tmp_path / "log").read_text()
     assert run("2", "--force").returncode == 0
+
+
+def test_the_adapter_runs_from_the_lock():
+    args = plistlib.loads(PLIST.read_bytes())["ProgramArguments"]
+    assert args[1:4] == ["run", "--frozen", "--"] and "--with" not in args
+    assert (PLIST.parents[2] / "uv.lock").exists() and (PLIST.parents[2] / "factory/build/run_agent.py.lock").exists()
