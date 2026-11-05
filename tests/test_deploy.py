@@ -76,6 +76,8 @@ def test_restart_refuses_while_a_run_is_in_flight(tmp_path):
     assert run("2", "--force").returncode == 0
     down = run("down")
     assert down.returncode == 1 and "not answering" in down.stderr
+    unknown = run("null")
+    assert unknown.returncode == 1 and "could not count" in unknown.stderr
 
 
 def test_the_adapter_runs_from_the_lock():

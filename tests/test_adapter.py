@@ -1260,3 +1260,10 @@ def test_health_reports_runs_in_flight_and_a_pushed_runs_ref_is_removed(adapter)
     run_id = trigger(client).json()["run_id"]
     assert wait_done(client, run_id)["status"] == "completed"
     assert git(root, "for-each-ref", "refs/factory/") == ""
+
+
+def test_health_stays_up_when_a_run_record_is_unreadable(adapter):
+    _, root, client = adapter
+    (root / ".factory-logs" / "broken.meta.json").write_text("{not json")
+    response = client.get("/health")
+    assert response.status_code == 200 and response.json() == {"status": "ok", "pending": None}

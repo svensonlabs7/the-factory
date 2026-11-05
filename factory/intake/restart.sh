@@ -8,6 +8,10 @@ if [ "${1:-}" != --force ]; then
     echo "restart: the adapter is not answering, so in-flight runs cannot be checked. Pass --force to restart anyway." >&2
     exit 1
   fi
+  if [ "$pending" = None ]; then
+    echo "restart: the adapter could not count its runs (an unreadable run record?). Pass --force to restart anyway." >&2
+    exit 1
+  fi
   if [ "$pending" != 0 ]; then
     echo "restart: $pending run(s) in flight. Try again when the dashboard shows none, or pass --force." >&2
     exit 1

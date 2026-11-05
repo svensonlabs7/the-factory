@@ -17,7 +17,7 @@ jobs:
       - run: pip install ruff==0.17.0 uv==0.13.0
       # Errors only (undefined names, unused imports, syntax): style findings would block work for nothing.
       - run: ruff check --isolated --select F,E9 factory tests
-      - run: uv run --frozen --with mypy==2.4.0 mypy --ignore-missing-imports factory/intake/webhook_adapter.py
+      - run: uv run --locked --with mypy==2.4.0 mypy --ignore-missing-imports factory/intake/webhook_adapter.py
       # Checklist items from knowledge/systems that need no model: timeouts, shell=True, pinned actions, raw HTML.
       - run: python3 factory/qa/rules.py
   secrets:

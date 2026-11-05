@@ -665,8 +665,13 @@ async def status(run_id: str):
 
 @app.get("/health")
 def health():
-    # pending lets restart.sh check for in-flight runs without /command/data's gh calls.
-    return {"status": "ok", "pending": _capacity(_runs())[0]}
+    # Liveness first: the beacon and the watchdog read only the 200. pending lets restart.sh check for in-flight
+    # runs without /command/data's gh calls, and is null rather than a 500 if a run record cannot be read.
+    try:
+        pending = _capacity(_runs())[0]
+    except (OSError, ValueError):
+        pending = None
+    return {"status": "ok", "pending": pending}
 
 
 def _heartbeat_fields() -> dict[str, str]:
