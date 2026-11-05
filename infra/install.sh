@@ -27,6 +27,8 @@ for pair in "${pairs[@]}"; do
   cp "$repo/$src" "$dst"
   if [[ $dst == *.plist ]]; then  # a changed plist only takes effect when launchd reloads it
     launchctl bootout "gui/$uid/$label" 2>/dev/null || true
+    # bootout returns before launchd has finished unloading, and bootstrap fails (error 5) until it has.
+    for _ in $(seq 1 20); do launchctl print "gui/$uid/$label" >/dev/null 2>&1 || break; sleep 0.5; done
     launchctl bootstrap "gui/$uid" "$dst"
   elif launchctl print "gui/$uid/$label" >/dev/null 2>&1; then  # restart only a loaded service; on a fresh host
     launchctl kickstart -k "gui/$uid/$label"                    # its plist's own row loads it, reading this file
