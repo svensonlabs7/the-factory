@@ -7,7 +7,8 @@ Receives tasks via HTTP, builds each in a sandbox, publishes a PR, and fixes wha
 Endpoints:
   POST /trigger   — start a new factory run
   GET  /status/:run_id — poll run state
-  GET  /health    — liveness check
+  GET  /health    — liveness check, the runs in flight and the commit loaded
+  GET  /ready     — 200 when a run could ship right now, else 503 and the problems
   GET  /command   — the operations dashboard, fed by GET /command/data
 """
 
@@ -68,6 +69,8 @@ RETRY_DELAYS = (2, 8)  # seconds before the second and third tries of a command 
 TRANSIENT = re.compile(r"(?i)HTTP 5\d\d|connection (reset|refused|closed)|could not resolve host|unexpected disconnect|"
                        r"TLS handshake timeout|i/o timeout|temporary failure")  # worth retrying; anything else is not
 COMMAND_TIMEOUT = 300  # seconds for any single git or gh call, so a hang cannot hold the queue
+READY_TIMEOUT = 10  # seconds for each readiness probe
+MIN_FREE_DISK = 5 * 2**30  # bytes free a run needs for its clone and build
 FINDINGS_LIMIT = 12000  # caps one round's own review text (tail) and the combined rendered history (prefix, oldest rounds first)
 LOG_TAIL = 4000  # characters of a failed run's log kept as findings
 # Contract with .github/workflows/qa-gate.yml: its workflow name, and the artifact each lane uploads.
@@ -87,7 +90,7 @@ IN_FLIGHT = ("queued", "running", "qa")
 # Each run gets its own clone here, under the home directory because the Docker VM mounts only that.
 RUNS_DIR = FACTORY_ROOT.parent / "the-factory-runs"
 HEARTBEAT_FILE = FACTORY_ROOT / "HEARTBEAT.md"
-ALIVE_INTERVAL = 60  # seconds between alive_at stamps, so the-machine can tell idle from dead
+ALIVE_INTERVAL = 60  # seconds between alive_at stamps, so a watcher can tell idle from dead
 REPLAY_DIR.mkdir(parents=True, exist_ok=True)
 # One adapter per FACTORY_ROOT. A second one (a debugging uvicorn, a second plist, a restart racing the old process)
 # would mark the live run's work as error in _recover and build alongside it, so it must not get past this line.
@@ -347,6 +350,30 @@ def _run(*cmd: str, cwd: Path = FACTORY_ROOT, retry: bool = False) -> str:
         time.sleep(delays.pop(0))
 
 
+# The code this process runs: a merge only takes effect after a restart, so /health shows whether one is still due.
+LOADED_COMMIT = _run("git", "rev-parse", "--short", "HEAD")
+
+
+def _problems() -> list[str]:
+    """What would stop a run from shipping right now, checked before each build and by /ready. The egress proxy is
+    not here: egress.sh recreates it and proves it at the start of every build."""
+    problems = []
+    for name, cmd in (("docker", [DOCKER_BIN, "info"]), ("gh", [GH_BIN, "auth", "status"])):
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=READY_TIMEOUT)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            problems.append(f"{name}: {exc}")
+            continue
+        if result.returncode:
+            problems.append(f"{name}: {(result.stderr or result.stdout).strip()[-300:]}")
+    if not os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"):
+        problems.append("CLAUDE_CODE_OAUTH_TOKEN is not set (.env)")
+    free = shutil.disk_usage(FACTORY_ROOT.parent).free
+    if free < MIN_FREE_DISK:
+        problems.append(f"disk: {free // 2**30} GiB free, a run needs {MIN_FREE_DISK // 2**30}")
+    return problems
+
+
 @contextmanager
 def _checkout(name: str, branch: str, base: str):
     """A private clone for the sandbox, so it never sees the checkout the service runs from."""
@@ -535,6 +562,9 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
     log.info("Starting the sandboxed agent for run %s", run_id)
 
     try:
+        # Fail before the build spends plan usage on work that could not be pushed or turned into a PR.
+        if problems := _problems():
+            return _finish(run_id, "error", error="not ready to build: " + "; ".join(problems))
         head = _build_round(run_id, 0, prompt, branch, since="origin/main")
         body = f"Factory build {run_id}\n\nTask: {task[:200]}"
         title = next((line.strip() for line in task.splitlines() if line.strip()), branch)[:72]
@@ -572,7 +602,7 @@ HEARTBEAT_LOCK = threading.Lock()  # the run worker and the request handlers bot
 
 
 def _set_heartbeat(**fields: str) -> None:
-    """Update the HEARTBEAT.md status table in place. the-machine polls that table, so its format stays."""
+    """Update the HEARTBEAT.md status table in place. /heartbeat serves that table to Grok Bot, so its format stays."""
     try:
         with HEARTBEAT_LOCK:
             text = HEARTBEAT_FILE.read_text()
@@ -671,7 +701,16 @@ def health():
         pending = _capacity(_runs())[0]
     except (OSError, ValueError):
         pending = None
-    return {"status": "ok", "pending": pending}
+    return {"status": "ok", "pending": pending, "commit": LOADED_COMMIT}
+
+
+@app.get("/ready")
+def ready():
+    """Readiness, as opposed to /health's liveness: the beacon stamps only while this is 200, so the watchdog alerts
+    when the factory is up but cannot deliver."""
+    if problems := _problems():
+        return JSONResponse(status_code=503, content={"ready": False, "problems": problems})
+    return {"ready": True}
 
 
 def _heartbeat_fields() -> dict[str, str]:
