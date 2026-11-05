@@ -1,0 +1,17 @@
+# The adapter's environment, locked in uv.lock. The launchd plist and CI both run from that lock, so CI tests the
+# exact versions production runs. The builder (factory/build/run_agent.py) has its own lock, run_agent.py.lock.
+[project]
+name = "the-factory"
+version = "0"
+requires-python = "==3.11.*"
+dependencies = ["fastapi==0.162.0", "uvicorn==0.54.0", "python-dotenv==1.2.4"]
+
+[dependency-groups]
+test = ["pytest", "httpx", "pyyaml"]
+
+[tool.uv]
+package = false
+# The rest of the tree the live adapter ran when this lock was made (2026-11-04), so the lock records what was tested.
+constraint-dependencies = ["starlette==1.10.0", "pydantic==2.14.2", "pydantic-core==2.50.2", "anyio==4.15.1",
+  "h11==0.16.0", "click==8.5.0", "typing-extensions==4.16.0", "annotated-types==0.8.0", "idna==3.20",
+  "typing-inspection==0.4.4"]

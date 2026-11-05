@@ -8,12 +8,7 @@
     <array>
         <string>/Users/labs/.local/bin/uv</string>
         <string>run</string>
-        <string>--with</string>
-        <string>fastapi</string>
-        <string>--with</string>
-        <string>uvicorn</string>
-        <string>--with</string>
-        <string>python-dotenv</string>
+        <string>--frozen</string>
         <string>--</string>
         <string>uvicorn</string>
         <string>factory.intake.webhook_adapter:app</string>

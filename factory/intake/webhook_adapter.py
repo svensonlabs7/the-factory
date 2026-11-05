@@ -51,7 +51,7 @@ if not WEBHOOK_SECRET:
 WEBHOOK_SECRETS = [s for s in (WEBHOOK_SECRET, os.environ.get("FACTORY_WEBHOOK_SECRET_PREVIOUS", "")) if s]
 FACTORY_ROOT = Path(os.environ.get("FACTORY_ROOT", "/Users/labs/projects/the-factory"))
 # Runs the agent in an OpenHands Docker sandbox. Called as: <command> <workdir> <prompt> <timeout-seconds>.
-AGENT_CMD = shlex.split(os.environ.get("FACTORY_AGENT_CMD", f"uv run -q --script {FACTORY_ROOT}/factory/build/run_agent.py"))
+AGENT_CMD = shlex.split(os.environ.get("FACTORY_AGENT_CMD", f"uv run -q --frozen --script {FACTORY_ROOT}/factory/build/run_agent.py"))
 AGENT_TIMEOUT = 1800  # 30-minute cap on a build round; the only hard deadline (the agent's own limit is an idle timeout)
 AGENT_TIMEOUT_GRACE = 30  # seconds a timed-out round's SIGTERM gets before the process group is SIGKILLed
 GH_BIN = os.environ.get("GH_BIN", "gh")
@@ -378,6 +378,7 @@ def _push(branch: str, workdir: Path, since: str) -> str:
     # The repo is public: a secret in the agent's commits would be published on push, so a finding ends the run here.
     _run("gitleaks", "git", "--no-banner", "--redact", f"--log-opts={since}..{head}")
     _run("git", "push", "origin", f"{head}:refs/heads/{branch}", retry=True)
+    _run("git", "update-ref", "-d", ref)  # pushed, so the ref has done its job and need not pin the objects
     return head
 
 
@@ -663,8 +664,14 @@ async def status(run_id: str):
 
 
 @app.get("/health")
-async def health():
-    return {"status": "ok"}
+def health():
+    # Liveness first: the beacon and the watchdog read only the 200. pending lets restart.sh check for in-flight
+    # runs without /command/data's gh calls, and is null rather than a 500 if a run record cannot be read.
+    try:
+        pending = _capacity(_runs())[0]
+    except (OSError, ValueError):
+        pending = None
+    return {"status": "ok", "pending": pending}
 
 
 def _heartbeat_fields() -> dict[str, str]:
