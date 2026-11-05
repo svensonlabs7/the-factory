@@ -36,3 +36,21 @@ Fork PRs fail the check.
 - [x] Deterministic lanes (`.github/workflows/static.yml`): `lint` (ruff errors only, mypy on the adapter, and `factory/qa/rules.py`: checks compiled from the systems cards) and `secrets` (gitleaks over the whole history). No Claude quota.
 - [x] Failure loop: the adapter sends findings to a fresh builder, up to 2 fix rounds, then marks the run blocked in `HEARTBEAT.md` for a human
 - [ ] Order relative to CI
+
+## Break glass: when a merge breaks the gate itself
+
+The gate runs `main`'s copy of the workflow and the review skills (`pull_request_target`). So a merged change that
+breaks the gate (the workflow, a skill, the pinned `claude` CLI) also reviews its own revert, and the revert fails or
+never reports. `enforce_admins` is on, so even the admin cannot merge past it. Use this only when every PR fails the same
+check for a reason in the gate, not in the PR (its review says so, or the job errors before reviewing).
+
+1. Open the revert: `gh pr create` from `git revert <bad commit>`, or the GitHub UI's Revert button.
+2. Let admins bypass protection: `gh api -X DELETE repos/svensonlabs7/the-factory/branches/main/protection/enforce_admins`
+3. Merge the revert as admin: `gh pr merge <revert PR> --squash --admin`
+4. Restore protection at once: `gh api -X POST repos/svensonlabs7/the-factory/branches/main/protection/enforce_admins`
+   and check it with `gh api repos/svensonlabs7/the-factory/branches/main/protection/enforce_admins --jq .enabled` (`true`).
+5. Push an empty commit to any open PR, or rerun its checks, to confirm the gate passes again.
+6. Write it down: an `open_incidents` note in `HEARTBEAT.md` while it lasts, and a row in `knowledge/systems/GAPS.md`
+   for the cause, so it is fixed and does not recur (knowledge/systems/111-postmortems.md).
+
+Only the revert goes through this way. Fix forward through the gate once it works again.
