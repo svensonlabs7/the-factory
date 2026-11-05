@@ -8,9 +8,11 @@ call (opt-in Floorplan Cloud waitlist signup) is the only one and matches SECURI
 docs/is-it-safe.md.
 
 Kept here: SOURCE, LICENSE and CHECKSUMS.txt only, as with vendor/pstack. Local changes, so a checksum check flags
-these two files:
+these three files:
 - SKILL.md is user-invoked only (/floorplan), so its description never loads into a session.
 - assets/serve.mjs sends a Content-Security-Policy with the map: only the page's own inline scripts (by hash) run,
   and it may connect only to its own server. Without it, a script injected through repo or model text could call
   /api/ask, which runs the Claude CLI over the codebase, and send the answer anywhere.
+- assets/viewer.html: a saved flow's delete button shows on keyboard focus and is 44px on touch screens, deleting
+  asks first and keeps the flow if the server refuses, and the flow bar's icon buttons have labels.
 The map it builds (floorplan/) ignores itself in git and is never committed.
