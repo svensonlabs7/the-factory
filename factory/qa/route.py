@@ -16,7 +16,9 @@ import sys
 from typing import List, NamedTuple, Optional, Pattern
 
 KS = pathlib.Path(__file__).resolve().parents[2] / "knowledge" / "systems"
-NOT_CODE = re.compile(r"^(knowledge|vendor|tests|\.claude)/|\.md$")  # prose and tests never fire a `lines` trigger
+# Prose, tests and generated lockfiles never fire a `lines` trigger: a lock lists every package by name, so its
+# "grpcio" or "redis" would trip cards for technology the diff does not add. `files` triggers still see them.
+NOT_CODE = re.compile(r"^(knowledge|vendor|tests|\.claude)/|\.md$|\.lock$|(^|/)package-lock\.json$")
 TRIPWIRE = " · tripwire"  # ends the one checklist item a "not needed at this load" card shows
 ASSUMPTION = re.compile(r"^- \*\*(.+?)\*\* · where (.+?) · lines `([^`]+)` · re-check ([\d ]+)$", re.M)
 MAX_ITEMS, MAX_GAPS, SLACK = 15, 4, 15  # SLACK: lines a gap's recorded location may have drifted

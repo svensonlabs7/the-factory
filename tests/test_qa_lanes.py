@@ -143,9 +143,8 @@ _spec.loader.exec_module(router_report)
 
 def test_router_report_counts_routed_cited_and_missed_cards():
     systems = "## Systems checks\n### 011-timeouts.md\n- [ ] x\n### 039-race-conditions.md\n- [ ] y\n"
-    review = "Finding 1 (011-timeouts.md): no timeout. Also see 067-secrets-management.md."
-    assert dict(router_report.tally([(systems, review)])) == {
-        "011-timeouts.md": [1, 1, 0], "039-race-conditions.md": [1, 0, 0], "067-secrets-management.md": [0, 0, 1]}
+    review = "Finding 1 (011-timeouts.md): no timeout. **067 Secrets management:** fine. Line 120 of 300 lines."
+    assert dict(router_report.tally([(systems, review)])) == {"011": [1, 1, 0], "039": [1, 0, 0], "067": [0, 0, 1]}
 
 
 def test_the_gate_keeps_the_routed_checks_with_the_review():
@@ -173,3 +172,12 @@ def test_a_crashing_reviewer_gets_one_retry_then_is_marked_not_run(tmp_path, fai
     assert (result.returncode != 0) == bool(code)
     assert (tmp_path / "n").read_text().strip() == str(tries)
     assert text in (tmp_path / "review.md").read_text()
+
+
+def test_router_report_advises_only_with_enough_evidence():
+    assert router_report.advice({"006": [4, 0, 0], "068": [5, 0, 0], "011": [9, 3, 0], "067": [0, 0, 2]}) == (["068"], ["067"])
+
+
+def test_router_report_counts_only_real_cards():
+    review = "HTTP 404 Not found. **011 Timeouts:** ok."
+    assert dict(router_report.tally([("", review)], known={"011"})) == {"011": [0, 0, 1]}

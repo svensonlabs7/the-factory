@@ -118,3 +118,9 @@ def test_the_cli_routes_a_range_and_untracked_files(tmp_path):
     assert "011-timeouts.md" in run("main...head")
     (tmp_path / "new.tf").write_text("terraform {}\n")
     assert "105-terraform.md" in run()
+
+
+def test_a_lockfile_fires_the_dependency_card_but_not_tripwires_for_what_it_lists():
+    out = routed(diff("factory/build/run_agent.py.lock", 'name = "grpcio"', 'name = "redis"', '{ name = "h2" }'))
+    assert "### 108-dependency-hell.md" in out
+    assert "100-grpc.md" not in out and "038-distributed-locks.md" not in out

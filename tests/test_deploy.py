@@ -36,12 +36,21 @@ def test_install_check_reports_missing_drift_and_ok_without_touching_launchd(tmp
 
 
 FAKE_LAUNCHCTL = """#!/bin/sh
-# Like launchctl: print and kickstart fail for a service that is not loaded; bootstrap loads one.
+# Like launchctl: print and kickstart fail for a service that is not loaded; bootstrap loads one. bootout of a loaded
+# service returns at once but leaves it unloading for two more prints, and bootstrap fails (5) until then.
 log="$HOME/launchctl.log"; loaded="$HOME/loaded"; touch "$loaded"
 echo "$*" >> "$log"
+label=${2##*/}; [ "$1" = kickstart ] && label=${3##*/}; [ "$1" = bootstrap ] && label=$(basename "$3" .plist)
+unloading="$HOME/unloading-$label"
 case "$1" in
-  print|kickstart) label=${2##*/}; [ "$1" = kickstart ] && label=${3##*/}; grep -qx "$label" "$loaded" || exit 113 ;;
-  bootstrap) basename "$3" .plist >> "$loaded" ;;
+  print) n=$(cat "$unloading" 2>/dev/null || echo 0)
+         if [ "$n" -gt 0 ]; then echo $((n - 1)) > "$unloading"; exit 0; fi
+         grep -qx "$label" "$loaded" || exit 113 ;;
+  kickstart) grep -qx "$label" "$loaded" || exit 113 ;;
+  bootout) grep -qx "$label" "$loaded" || exit 3
+           grep -vx "$label" "$loaded" > "$loaded.new"; mv "$loaded.new" "$loaded"; echo 2 > "$unloading" ;;
+  bootstrap) [ "$(cat "$unloading" 2>/dev/null || echo 0)" -gt 0 ] && exit 5
+             echo "$label" >> "$loaded" ;;
 esac
 """
 
@@ -95,3 +104,19 @@ def test_restart_force_brings_back_an_adapter_that_was_down(tmp_path):
     result = subprocess.run(["bash", str(repo / "factory/intake/restart.sh"), "--force"], capture_output=True, text=True,
                             env={"PATH": f"{tmp_path}:/usr/bin:/bin", "LOG": str(tmp_path / "log")})
     assert result.returncode == 0 and "the adapter is back" in result.stdout
+
+
+def test_reinstalling_a_changed_agent_waits_for_launchd_to_unload_it(tmp_path):
+    repo, bin_dir = PLIST.parents[2], tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "launchctl").write_text(FAKE_LAUNCHCTL)
+    (bin_dir / "launchctl").chmod(0o755)
+    run = lambda: subprocess.run(["bash", str(repo / "infra/install.sh")], capture_output=True, text=True,
+                                 env={"HOME": str(tmp_path), "PATH": f"{bin_dir}:/usr/bin:/bin"})
+    assert run().returncode == 0
+    (tmp_path / "Library/LaunchAgents/com.svenson.factory-intake.plist").write_text("changed\n")
+    second = run()
+    assert second.returncode == 0, second.stderr
+    assert "installed and reloaded com.svenson.factory-intake" in second.stdout
+    reload = (tmp_path / "launchctl.log").read_text().split("bootout gui/")[-1].splitlines()
+    assert sum(line.startswith("print ") for line in reload) == 3  # two "still unloading", then unloaded: the wait stops
