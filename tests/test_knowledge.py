@@ -84,9 +84,9 @@ def test_changing_the_worker_count_reopens_the_cards_that_assumed_one():
 
 
 def test_an_open_gap_shows_only_near_its_recorded_lines_and_a_fixed_one_never():
-    near = routed(diff("factory/intake/webhook_adapter.py", "    pass", start=313))
+    near = routed(diff("factory/intake/webhook_adapter.py", "    pass", start=405))
     far = routed(diff("factory/intake/webhook_adapter.py", "    pass", start=1))
-    assert "**[medium] Retries**" in near and "**[medium] Retries**" not in far
+    assert "**[medium] Dead Letter Queues**" in near and "**[medium] Dead Letter Queues**" not in far
     assert "] SSRF**" not in routed(diff("factory/build/egress.sh", "iptables -F X", start=25))
 
 

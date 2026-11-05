@@ -60,3 +60,17 @@ def test_install_on_a_fresh_host_loads_every_agent_and_a_second_run_does_nothing
     (tmp_path / "launchctl.log").unlink()
     second = run()
     assert second.returncode == 0 and second.stdout.count("ok  ") == 4 and not (tmp_path / "launchctl.log").exists()
+
+
+def test_restart_refuses_while_a_run_is_in_flight(tmp_path):
+    repo = PLIST.parents[2]
+    (tmp_path / "curl").write_text('#!/bin/sh\ncase "$*" in *command/data*) echo "{\\"limits\\": {\\"pending\\": $PENDING}}";; esac\n')
+    (tmp_path / "launchctl").write_text('#!/bin/sh\necho "$*" >> "$LOG"\n')
+    for name in ("curl", "launchctl"):
+        (tmp_path / name).chmod(0o755)
+    run = lambda pending, *args: subprocess.run(["bash", str(repo / "factory/intake/restart.sh"), *args], capture_output=True, text=True,
+                                                env={"PATH": f"{tmp_path}:/usr/bin:/bin", "PENDING": pending, "LOG": str(tmp_path / "log")})
+    busy = run("1")
+    assert busy.returncode == 1 and "in flight" in busy.stderr and not (tmp_path / "log").exists()
+    assert run("0").returncode == 0 and "kickstart -k" in (tmp_path / "log").read_text()
+    assert run("2", "--force").returncode == 0

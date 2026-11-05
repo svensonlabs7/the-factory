@@ -562,7 +562,9 @@ def test_a_fix_round_that_deletes_the_work_is_an_error_not_a_pass(adapter, monke
 
 
 def restart(root):
-    sys.modules.pop("factory.intake.webhook_adapter", None)
+    old = sys.modules.pop("factory.intake.webhook_adapter", None)
+    if old:
+        old._INSTANCE_LOCK.close()  # a real restart is a new process: the old one's exit releases its lock
     module = importlib.import_module("factory.intake.webhook_adapter")
     return module, TestClient(module.app, base_url="http://localhost")
 
@@ -1227,3 +1229,24 @@ def test_only_transient_failures_are_retried(adapter, tmp_path, stderr, tries):
     with pytest.raises(RuntimeError):
         module._run(str(script), retry=True)
     assert len((tmp_path / "calls").read_text().split()) == tries
+def test_a_second_adapter_on_the_same_root_refuses_to_start(adapter):
+    sys.modules.pop("factory.intake.webhook_adapter", None)
+    with pytest.raises(RuntimeError, match="another adapter is already running"):
+        importlib.import_module("factory.intake.webhook_adapter")
+
+
+def test_a_fetch_by_someone_else_cannot_change_what_is_pushed(adapter, monkeypatch):
+    module, root, client = adapter
+    real_run = module._run
+
+    def run_then_rogue_fetch(*cmd, **kwargs):
+        out = real_run(*cmd, **kwargs)
+        if cmd[:3] == ("git", "fetch", "--quiet") and len(cmd) > 4 and "factory/" in cmd[4]:
+            real_run("git", "fetch", "--quiet", "origin", "main")  # rewrites FETCH_HEAD, as an editor's auto-fetch would
+        return out
+
+    monkeypatch.setattr(module, "_run", run_then_rogue_fetch)
+    run_id = trigger(client).json()["run_id"]
+    assert wait_done(client, run_id)["status"] == "completed"
+    pushed = git(root, "ls-remote", "origin", f"refs/heads/factory/{run_id}").split()[0]
+    assert "change" in git(root, "show", "--stat", "--format=", pushed)
