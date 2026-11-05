@@ -1229,6 +1229,8 @@ def test_only_transient_failures_are_retried(adapter, tmp_path, stderr, tries):
     with pytest.raises(RuntimeError):
         module._run(str(script), retry=True)
     assert len((tmp_path / "calls").read_text().split()) == tries
+
+
 def test_a_second_adapter_on_the_same_root_refuses_to_start(adapter):
     sys.modules.pop("factory.intake.webhook_adapter", None)
     with pytest.raises(RuntimeError, match="another adapter is already running"):
@@ -1250,3 +1252,11 @@ def test_a_fetch_by_someone_else_cannot_change_what_is_pushed(adapter, monkeypat
     assert wait_done(client, run_id)["status"] == "completed"
     pushed = git(root, "ls-remote", "origin", f"refs/heads/factory/{run_id}").split()[0]
     assert "change" in git(root, "show", "--stat", "--format=", pushed)
+
+
+def test_health_reports_runs_in_flight_and_a_pushed_runs_ref_is_removed(adapter):
+    _, root, client = adapter
+    assert client.get("/health").json() == {"status": "ok", "pending": 0}
+    run_id = trigger(client).json()["run_id"]
+    assert wait_done(client, run_id)["status"] == "completed"
+    assert git(root, "for-each-ref", "refs/factory/") == ""

@@ -378,6 +378,7 @@ def _push(branch: str, workdir: Path, since: str) -> str:
     # The repo is public: a secret in the agent's commits would be published on push, so a finding ends the run here.
     _run("gitleaks", "git", "--no-banner", "--redact", f"--log-opts={since}..{head}")
     _run("git", "push", "origin", f"{head}:refs/heads/{branch}", retry=True)
+    _run("git", "update-ref", "-d", ref)  # pushed, so the ref has done its job and need not pin the objects
     return head
 
 
@@ -663,8 +664,9 @@ async def status(run_id: str):
 
 
 @app.get("/health")
-async def health():
-    return {"status": "ok"}
+def health():
+    # pending lets restart.sh check for in-flight runs without /command/data's gh calls.
+    return {"status": "ok", "pending": _capacity(_runs())[0]}
 
 
 def _heartbeat_fields() -> dict[str, str]:
