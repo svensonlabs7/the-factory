@@ -1,0 +1,12 @@
+Source: https://github.com/haydenschmitty/floorplan
+Commit: 70be3f40f9c2e061290b76027f180d9ff892edd6
+Copied: 2026-11-04
+Skill -> .claude/skills/floorplan/
+Reviewed before install: read every real (non-test, non-vendor) source file, ran the
+project's own test suite (202 pass / 1 skipped), confirmed its single outbound network
+call (opt-in Floorplan Cloud waitlist signup) is the only one and matches SECURITY.md /
+docs/is-it-safe.md. See conversation notes for the full review.
+
+Kept here: SOURCE, LICENSE and CHECKSUMS.txt only, as with vendor/pstack. Local change: SKILL.md's description is
+cut to about 200 characters, because it loads into every session, so a checksum check flags that one file.
+The map it builds (floorplan/) ignores itself in git and is never committed.
