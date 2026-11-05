@@ -43,12 +43,13 @@ echo "$*" >> "$log"
 label=${2##*/}; [ "$1" = kickstart ] && label=${3##*/}; [ "$1" = bootstrap ] && label=$(basename "$3" .plist)
 unloading="$HOME/unloading-$label"
 case "$1" in
-  print) if [ -s "$unloading" ]; then cut -c2- "$unloading" > "$unloading.new"; mv "$unloading.new" "$unloading"; exit 0; fi
+  print) n=$(cat "$unloading" 2>/dev/null || echo 0)
+         if [ "$n" -gt 0 ]; then echo $((n - 1)) > "$unloading"; exit 0; fi
          grep -qx "$label" "$loaded" || exit 113 ;;
   kickstart) grep -qx "$label" "$loaded" || exit 113 ;;
   bootout) grep -qx "$label" "$loaded" || exit 3
-           grep -vx "$label" "$loaded" > "$loaded.new"; mv "$loaded.new" "$loaded"; echo xx > "$unloading" ;;
-  bootstrap) [ -s "$unloading" ] && [ "$(cat "$unloading")" != "" ] && exit 5
+           grep -vx "$label" "$loaded" > "$loaded.new"; mv "$loaded.new" "$loaded"; echo 2 > "$unloading" ;;
+  bootstrap) [ "$(cat "$unloading" 2>/dev/null || echo 0)" -gt 0 ] && exit 5
              echo "$label" >> "$loaded" ;;
 esac
 """
@@ -117,3 +118,5 @@ def test_reinstalling_a_changed_agent_waits_for_launchd_to_unload_it(tmp_path):
     second = run()
     assert second.returncode == 0, second.stderr
     assert "installed and reloaded com.svenson.factory-intake" in second.stdout
+    reload = (tmp_path / "launchctl.log").read_text().split("bootout gui/")[-1].splitlines()
+    assert sum(line.startswith("print ") for line in reload) == 3  # two "still unloading", then unloaded: the wait stops

@@ -176,3 +176,8 @@ def test_a_crashing_reviewer_gets_one_retry_then_is_marked_not_run(tmp_path, fai
 
 def test_router_report_advises_only_with_enough_evidence():
     assert router_report.advice({"006": [4, 0, 0], "068": [5, 0, 0], "011": [9, 3, 0], "067": [0, 0, 2]}) == (["068"], ["067"])
+
+
+def test_router_report_counts_only_real_cards():
+    review = "HTTP 404 Not found. **011 Timeouts:** ok."
+    assert dict(router_report.tally([("", review)], known={"011"})) == {"011": [0, 0, 1]}
