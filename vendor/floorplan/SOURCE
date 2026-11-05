@@ -5,8 +5,12 @@ Skill -> .claude/skills/floorplan/
 Reviewed before install: read every real (non-test, non-vendor) source file, ran the
 project's own test suite (202 pass / 1 skipped), confirmed its single outbound network
 call (opt-in Floorplan Cloud waitlist signup) is the only one and matches SECURITY.md /
-docs/is-it-safe.md. See conversation notes for the full review.
+docs/is-it-safe.md.
 
-Kept here: SOURCE, LICENSE and CHECKSUMS.txt only, as with vendor/pstack. Local change: SKILL.md's description is
-cut to about 200 characters, because it loads into every session, so a checksum check flags that one file.
+Kept here: SOURCE, LICENSE and CHECKSUMS.txt only, as with vendor/pstack. Local changes, so a checksum check flags
+these two files:
+- SKILL.md is user-invoked only (/floorplan), so its description never loads into a session.
+- assets/serve.mjs sends a Content-Security-Policy with the map: only the page's own inline scripts (by hash) run,
+  and it may connect only to its own server. Without it, a script injected through repo or model text could call
+  /api/ask, which runs the Claude CLI over the codebase, and send the answer anywhere.
 The map it builds (floorplan/) ignores itself in git and is never committed.

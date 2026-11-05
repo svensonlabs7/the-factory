@@ -1,6 +1,7 @@
 ---
 name: floorplan
 description: "Map a codebase as an interactive node graph (floorplan/index.html): subsystems, modules, files and routes with plain names and how they connect. Use to visualize, map or onboard onto a codebase, or to blueprint a spec."
+disable-model-invocation: true
 argument-hint: "[path-to-codebase-root] [--refresh]"
 allowed-tools:
   - Bash(node ${CLAUDE_SKILL_DIR}/scripts/build.mjs *)
