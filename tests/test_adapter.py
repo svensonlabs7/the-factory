@@ -188,6 +188,7 @@ def adapter(tmp_path, monkeypatch):
     monkeypatch.setenv("FAKE_AGENT_STATE", str(tmp_path / "agent-state"))
     monkeypatch.setenv("FAKE_DOCKER_STATE", str(tmp_path / "docker-state"))
     monkeypatch.setenv("FAKE_ORIGIN", str(origin))
+    monkeypatch.setenv("CLAUDE_CODE_OAUTH_TOKEN", "test-token")
     sys.modules.pop("factory.intake.webhook_adapter", None)
     module = importlib.import_module("factory.intake.webhook_adapter")
     monkeypatch.setattr(module, "CHECKS_POLL", 0)
@@ -230,8 +231,28 @@ def test_refuses_to_start_without_secret(monkeypatch, tmp_path):
 
 
 def test_health(adapter):
-    _, _, client = adapter
-    assert client.get("/health").json()["status"] == "ok"
+    _, root, client = adapter
+    assert client.get("/health").json() == {"status": "ok", "pending": 0, "commit": git(root, "rev-parse", "--short", "HEAD")}
+
+
+def test_ready_lists_what_would_stop_a_run(adapter, monkeypatch):
+    module, _, client = adapter
+    assert client.get("/ready").json() == {"ready": True}
+    monkeypatch.setattr(module, "GH_BIN", "false")
+    monkeypatch.setattr(module, "DOCKER_BIN", "/nonexistent/docker")
+    monkeypatch.setattr(module, "MIN_FREE_DISK", 2**60)
+    monkeypatch.delenv("CLAUDE_CODE_OAUTH_TOKEN")
+    response = client.get("/ready")
+    assert response.status_code == 503
+    assert [p.split(":")[0].split()[0] for p in response.json()["problems"]] == ["docker", "gh", "CLAUDE_CODE_OAUTH_TOKEN", "disk"]
+
+
+def test_a_run_that_could_not_ship_ends_before_it_builds(adapter, monkeypatch, tmp_path):
+    module, _, client = adapter
+    monkeypatch.setattr(module, "GH_BIN", "false")
+    run = wait_done(client, trigger(client).json()["run_id"])
+    assert run["status"] == "error" and run["error"].startswith("not ready to build: gh")
+    assert not (tmp_path / "agent-state" / "last-pid").exists()
 
 
 @pytest.mark.parametrize("headers", [{}, {"X-Hub-Signature-256": "sha256=bad"}])
@@ -978,7 +999,8 @@ def test_a_requested_branch_must_be_under_factory(idle_queue, branch, code):
 
 def test_a_fresh_checkout_gets_its_heartbeat_from_the_template(tmp_path, monkeypatch):
     root = tmp_path / "factory"
-    root.mkdir()
+    git(tmp_path, "init", "-q", str(root))
+    git(root, "commit", "-q", "--allow-empty", "-m", "seed")  # the adapter reads the commit it loaded
     (root / "HEARTBEAT.template.md").write_text(HEARTBEAT)
     monkeypatch.setenv("FACTORY_WEBHOOK_SECRET", SECRET)
     monkeypatch.setenv("FACTORY_ROOT", str(root))
@@ -1256,7 +1278,7 @@ def test_a_fetch_by_someone_else_cannot_change_what_is_pushed(adapter, monkeypat
 
 def test_health_reports_runs_in_flight_and_a_pushed_runs_ref_is_removed(adapter):
     _, root, client = adapter
-    assert client.get("/health").json() == {"status": "ok", "pending": 0}
+    assert client.get("/health").json()["pending"] == 0
     run_id = trigger(client).json()["run_id"]
     assert wait_done(client, run_id)["status"] == "completed"
     assert git(root, "for-each-ref", "refs/factory/") == ""
@@ -1266,4 +1288,4 @@ def test_health_stays_up_when_a_run_record_is_unreadable(adapter):
     _, root, client = adapter
     (root / ".factory-logs" / "broken.meta.json").write_text("{not json")
     response = client.get("/health")
-    assert response.status_code == 200 and response.json() == {"status": "ok", "pending": None}
+    assert response.status_code == 200 and response.json()["pending"] is None

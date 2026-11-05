@@ -9,7 +9,8 @@ Receives task payloads via HTTP and runs **Claude Code** on them inside an OpenH
 | `POST` | `/trigger` | Queue a new factory run |
 | `GET` | `/status/:run_id` | Poll run state |
 | `GET` | `/heartbeat` | `HEARTBEAT.md`'s status table as JSON, field name to current value |
-| `GET` | `/health` | Liveness check |
+| `GET` | `/health` | Liveness check, runs in flight, and the commit loaded |
+| `GET` | `/ready` | 200 when a run could ship now; 503 lists what is wrong (Docker, `gh` login, Claude token, disk) |
 | `GET` | `/command` | Command, the operations dashboard (`command.html`, read from disk per request). `/` redirects here |
 | `GET` | `/command/data` | The dashboard's JSON: every run (newest first, task cut to 140 characters), each PR's state and checks, the heartbeat table, rejections by reason over 24 h, and the limits with the same pending and 24 h counts `/trigger` enforces |
 
@@ -84,15 +85,17 @@ while a run is in flight, because a restart ends every in-flight run as `error` 
 
 ```bash
 factory/intake/restart.sh          # --force restarts anyway
-curl -s 127.0.0.1:7654/health                                     # {"status":"ok"}
+curl -s 127.0.0.1:7654/health      # {"status":"ok","pending":0,"commit":"<git rev-parse --short HEAD>"}
+curl -s 127.0.0.1:7654/ready       # {"ready":true}
 curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: x.example' 127.0.0.1:7654/health   # 400: only tunnel hostnames and localhost
 ```
 
 ## The off-machine alert
 
 `beacon.sh`, run by `com.svenson.factory-beacon.plist` every 10 minutes, stamps the repo variable `FACTORY_ALIVE_AT` while
-`/health` answers. `.github/workflows/watchdog.yml` runs every 15 minutes on GitHub and fails when the stamp is over 30
-minutes old. GitHub emails a failed scheduled run to whoever last changed that workflow's schedule. The beacon uses the
+`/ready` answers 200, so the alert also fires when the adapter is up but cannot ship (Docker down, `gh` logged out, no
+Claude token, under 5 GiB free). A run checks the same things before it builds and ends as `error` if any fails.
+`.github/workflows/watchdog.yml` runs every 15 minutes on GitHub and fails when the stamp is over 30 minutes old. GitHub emails a failed scheduled run to whoever last changed that workflow's schedule. The beacon uses the
 host's `gh` login, which needs write access to the repo's Actions variables (the owner's token has it).
 
 `infra/install.sh` installs the beacon agent with the others. Then check it:
