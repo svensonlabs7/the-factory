@@ -37,6 +37,14 @@ Fork PRs fail the check.
 - [x] Failure loop: the adapter sends findings to a fresh builder, up to 2 fix rounds, then marks the run blocked in `HEARTBEAT.md` for a human
 - [ ] Order relative to CI
 
+## Kaizen report
+
+`factory/qa/kaizen_report.py` reads the gate's results on the latest PRs (merged, or from a factory run) and the run
+records in `.factory-logs`. It prints the pushes each check failed and how factory runs ended, then picks the check that
+failed the most pushes and drafts a task to cut that rework, quoting its latest block reasons. With `--file` it opens
+that proposal as an issue labeled `kaizen`, unless one is already open. Nothing runs until the operator approves it by
+sending the task to the factory. After 10 more PRs, `--prs 10` shows whether the number moved.
+
 ## Break glass: when a merge breaks the gate itself
 
 The gate runs `main`'s copy of the workflow and the review skills (`pull_request_target`). So a merged change that

@@ -1,6 +1,7 @@
 import importlib.util
 import pathlib
 import subprocess
+import sys
 
 import pytest
 import yaml
@@ -181,3 +182,46 @@ def test_router_report_advises_only_with_enough_evidence():
 def test_router_report_counts_only_real_cards():
     review = "HTTP 404 Not found. **011 Timeouts:** ok."
     assert dict(router_report.tally([("", review)], known={"011"})) == {"011": [0, 0, 1]}
+
+
+sys.modules["router_report"] = router_report  # kaizen_report imports its gh helper from it
+_spec = importlib.util.spec_from_file_location("kaizen_report", ROOT / "factory/qa/kaizen_report.py")
+kaizen_report = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(kaizen_report)
+
+
+def _pr(number, *pushes, branch="feat/x", merged=True):
+    commits = [{"commit": {"statusCheckRollup": {"contexts": {"nodes": [
+        {"name": name, "conclusion": conclusion, "checkSuite": {"workflowRun": {"databaseId": number * 10 + i}}}
+        for name, conclusion in push.items()]}} if push else None}} for i, push in enumerate(pushes)]
+    return {"number": number, "headRefName": branch, "merged": merged, "commits": {"nodes": commits}}
+
+
+def test_kaizen_report_counts_failed_pushes_per_check():
+    prs = [
+        _pr(1, {"thermo-nuclear": "FAILURE", "tests": "SUCCESS"}, None, {"thermo-nuclear": "SUCCESS", "tests": "SUCCESS"}),
+        _pr(2, {"tests": "SUCCESS"}),
+        _pr(3, {"lint": "FAILURE"}, merged=False),  # a closed experiment does not count
+        _pr(4, {"tests": "CANCELLED"}, {"tests": "FAILURE"}, {"tests": "SUCCESS"}, branch="factory/abc", merged=False),
+    ]
+    assert kaizen_report.gate_stats(prs) == (3, 2, 6, {"thermo-nuclear": [(1, 10)], "tests": [(4, 41)]})
+    assert kaizen_report.top_problem({"thermo-nuclear": [(1, 10)], "tests": [(4, 41)]}) == "tests"  # a tie goes to the newer PR
+    assert kaizen_report.top_problem({}) is None
+
+
+def test_kaizen_report_quotes_the_verdict_not_a_crash():
+    review = "## Review\n### Blocker\nlong detail\n\n**BLOCK**\n- Two helpers do the same thing.\n- No test for the retry.\n"
+    assert kaizen_report.block_reasons(review) == "Two helpers do the same thing. No test for the retry."
+    assert kaizen_report.block_reasons("REVIEW-NOT-RUN: the reviewer exited with an error twice") is None
+
+
+def test_kaizen_report_summarizes_factory_runs():
+    metas = [
+        {"run_id": "a", "status": "completed", "attempt": 0, "started_at": 0, "finished_at": 600},
+        {"run_id": "b", "status": "blocked", "attempt": 2, "started_at": 0, "finished_at": 1800, "blocking_reason": "lint still failing"},
+        {"run_id": "c", "status": "failed", "attempt": 1, "started_at": 0, "finished_at": 1200, "exit_code": 1},
+        {"run_id": "d", "status": "running", "attempt": 0, "started_at": 0},
+    ]
+    statuses, first, minutes, missed = kaizen_report.run_stats(metas)
+    assert statuses == {"completed": 1, "blocked": 1, "failed": 1} and first == 1 and minutes == 20
+    assert missed == [("b", "blocked", "lint still failing"), ("c", "failed", "exit code 1")]
