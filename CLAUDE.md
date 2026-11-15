@@ -1,88 +1,25 @@
-# The Factory — Autonomous Software Factory
+# The Factory
 
-## Purpose
-An autonomous software factory: feature requests come in, reviewed PRs come out.
-Built on OpenHands (build automation) + Claude Code (the agent doing the work).
-Standalone — no code or state shared with `the-machine`.
+Feature requests come in through a signed webhook. The factory builds each one in an OpenHands sandbox with Claude
+Code, and opens a PR that the QA gate reviews. It shares no code or state with `the-machine`.
 
-## Hard Rules (NON-NEGOTIABLE)
-- **Claude Code only. No Cursor.** pstack and the thermo-nuclear skill come from
-  Cursor's plugin repo; use them through Claude Code, not Cursor.
-- **Nothing merges without passing the QA gate** (`factory/qa/`).
-- **PR-only.** Agents never push directly to a base branch.
-- Secrets live in `.env` (never committed).
+## Hard rules
+- Claude Code only, no Cursor.
+- PR-only: agents never push to a base branch. Nothing merges without the required checks: thermo-nuclear,
+  ponytail-review, ux-laws, tests, lint and secrets.
+- Secrets live in `.env`, which is never committed.
+- Work comes only from the webhook (Grok Bot) or the operator.
 
-## Engineering Mode: pstack / poteto-mode
-- pstack is the default engineering mode. Reference: `vendor/pstack/README.md`.
-  Its skills and agents are vendored into `.claude/skills/` and `.claude/agents/`
-  (source commit in `vendor/pstack/SOURCE`). It is not a Claude Code plugin.
-- pstack's model routing names Cursor models (grok-*, opus-5). In Claude Code, route
-  every role to Claude subagents (`opus` for judgment and hard changes, `sonnet` for
-  routine code). Skip `/setup-pstack`; it writes Cursor rules.
-- Use `/poteto-mode` for every non-trivial task. It picks a playbook (bug fix,
-  feature, refactoring, orchestrate, ...) and runs the supporting skills.
-- Full autonomous runs use `/poteto-mode` with the `autopilot-full` playbook (no human checkpoints until PR).
-- Multi-PR / multi-day work goes through the `orchestrate` playbook.
-- Core principles to apply without being asked: laziness-protocol (smallest change
-  that solves it), prove-it-works (verify against the real artifact), fix-root-causes.
-- Trivial edits (typos, one-line config) skip poteto-mode.
+## How to work
+- Non-trivial tasks use `/poteto-mode`. Full autonomous runs use its `autopilot-full` playbook, and trivial edits skip it.
+- Before running a pstack skill, read `vendor/pstack/CLAUDE-CODE.md`, which maps the Cursor-only steps it names.
+- Make the smallest change that solves the task (the ponytail skill).
+- For UI changes, run the ux-laws skill before and after building.
 
-## Cursor-only references in pstack
-pstack was written for Cursor. Read its Cursor-only terms this way in Claude Code and in factory runs.
-
-| pstack says | Do this |
-|---|---|
-| `cursor-team-kit` plugin | Not installed. Use the rows below for its skills. |
-| `deslop` | Run `/simplify` if available, then pstack's `/unslop` on prose. |
-| `control-cli`, `control-ui` | Drive the real CLI with Bash. For a UI, use browser tools if present. Otherwise say what was not verified. |
-| `create-skill` | Write the SKILL.md by hand, following `playbooks/authoring-a-skill.md`. |
-| Bugbot | None here. The QA gate (thermo-nuclear, ponytail-review, tests) takes its place. Skip Bugbot triage steps. |
-| `grok-*` models, cloud agent | Claude subagents. Use `opus` for hard changes and judgment, `sonnet` for routine code. |
-| `generalPurpose`, `Task` | The `Agent` tool with `subagent_type: "poteto-agent"`. |
-| Origin (`origin pr`), Graphite (`gt`) | Use `gh`. pstack already falls back to it. Never require Graphite. |
-| `AskQuestion` | Factory runs have no human. Decide, act and report, as poteto-mode's "never block on the human" says. |
-| `~/.cursor`, `.cursor/`, `.mdc`, `alwaysApply`, `/setup-pstack` | Skip. Cursor rules files do nothing in Claude Code. |
-| `/loop`, Plan Mode | Skip in factory runs, which are one pass. Interactive sessions can use Claude Code's own `/loop` and plan mode. |
-| Pushing and opening a PR | Factory runs never do either. The adapter publishes the committed branch. Skip those playbook steps. |
-
-## Generation: Ponytail
-- Ponytail enforces minimum code at generation time. Its rules are the vendored skill
-  `.claude/skills/ponytail/SKILL.md`, because factory sandboxes install no plugins.
-  Developers also get the `ponytail@ponytail` plugin from `.claude/settings.json`. Generated diffs should be the
-  smallest change that satisfies the request. No speculative abstractions, no
-  unrequested features, no compatibility shims.
-
-## QA Gate: Thermo-Nuclear
-- Skill: `.claude/skills/thermo-nuclear-code-quality-review/SKILL.md`
-- Runs on every PR before merge, from main's copy of the workflow, next to `ponytail-review` and `tests`. All four are required checks (with the `ux-laws` lane). It is user-invoked only
-  (`disable-model-invocation: true`), so the QA pipeline invokes it explicitly:
-  `/thermo-nuclear-code-quality-review`.
-- Presumptive blockers: a file pushed past 1000 lines, ad-hoc branching in existing
-  flows, unnecessary wrappers/casts, logic in the wrong layer, duplicated helpers.
-- A third lane, `ux-laws` (`.claude/skills/ux-laws/SKILL.md`), reviews PRs that touch UI files and passes the rest; it is a required check.
-
-## Intake: Grok Bot
-- Grok Bot is the intake layer for feature requests once the factory is running.
-- Agents do not take work from anywhere else without explicit operator approval.
-
-## Health: HEARTBEAT.md
-`HEARTBEAT.md` tracks pipeline status (last run, QA gate result, open incidents).
-The intake adapter creates it from `HEARTBEAT.template.md` (it is untracked), updates it in place as each run
-progresses, and stamps `alive_at` every minute so a watcher can tell idle from dead. Grok Bot is the intended
-watcher; that link is not wired yet.
-
-## Pipeline
-Intake (Grok Bot) → Planning (`/poteto-mode` orchestrate) → Build (OpenHands +
-Claude Code + Ponytail) → QA (thermo-nuclear) → CI → Deploy
-
-For any task involving UI, forms, dashboards, pages, or user-facing flows — invoke the ux-laws skill before and after building for review.
-
-## Layout
-- `factory/intake/` — signed webhook adapter and QA failure loop
-- `factory/build/` — OpenHands sandbox runner
-- `factory/qa/` — QA gate notes (the gate itself is `.github/workflows/qa-gate.yml`)
-- `tests/` — adapter and wiring tests
-- `infra/cloudflare-tunnel/` — the public tunnel's config (credentials stay local)
-- `knowledge/systems/` — systems-mastery ledger and topic cards that `/systems-review` enforces
-- `vendor/` — pstack and Ponytail sources
-- `.claude/skills/`, `.claude/agents/` — Claude Code skills and subagents
+## Gotchas
+- The gate runs main's copy of `.github/workflows/qa-gate.yml` and its skills (`pull_request_target`). A PR's edits to
+  them take effect only after it merges.
+- The adapter runs from this folder and loads whatever branch is checked out when it restarts. Keep `main` checked
+  out, restart with `factory/intake/restart.sh`, and check that `/health` shows the new `commit`.
+- `HEARTBEAT.md` is untracked and rewritten every minute. To change its shape, edit `HEARTBEAT.template.md`.
+- Run the tests with `uv run --locked --group test python -m pytest -q`. A plain `uv run pytest` cannot import `factory`.

@@ -1,7 +1,4 @@
 {
-  "enabledPlugins": {
-    "ponytail@ponytail": true
-  },
   "permissions": {
     "deny": [
       "Bash(git push origin main:*)",
