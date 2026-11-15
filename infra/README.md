@@ -47,3 +47,5 @@ Reloading the adapter, or the Docker VM, ends a run in progress, so do it when `
 
 A plan that has never run has an unknown recovery time. Once a year, or after a large infra change, run the steps above
 on a spare Mac or a new macOS user, time each one, and record the result in `knowledge/systems/083-disaster-recovery.md`.
+
+A note about backups: keep the passphrase somewhere other than this repo.
