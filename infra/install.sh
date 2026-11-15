@@ -3,6 +3,7 @@
 # Usage: infra/install.sh [--check]
 #   --check   change nothing; list each installed file as ok, DRIFT or MISSING, and exit 1 unless all are ok.
 # Without --check it copies any file that differs and reloads only what it changed, so a second run is a no-op.
+# Reloading the Colima agent stops the Docker VM, and with it any build running in it.
 # Secrets are not handled here: restore .env and ~/.cloudflared/<tunnel-id>.json + cert.pem first (infra/README.md).
 set -euo pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd)
@@ -14,6 +15,7 @@ pairs=(
   "infra/cloudflare-tunnel/com.cloudflare.cloudflared.plist|$agents/com.cloudflare.cloudflared.plist|com.cloudflare.cloudflared"
   "factory/intake/com.svenson.factory-intake.plist|$agents/com.svenson.factory-intake.plist|com.svenson.factory-intake"
   "factory/intake/com.svenson.factory-beacon.plist|$agents/com.svenson.factory-beacon.plist|com.svenson.factory-beacon"
+  "infra/colima/com.svenson.factory-colima.plist|$agents/com.svenson.factory-colima.plist|com.svenson.factory-colima"
 )
 check=${1:-}
 bad=0
