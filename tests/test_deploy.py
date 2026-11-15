@@ -16,16 +16,22 @@ def test_the_beacon_runs_the_script_every_ten_minutes():
     assert beacon["StartInterval"] == 600
 
 
+def test_the_docker_vm_starts_at_login_and_is_kept_running():
+    colima = plistlib.loads((PLIST.parents[2] / "infra/colima/com.svenson.factory-colima.plist").read_bytes())
+    assert colima["ProgramArguments"][1:3] == ["start", "--foreground"]  # in the foreground, so launchd can keep it up
+    assert colima["RunAtLoad"] and colima["KeepAlive"]
+
+
 def test_install_check_reports_missing_drift_and_ok_without_touching_launchd(tmp_path):
     repo = PLIST.parents[2]
     check = lambda: subprocess.run(["bash", str(repo / "infra/install.sh"), "--check"], env={"HOME": str(tmp_path), "PATH": "/usr/bin:/bin"},
                                    capture_output=True, text=True)
     first = check()
-    assert first.returncode == 1 and first.stdout.count("MISSING") == 4
+    assert first.returncode == 1 and first.stdout.count("MISSING") == 5
     pairs = [("infra/cloudflare-tunnel/config.yml", ".cloudflared/config.yml")] + [
         (src, f"Library/LaunchAgents/{pathlib.Path(src).name}") for src in (
             "infra/cloudflare-tunnel/com.cloudflare.cloudflared.plist", "factory/intake/com.svenson.factory-intake.plist",
-            "factory/intake/com.svenson.factory-beacon.plist")]
+            "factory/intake/com.svenson.factory-beacon.plist", "infra/colima/com.svenson.factory-colima.plist")]
     for src, dst in pairs:
         (tmp_path / dst).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / dst).write_bytes((repo / src).read_bytes())
@@ -65,10 +71,10 @@ def test_install_on_a_fresh_host_loads_every_agent_and_a_second_run_does_nothing
     first = run()
     assert first.returncode == 0, first.stderr
     log = (tmp_path / "launchctl.log").read_text()
-    assert log.count("bootstrap ") == 3 and "kickstart" not in log
+    assert log.count("bootstrap ") == 4 and "kickstart" not in log
     (tmp_path / "launchctl.log").unlink()
     second = run()
-    assert second.returncode == 0 and second.stdout.count("ok  ") == 4 and not (tmp_path / "launchctl.log").exists()
+    assert second.returncode == 0 and second.stdout.count("ok  ") == 5 and not (tmp_path / "launchctl.log").exists()
 
 
 def test_restart_refuses_while_a_run_is_in_flight(tmp_path):
