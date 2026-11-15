@@ -90,6 +90,16 @@ curl -s 127.0.0.1:7654/ready       # {"ready":true}
 curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: x.example' 127.0.0.1:7654/health   # 400: only tunnel hostnames and localhost
 ```
 
+## The plan and the guide
+
+The builder writes its plan to `.git/factory/plan.md` before it changes code, and a guide (requirements covered, what
+remains, how to run and test) to `.git/factory/guide.md` when it is done. They sit inside `.git`, so they are never
+committed. After each round the adapter reads them (plain files only, capped at 20,000 characters, dropped if
+gitleaks finds a secret), keeps them in the run record, and writes the PR description: the task, then `## Guide`, then
+`## Plan`. A fix round's fresh clone starts from the last notes, and the description is updated before the push so the
+gate's run for the new head sees it. `qa-gate.yml` gives the thermo-nuclear lane everything from `## Plan` on, and
+asks whether the diff matches it. A PR with no plan heading (a person's) gets no such question.
+
 ## The off-machine alert
 
 `beacon.sh`, run by `com.svenson.factory-beacon.plist` every 10 minutes, stamps the repo variable `FACTORY_ALIVE_AT` while

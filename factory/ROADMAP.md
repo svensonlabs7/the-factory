@@ -30,15 +30,17 @@ Get the host back to a known state after the 2026-11-15 reboot.
 - Commit this roadmap.
 Done when: `/ready` is 200 from a cold boot without a hand start, and `install.sh --check` reports it.
 
-### 1. Plan before code, guide after — status: todo
+### 1. Plan before code, guide after — status: done
 Every factory PR carries its intent, so the gate and the operator review the diff against a plan.
-- The builder writes `.factory/plan.md` in its first commit: files it will touch, approach, scope boundaries (what it
-  will not change), and how it will verify. No placeholders.
-- The builder writes `.factory/guide.md` in its last commit: requirements covered (checklist), what remains, how to
-  run and test the change. The adapter puts the guide in the PR body instead of today's two lines.
+- The builder writes `.git/factory/plan.md` first: files it will touch, approach, scope boundaries (what it will not
+  change), and how it will verify. No placeholders. It writes `.git/factory/guide.md` last: requirements covered
+  (checklist), what remains, how to run and test the change. Both stay inside `.git` so they are never committed (they
+  would pile up in the repo); the adapter reads them and writes the PR body: task, `## Guide`, `## Plan`.
 - The thermo-nuclear lane gets one more question: does the diff match the plan? Unplanned files or scope is a finding.
-- Fix rounds update both files.
+- Fix rounds start from the last notes and update both; the body is edited before the push.
 Done when: a real factory run on this repo opens a PR whose body is the guide and whose plan the gate cites.
+Note: the first real run needs the operator's webhook secret to sign a trigger, which the loop does not use. Until the
+operator triggers one, the adapter half is proven by tests with a fake builder, and the gate half by a throwaway PR.
 
 ### 2. Target any repo — status: todo
 A trigger names the repo it is for.

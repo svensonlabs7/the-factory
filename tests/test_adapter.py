@@ -50,6 +50,15 @@ case "$2" in *DUPLICATED-HELPER*)
     ;;
 esac
 echo "fence-ends=$(printf '%s' "$2" | grep -c -e '--- end findings ---')"
+if [ -n "$FAKE_NOTES" ]; then
+    mkdir -p .git/factory
+    cat .git/factory/plan.md >> "$FAKE_AGENT_STATE/seen-plans" 2>/dev/null
+    echo "plan from pid $$" > .git/factory/plan.md
+    echo "guide from pid $$" > .git/factory/guide.md
+    [ -n "$FAKE_NOTE_SECRET" ] && echo "$FAKE_NOTE_SECRET" >> .git/factory/guide.md
+    [ -n "$FAKE_NOTE_SECRET_IN_FIX" ] && case "$2" in *DUPLICATED-HELPER*) echo "$FAKE_NOTE_SECRET_IN_FIX" >> .git/factory/guide.md;; esac
+    [ -n "$FAKE_NOTE_LINK" ] && { rm .git/factory/plan.md; ln -s "$FAKE_NOTE_LINK" .git/factory/plan.md; }
+fi
 if [ -n "$FAKE_HOOK_MARKER" ]; then
     printf '#!/bin/sh\\ntouch "%s"\\n' "$FAKE_HOOK_MARKER" > .git/hooks/pre-push
     chmod +x .git/hooks/pre-push
@@ -100,8 +109,11 @@ if args[:2] == ["pr", "create"]:
         time.sleep(5)
     (state / "branch").write_text(args[args.index("--head") + 1])
     (state / "title").write_text(args[args.index("--title") + 1])
+    (state / "body").write_text(args[args.index("--body") + 1])
     (state / "pr-creates").open("a").write("x")
     print("https://example.invalid/pull/1")
+elif args[:2] == ["pr", "edit"]:
+    (state / "body").write_text(args[args.index("--body") + 1])
 elif args[:2] == ["pr", "view"]:
     if os.environ.get("FAKE_GH_FLAKY") and call_number("flaky-calls") == 1:
         print("HTTP 502: Bad Gateway", file=sys.stderr)
@@ -456,6 +468,65 @@ def test_a_secret_the_agent_commits_is_never_pushed(adapter, monkeypatch):
     assert run["status"] == "error" and "gitleaks" in run["error"]
     assert key not in run["error"]
     assert f"factory/{run_id}" not in git(root, "ls-remote", "origin")
+
+
+def test_the_builders_plan_and_guide_become_the_pr_description_and_are_never_committed(adapter, monkeypatch):
+    _, root, client = adapter
+    monkeypatch.setenv("FAKE_NOTES", "1")
+    run_id = trigger(client).json()["run_id"]
+    assert wait_done(client, run_id)["status"] == "completed"
+    body = (root.parent / "gh-state" / "body").read_text()
+    assert body.startswith(f"Factory build {run_id}") and body.index("## Guide") < body.index("## Plan")
+    assert "guide from pid" in body and "plan from pid" in body
+    assert set(git(root, "ls-tree", "-r", "--name-only", f"origin/factory/{run_id}").split()) == {"README.md", "change.txt"}
+
+
+def test_a_run_without_notes_keeps_the_short_pr_description(adapter):
+    _, root, client = adapter
+    run_id = trigger(client).json()["run_id"]
+    assert wait_done(client, run_id)["status"] == "completed"
+    assert "##" not in (root.parent / "gh-state" / "body").read_text()
+
+
+def test_a_fix_round_starts_from_the_last_notes_and_updates_the_pr_description_before_the_push(adapter, monkeypatch):
+    _, root, client = adapter
+    monkeypatch.setenv("FAKE_NOTES", "1")
+    monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,pass")
+    run_id = trigger(client).json()["run_id"]
+    assert wait_done(client, run_id)["status"] == "completed"
+    seen = (root.parent / "agent-state" / "seen-plans").read_text()
+    assert seen.count("plan from pid") == 1  # round 0 saw nothing; the fix round saw round 0's plan
+    first_pid = seen.split()[-1]
+    body = (root.parent / "gh-state" / "body").read_text()
+    assert f"plan from pid {first_pid}" not in body  # the description now holds the fix round's own notes
+
+
+@pytest.mark.parametrize("env", ["link", "secret"])
+def test_a_note_that_links_to_a_host_file_or_holds_a_secret_is_dropped(adapter, monkeypatch, tmp_path, env):
+    _, root, client = adapter
+    monkeypatch.setenv("FAKE_NOTES", "1")
+    if env == "link":
+        host = tmp_path / "host-file"
+        host.write_text("HOST-FILE-CONTENT")
+        monkeypatch.setenv("FAKE_NOTE_LINK", str(host))
+    else:
+        key = "sk-ant-api03-" + "".join(random.choices(string.ascii_letters + string.digits, k=93)) + "AA"
+        monkeypatch.setenv("FAKE_NOTE_SECRET", f"ANTHROPIC_API_KEY={key}")
+    assert wait_done(client, trigger(client).json()["run_id"])["status"] == "completed"
+    body = (root.parent / "gh-state" / "body").read_text()
+    assert "HOST-FILE-CONTENT" not in body and "sk-ant" not in body
+    assert ("## Plan" in body) == (env == "secret") and ("## Guide" in body) == (env == "link")
+
+
+def test_a_note_dropped_in_a_fix_round_does_not_leave_the_old_one_in_the_description(adapter, monkeypatch):
+    _, root, client = adapter
+    key = "sk-ant-api03-" + "".join(random.choices(string.ascii_letters + string.digits, k=93)) + "AA"
+    monkeypatch.setenv("FAKE_NOTES", "1")
+    monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,pass")
+    monkeypatch.setenv("FAKE_NOTE_SECRET_IN_FIX", f"ANTHROPIC_API_KEY={key}")
+    assert wait_done(client, trigger(client).json()["run_id"])["status"] == "completed"
+    body = (root.parent / "gh-state" / "body").read_text()
+    assert "## Plan" in body and "## Guide" not in body and "sk-ant" not in body
 
 
 def test_reused_branch_is_rejected_and_the_next_run_still_runs(adapter):

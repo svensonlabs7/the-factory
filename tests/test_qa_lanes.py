@@ -75,7 +75,7 @@ def test_scope_bad_regex_fails_instead_of_skipping(repo):
 def test_lanes():
     assert {name: {k: v for k, v in lane.items() if k != "paths"} for name, lane in LANES.items()} == {
         "thermo-nuclear": {"check": "thermo-nuclear", "skill": "/thermo-nuclear-code-quality-review", "model": "opus",
-                           "systems": True},
+                           "systems": True, "plan": True},
         "ponytail-review": {"check": "ponytail-review", "skill": "/ponytail-review", "model": "sonnet"},
         "ux-laws": {"check": "ux-laws", "skill": "/ux-laws", "model": "sonnet"},
     }
@@ -225,3 +225,15 @@ def test_kaizen_report_summarizes_factory_runs():
     statuses, first, minutes, missed = kaizen_report.run_stats(metas)
     assert statuses == {"completed": 1, "blocked": 1, "failed": 1} and first == 1 and minutes == 20
     assert missed == [("b", "blocked", "lint still failing"), ("c", "failed", "exit code 1")]
+
+
+def test_the_reviewer_is_handed_the_plan_section_of_the_pr_description(tmp_path):
+    step = next(s for s in JOB["steps"] if s.get("name") == "Read the plan")
+    body = "Factory build x\n\nTask: t\n\n## Guide\n\ndone\n\n## Plan\n\ntouch a.py only"
+    subprocess.run(["bash", "-c", step["run"]], env={"RUNNER_TEMP": str(tmp_path), "PR_BODY": body, "PATH": "/usr/bin:/bin"}, check=True)
+    assert (tmp_path / "plan.md").read_text() == "## Plan\n\ntouch a.py only\n"
+    subprocess.run(["bash", "-c", step["run"]], env={"RUNNER_TEMP": str(tmp_path), "PR_BODY": body.replace("\n", "\r\n"), "PATH": "/usr/bin:/bin"}, check=True)
+    assert (tmp_path / "plan.md").read_text() == "## Plan\n\ntouch a.py only\n"  # a description edited in the web UI
+    subprocess.run(["bash", "-c", step["run"]], env={"RUNNER_TEMP": str(tmp_path), "PR_BODY": "a person's PR", "PATH": "/usr/bin:/bin"}, check=True)
+    assert (tmp_path / "plan.md").read_text() == ""
+    assert LANES["thermo-nuclear"]["plan"] and not LANES["ponytail-review"].get("plan")
