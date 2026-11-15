@@ -188,6 +188,8 @@ def test_the_reviewer_is_handed_the_plan_section_of_the_pr_description(tmp_path)
     body = "Factory build x\n\nTask: t\n\n## Guide\n\ndone\n\n## Plan\n\ntouch a.py only"
     subprocess.run(["bash", "-c", step["run"]], env={"RUNNER_TEMP": str(tmp_path), "PR_BODY": body, "PATH": "/usr/bin:/bin"}, check=True)
     assert (tmp_path / "plan.md").read_text() == "## Plan\n\ntouch a.py only\n"
+    subprocess.run(["bash", "-c", step["run"]], env={"RUNNER_TEMP": str(tmp_path), "PR_BODY": body.replace("\n", "\r\n"), "PATH": "/usr/bin:/bin"}, check=True)
+    assert (tmp_path / "plan.md").read_text() == "## Plan\n\ntouch a.py only\n"  # a description edited in the web UI
     subprocess.run(["bash", "-c", step["run"]], env={"RUNNER_TEMP": str(tmp_path), "PR_BODY": "a person's PR", "PATH": "/usr/bin:/bin"}, check=True)
     assert (tmp_path / "plan.md").read_text() == ""
     assert LANES["thermo-nuclear"]["plan"] and not LANES["ponytail-review"].get("plan")

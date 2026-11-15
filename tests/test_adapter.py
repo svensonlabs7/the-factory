@@ -56,6 +56,7 @@ if [ -n "$FAKE_NOTES" ]; then
     echo "plan from pid $$" > .git/factory/plan.md
     echo "guide from pid $$" > .git/factory/guide.md
     [ -n "$FAKE_NOTE_SECRET" ] && echo "$FAKE_NOTE_SECRET" >> .git/factory/guide.md
+    [ -n "$FAKE_NOTE_SECRET_IN_FIX" ] && case "$2" in *DUPLICATED-HELPER*) echo "$FAKE_NOTE_SECRET_IN_FIX" >> .git/factory/guide.md;; esac
     [ -n "$FAKE_NOTE_LINK" ] && { rm .git/factory/plan.md; ln -s "$FAKE_NOTE_LINK" .git/factory/plan.md; }
 fi
 if [ -n "$FAKE_HOOK_MARKER" ]; then
@@ -515,6 +516,17 @@ def test_a_note_that_links_to_a_host_file_or_holds_a_secret_is_dropped(adapter, 
     body = (root.parent / "gh-state" / "body").read_text()
     assert "HOST-FILE-CONTENT" not in body and "sk-ant" not in body
     assert ("## Plan" in body) == (env == "secret") and ("## Guide" in body) == (env == "link")
+
+
+def test_a_note_dropped_in_a_fix_round_does_not_leave_the_old_one_in_the_description(adapter, monkeypatch):
+    _, root, client = adapter
+    key = "sk-ant-api03-" + "".join(random.choices(string.ascii_letters + string.digits, k=93)) + "AA"
+    monkeypatch.setenv("FAKE_NOTES", "1")
+    monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,pass")
+    monkeypatch.setenv("FAKE_NOTE_SECRET_IN_FIX", f"ANTHROPIC_API_KEY={key}")
+    assert wait_done(client, trigger(client).json()["run_id"])["status"] == "completed"
+    body = (root.parent / "gh-state" / "body").read_text()
+    assert "## Plan" in body and "## Guide" not in body and "sk-ant" not in body
 
 
 def test_reused_branch_is_rejected_and_the_next_run_still_runs(adapter):

@@ -72,6 +72,7 @@ COMMAND_TIMEOUT = 300  # seconds for any single git or gh call, so a hang cannot
 READY_TIMEOUT = 10  # seconds for each readiness probe
 MIN_FREE_DISK = 5 * 2**30  # bytes free a run needs for its clone and build
 NOTES_DIR = ".git/factory"  # the builder's plan.md and guide.md; inside .git, so `git add -A` never commits them
+NOTES = ("guide", "plan")  # the PR description's order. Plan is last because qa-gate.yml hands the reviewer everything from its heading on
 NOTE_LIMIT = 20000  # characters kept of each note
 FINDINGS_LIMIT = 12000  # caps one round's own review text (tail) and the combined rendered history (prefix, oldest rounds first)
 LOG_TAIL = 4000  # characters of a failed run's log kept as findings
@@ -318,15 +319,31 @@ def _read_note(workdir: Path, name: str) -> str:
     return "" if leak.returncode else text
 
 
-def _pr_body(run_id: str) -> str:
-    """The PR description: the task, then the builder's guide and plan. The plan comes last because qa-gate.yml hands
-    the reviewer everything from its heading on."""
-    run = _load(run_id)
-    body = f"Factory build {run_id}\n\nTask: {run['task'][:200]}"
-    for title, key in (("Guide", "guide"), ("Plan", "plan")):
-        if run.get(key):
-            body += f"\n\n## {title}\n\n{run[key]}"
+def _restore_notes(workdir: Path, run: dict) -> None:
+    """A fix round's fresh clone starts from the notes the last round left, so the builder updates them."""
+    for name in NOTES:
+        if run.get(name):
+            (workdir / NOTES_DIR).mkdir(parents=True, exist_ok=True)
+            (workdir / NOTES_DIR / f"{name}.md").write_text(run[name])
+
+
+def _pr_body(run: dict) -> str:
+    """The PR description: the task, then each note under its heading, in NOTES order."""
+    body = f"Factory build {run['run_id']}\n\nTask: {run['task'][:200]}"
+    for name in NOTES:
+        if run.get(name):
+            body += f"\n\n## {name.title()}\n\n{run[name]}"
     return body
+
+
+def _publish_notes(run_id: str, workdir: Path) -> None:
+    """Keep what the builder wrote in the run record (a note that was dropped is cleared, so the description never
+    shows an older round's) and, once the PR exists, put it in the description before the push, so the gate's run
+    for the new head sees it. Round 0's description is written by _run_agent when it opens the PR."""
+    _update(run_id, **{name: _read_note(workdir, f"{name}.md") for name in NOTES})
+    run = _load(run_id)
+    if run.get("pr_url"):
+        _run(GH_BIN, "pr", "edit", run["pr_url"], "--body", _pr_body(run), retry=True)
 
 
 # ---------------------------------------------------------------------------
@@ -513,12 +530,7 @@ def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> s
             open(log_path, "a") as lf:
         lf.write(f"===== attempt {attempt} =====\n")
         lf.flush()
-        # A fix round's fresh clone starts from the notes the last round left, so the builder updates them.
-        previous = _load(run_id)
-        for name in ("plan", "guide"):
-            if previous.get(name):
-                (workdir / NOTES_DIR).mkdir(parents=True, exist_ok=True)
-                (workdir / NOTES_DIR / f"{name}.md").write_text(previous[name])
+        _restore_notes(workdir, _load(run_id))
         # Its own session, so a timeout can SIGTERM/SIGKILL the whole process group, not just this one process.
         process = subprocess.Popen(
             [*AGENT_CMD, str(workdir), prompt, str(AGENT_TIMEOUT - 300)],
@@ -541,11 +553,7 @@ def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> s
         _log_action(run_id, "round_finished", attempt=attempt, exit_code=exit_code, seconds=round(time.time() - started, 1))
         if exit_code:
             raise AgentFailed(exit_code, output=log_path.read_text()[start:][-LOG_TAIL:])
-        notes = {name: text for name in ("plan", "guide") if (text := _read_note(workdir, f"{name}.md"))}
-        _update(run_id, **notes)
-        # Before the push, so the gate's run for the new head sees the updated description.
-        if attempt and (pr_url := _load(run_id).get("pr_url")):
-            _run(GH_BIN, "pr", "edit", pr_url, "--body", _pr_body(run_id), retry=True)
+        _publish_notes(run_id, workdir)
         head = _push(branch, workdir, since)
         _log_action(run_id, "pushed", head=head)
         return head
@@ -604,7 +612,7 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
         if problems := _problems():
             return _finish(run_id, "error", error="not ready to build: " + "; ".join(problems))
         head = _build_round(run_id, 0, prompt, branch, since="origin/main")
-        body = _pr_body(run_id)
+        body = _pr_body(_load(run_id))
         title = next((line.strip() for line in task.splitlines() if line.strip()), branch)[:72]
         pr_url = _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", title, "--body", body)
         _update(run_id, pr_url=pr_url)

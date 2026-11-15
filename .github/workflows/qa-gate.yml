@@ -60,7 +60,7 @@ jobs:
         if: steps.scope.outputs.run == 'true' && matrix.plan
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
-        run: printf '%s\n' "$PR_BODY" | sed -n '/^## Plan$/,$p' > "$RUNNER_TEMP/plan.md"
+        run: printf '%s\n' "$PR_BODY" | tr -d '\r' | sed -n '/^## Plan$/,$p' > "$RUNNER_TEMP/plan.md"
       - name: Skip the review
         if: steps.scope.outputs.run == 'false'
         run: printf 'No changed file matches this lane, so the review was skipped.\n\n**PASS**\n' > "$RUNNER_TEMP/review.md"
