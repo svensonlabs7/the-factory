@@ -25,12 +25,14 @@ The launch agents name `/Users/labs/projects/the-factory`, so use the same user 
 2. **GitHub:** `gh auth login`, then `git clone https://github.com/svensonlabs7/the-factory ~/projects/the-factory`.
 3. **Secrets:** `hdiutil attach factory-secrets-<date>.dmg`. Then copy `env` to `~/projects/the-factory/.env` (`chmod 600`)
    and `cloudflared/*` to `~/.cloudflared/`.
-4. **Docker VM:** `colima start --cpu 2 --memory 4`. The first build pulls the pinned agent-server image (about 9 GB).
-5. **Services:** from the repo, `mkdir -p .factory-logs && infra/install.sh`. It installs the tunnel config and the
-   tunnel, adapter and beacon launch agents, and starts them.
-6. **Check:**
+4. **Services:** from the repo, `mkdir -p .factory-logs && infra/install.sh`. It installs the tunnel config and the
+   Docker VM, tunnel, adapter and beacon launch agents, and starts them.
+   The Docker VM comes back by itself after every login or reboot. The first build pulls the pinned agent-server image
+   (about 9 GB). To stop it for good, `launchctl bootout gui/$(id -u)/com.svenson.factory-colima`.
+5. **Check:**
    - `infra/install.sh --check` lists every file as `ok`;
    - `curl -s 127.0.0.1:7654/health` returns `{"status":"ok"}`;
+   - `curl -s 127.0.0.1:7654/ready` returns `{"ready":true}` (Docker, `gh`, the Claude token and disk all pass);
    - `factory/build/egress.sh` exits 0;
    - `gh variable get FACTORY_ALIVE_AT` is from the last 10 minutes;
    - `~/Library/Logs/com.cloudflare.cloudflared.err.log` shows four `Registered tunnel connection` lines.
@@ -39,7 +41,7 @@ The launch agents name `/Users/labs/projects/the-factory`, so use the same user 
 
 `infra/install.sh --check` compares the installed service files with the repo and exits 1 on any difference. Run it after
 pulling a change to `config.yml` or a plist; `infra/install.sh` (no flag) then installs only what changed and reloads it.
-Reloading the adapter ends a run in progress, so do it when `HEARTBEAT.md` shows `idle`.
+Reloading the adapter, or the Docker VM, ends a run in progress, so do it when `HEARTBEAT.md` shows `idle`.
 
 ## Drill
 
