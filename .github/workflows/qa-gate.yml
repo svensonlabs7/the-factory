@@ -1,9 +1,14 @@
 name: qa-gate
 
 # pull_request_target runs main's copy of this file, so a PR cannot edit the gate that reviews it.
+# Another repo's caller (factory/qa/caller.yml) runs it with workflow_call, pinned to a commit of this repo.
 on:
   pull_request_target:
     branches: [main]
+  workflow_call:
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: false  # checked by a step below, so every lane fails with the reason instead of the call failing as one
 
 permissions:
   contents: read
@@ -37,11 +42,38 @@ jobs:
         run: |
           echo "Fork PRs get no automated review."
           exit 1
+      - name: Check the token
+        env:
+          TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: test -n "$TOKEN" || { echo "::error::The CLAUDE_CODE_OAUTH_TOKEN secret is not set in this repo, so the review cannot run. gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo ${{ github.repository }}"; exit 1; }
       # The base commit supplies the workflow-adjacent code: the skill, CLAUDE.md and .claude/settings.json.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 0
+      # Called from another repo, the checkout above is that repo's base, which has none of the gate's files. They come
+      # from the repo this workflow lives in, at the commit the caller pinned, copied beside the base and never over it;
+      # the PR's own files stay git refs. A job in this repo's own run has nothing to fetch.
+      - name: Fetch the gate's files
+        if: job.workflow_repository != github.repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: .gate
+          persist-credentials: false
+      - name: Install the gate's files
+        if: job.workflow_repository != github.repository
+        run: |
+          # A file the repo already has wins, and is named here so a shadowed gate file shows up.
+          (cd .gate && find .claude factory/qa knowledge/systems -type f) | while read -r f; do
+            if [ -e "$f" ]; then echo "::notice::kept this repo's own $f over the gate's"; fi
+          done
+          # rsync, because GNU cp -n exits 1 for every file it skips
+          mkdir -p .claude factory/qa knowledge/systems
+          rsync -a --ignore-existing .gate/.claude/ .claude/
+          rsync -a --ignore-existing .gate/factory/qa/ factory/qa/
+          rsync -a --ignore-existing .gate/knowledge/systems/ knowledge/systems/
       - run: npm install -g @anthropic-ai/claude-code@2.1.296
       - name: Fetch the PR head as a ref
         run: git fetch -q origin "pull/${{ github.event.pull_request.number }}/head:pr-head"

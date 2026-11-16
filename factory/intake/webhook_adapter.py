@@ -529,7 +529,8 @@ def _gate_results(pr_url: str, head: str) -> dict[str, str]:
                     raise
                 checks = []
             if checks and all(c["bucket"] != "pending" for c in checks):
-                return {c["name"]: "fail" if c["bucket"] in ("fail", "cancel") else "pass" for c in checks}
+                # Another repo's caller runs the gate as a job named "gate", so its checks read "gate / thermo-nuclear".
+                return {c["name"].rsplit(" / ", 1)[-1]: "fail" if c["bucket"] in ("fail", "cancel") else "pass" for c in checks}
         time.sleep(CHECKS_POLL)
     raise RuntimeError("timed out waiting for checks")
 
