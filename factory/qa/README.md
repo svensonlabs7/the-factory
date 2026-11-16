@@ -31,11 +31,12 @@ gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo owner/name
 ```
 
 The caller (`caller.yml`) is a `pull_request_target` workflow whose one job, `gate`, calls this repo's `qa-gate.yml` at
-the pinned commit and passes `factory_ref` (the same commit) so the gate can fetch this repo's skills, scripts and cards
-(`.claude/`, `factory/qa/`, `knowledge/systems/`) and copy them beside the other repo's base checkout, never over its
-own files. The PR's files stay git refs, as here. The checks appear as `gate / thermo-nuclear`, `gate / ponytail-review`
+the pinned commit and passes it only the token secret. The gate then fetches this repo's skills, scripts and cards
+(`.claude/`, `factory/qa/`, `knowledge/systems/`) at that same commit (`job.workflow_sha`) and copies them beside the
+other repo's base checkout, never over its own files; a file of the repo's own that shadows one is named in the log.
+The PR's files stay git refs, as here. The checks appear as `gate / thermo-nuclear`, `gate / ponytail-review`
 and `gate / ux-laws`; the adapter strips the prefix. A repo without the token secret fails every lane with the reason.
-To move a repo to a newer gate, bump the two pinned commits in its caller together. Its own tests are not part of
+To move a repo to a newer gate, change the pinned commit in its caller. Its own tests are not part of
 this gate: add them as a required check yourself, and the onboarding step records the commands.
 
 ## Presumptive blockers (from the skill)

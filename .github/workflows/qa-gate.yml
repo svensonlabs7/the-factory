@@ -6,11 +6,6 @@ on:
   pull_request_target:
     branches: [main]
   workflow_call:
-    inputs:
-      factory_ref:
-        description: The commit of this repo the caller pinned, which supplies the skills, scripts and cards the gate runs
-        type: string
-        required: true
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false  # checked by a step below, so every lane fails with the reason instead of the call failing as one
@@ -56,20 +51,24 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 0
-      # In another repo the checkout above is that repo's base, which has none of the gate's files. They come from this
-      # repo at the pinned commit, copied beside the base and never over it, and the PR's own files stay git refs.
-      # Both names are this repo's: a fork of the factory edits them.
+      # Called from another repo, the checkout above is that repo's base, which has none of the gate's files. They come
+      # from the repo this workflow lives in, at the commit the caller pinned, copied beside the base and never over it;
+      # the PR's own files stay git refs. A job in this repo's own run has nothing to fetch.
       - name: Fetch the gate's files
-        if: github.repository != 'svensonlabs7/the-factory'
+        if: job.workflow_repository != github.repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
-          repository: svensonlabs7/the-factory
-          ref: ${{ inputs.factory_ref }}
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
           path: .gate
           persist-credentials: false
       - name: Install the gate's files
-        if: github.repository != 'svensonlabs7/the-factory'
+        if: job.workflow_repository != github.repository
         run: |
+          # A file the repo already has wins, and is named here so a shadowed gate file shows up.
+          (cd .gate && find .claude factory/qa knowledge/systems -type f) | while read -r f; do
+            if [ -e "$f" ]; then echo "::notice::kept this repo's own $f over the gate's"; fi
+          done
           # rsync, because GNU cp -n exits 1 for every file it skips
           mkdir -p .claude factory/qa knowledge/systems
           rsync -a --ignore-existing .gate/.claude/ .claude/

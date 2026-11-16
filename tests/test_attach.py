@@ -21,20 +21,23 @@ def fake_gh(tmp_path, body):
     return {**ENV, "PATH": f"{bin_dir}:{ENV['PATH']}", "STATE": str(tmp_path)}
 
 
-def test_the_gate_can_be_called_and_needs_the_pinned_commit():
-    assert set(GATE[True]) == {"pull_request_target", "workflow_call"}
-    assert GATE[True]["workflow_call"]["inputs"]["factory_ref"]["required"]
+def test_the_gate_can_be_called_and_fetches_its_files_from_the_commit_it_runs_at():
+    assert set(GATE[True]) == {"pull_request_target", "workflow_call"} and "inputs" not in GATE[True]["workflow_call"]
+    fetch = next(s for s in JOB["steps"] if s.get("name") == "Fetch the gate's files")
+    assert fetch["if"] == "job.workflow_repository != github.repository"  # nothing to fetch in this repo's own run
+    assert fetch["with"]["repository"] == "${{ job.workflow_repository }}" and fetch["with"]["ref"] == "${{ job.workflow_sha }}"
 
 
 def test_the_install_step_copies_the_gate_beside_the_base_and_never_over_it(tmp_path):
     step = next(s for s in JOB["steps"] if s.get("name") == "Install the gate's files")
-    assert step["if"] == "github.repository != 'svensonlabs7/the-factory'"
+    assert step["if"] == "job.workflow_repository != github.repository"
     files = {".gate/.claude/skills/x/SKILL.md": "gate", ".gate/.claude/skills/y/SKILL.md": "gate", ".gate/factory/qa/scope.sh": "gate",
              ".gate/knowledge/systems/c.md": "gate", ".claude/skills/x/SKILL.md": "the repo's own", "knowledge/own.md": "own"}
     for name, text in files.items():
         (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / name).write_text(text)
-    subprocess.run(["bash", "-ec", step["run"]], cwd=tmp_path, check=True)
+    done = subprocess.run(["bash", "-ec", step["run"]], cwd=tmp_path, check=True, capture_output=True, text=True)
+    assert "kept this repo's own .claude/skills/x/SKILL.md" in done.stdout and "skills/y" not in done.stdout  # a shadowed file is named
     read = lambda name: (tmp_path / name).read_text()
     assert read(".claude/skills/x/SKILL.md") == "the repo's own" and read(".claude/skills/y/SKILL.md") == "gate"
     assert read("factory/qa/scope.sh") == "gate" and read("knowledge/systems/c.md") == "gate" and read("knowledge/own.md") == "own"
@@ -48,11 +51,12 @@ def test_a_missing_token_fails_every_lane_with_the_reason(tmp_path):
     assert failed.returncode == 1 and "gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo acme/app" in failed.stdout
 
 
-def test_the_caller_pins_one_commit_twice_and_protect_requires_the_checks_it_produces():
+def test_the_caller_pins_one_commit_and_passes_only_the_token_and_protect_requires_the_checks_it_produces():
     caller = yaml.safe_load((ROOT / "factory/qa/caller.yml").read_text().replace("__SHA__", "abc123").replace("__BRANCH__", "trunk"))
     job = caller["jobs"]["gate"]
-    assert job["uses"] == "svensonlabs7/the-factory/.github/workflows/qa-gate.yml@abc123" and job["with"]["factory_ref"] == "abc123"
-    assert job["secrets"] == "inherit" and caller[True]["pull_request_target"]["branches"] == ["trunk"]
+    assert job["uses"] == "svensonlabs7/the-factory/.github/workflows/qa-gate.yml@abc123" and "with" not in job
+    assert job["secrets"] == {"CLAUDE_CODE_OAUTH_TOKEN": "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}"}  # not `inherit`: every secret
+    assert caller[True]["pull_request_target"]["branches"] == ["trunk"]
     protect = (ROOT / "factory/qa/protect.sh").read_text()
     contexts = json.loads(re.search(r"<<'JSON'.*?\n(.*?)\nJSON", protect, re.S)[1])["required_status_checks"]["contexts"]
     assert contexts == [f"gate / {lane}" for lane in LANES]  # the caller's job is named gate, and each lane's job its check
@@ -77,7 +81,7 @@ esac''')
     done = subprocess.run([ROOT / "factory/qa/attach.sh", "acme/app"], env=env, capture_output=True, text=True)
     assert done.returncode == 0, done.stderr
     workflow = subprocess.run(["git", "show", "factory/attach-gate:.github/workflows/qa-gate.yml"], cwd=remote, capture_output=True, text=True, check=True).stdout
-    assert workflow.count("abc123def") == 2 and "branches: [trunk]" in workflow and "__" not in workflow.replace("__BRANCH__", "")
+    assert workflow.count("abc123def") == 1 and "branches: [trunk]" in workflow and "__" not in workflow.replace("__BRANCH__", "")
     log = (tmp_path / "gh.log").read_text()
     assert "pr create --repo acme/app --base trunk --head factory/attach-gate" in log
     assert subprocess.run([ROOT / "factory/qa/attach.sh", "not a repo"], env=env, capture_output=True).returncode == 2
