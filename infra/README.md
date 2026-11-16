@@ -21,7 +21,7 @@ elsewhere), and keep the passphrase in the password manager. Never commit it. Ch
 
 The launch agents name `/Users/labs/projects/the-factory`, so use the same user name and path, or edit the plists.
 
-1. **Tools:** `brew install colima docker gh gitleaks cloudflared`, then uv with `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+1. **Tools:** `brew install colima docker gh gitleaks cloudflared osv-scanner`, then uv with `curl -LsSf https://astral.sh/uv/install.sh | sh`.
 2. **GitHub:** `gh auth login`, then `git clone https://github.com/svensonlabs7/the-factory ~/projects/the-factory`.
 3. **Secrets:** `hdiutil attach factory-secrets-<date>.dmg`. Then copy `env` to `~/projects/the-factory/.env` (`chmod 600`)
    and `cloudflared/*` to `~/.cloudflared/`.

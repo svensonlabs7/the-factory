@@ -51,7 +51,7 @@ A trigger names the repo it is for.
 Done when: tests prove a run for a second repo builds off its default branch, pushes and opens its PR there, and reads
 findings from there; the first real run needs the operator's webhook secret, so the loop does not do one.
 
-### 2b. Target any repo: the gate — status: built, live proof pending (mark done in item 3's PR)
+### 2b. Target any repo: the gate — status: done
 - Make `qa-gate.yml` callable (`on: workflow_call`) as well as `pull_request_target`, so another repo's caller
   (`factory/qa/caller.yml`, about ten lines, pinned by commit SHA) runs the same lanes with this repo's skills and
   cards. The adapter strips the caller's `gate / ` prefix from check names. `factory/qa/attach.sh owner/name` opens
@@ -59,8 +59,13 @@ findings from there; the first real run needs the operator's webhook secret, so 
 - The target repo needs the Claude token as a secret. The operator sets it (`gh secret set`); the loop does not use it.
 Done when: a second repo under `svensonlabs7` (create a small private one) has the caller and protection, and a PR
 there runs the lanes from this repo's pinned workflow; the reviews themselves need the operator's secret.
+Proven live on 2026-11-16 with `svensonlabs7/factory-test-app`: the three lanes ran as `gate / <lane>`, fetched and
+installed the gate's files at the pinned commit, and failed only at the review (no token); a missing token failed
+every lane with the reason; `protect.sh` made the PR BLOCKED on those exact names. Finding: **GitHub's free plan cannot
+protect a private repo's branches**, so the test repo was made public (it holds only a README and the caller). A
+private product repo needs GitHub Pro (or stays unprotected, so the gate is advisory there): decide before item 5.
 
-### 3. Scan every build for free — status: todo
+### 3. Scan every build for free — status: done
 The zero-token wall, on every build of every repo, including this one.
 - `factory/qa/repo_scan.py`, same shape as `rules.py`: install hooks (`postinstall`, `preinstall`, `setup.py`
   cmdclass, committed git hooks, `curl | sh` in Makefiles), workflows with `pull_request_target` that check out the
@@ -114,3 +119,4 @@ items 4 and 5 against them and fixes what breaks. Until then, the fixtures from 
 - Run `infra/backup-secrets.sh` and store the result off this machine (the Backups gap stays open until then).
 - Time a rebuild on a spare Mac from `infra/README.md`.
 - Name the two real targets for item 6.
+- Decide how private product repos get branch protection: GitHub Pro, or accept an advisory gate.
