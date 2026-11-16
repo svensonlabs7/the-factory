@@ -50,6 +50,7 @@ case "$2" in *DUPLICATED-HELPER*)
     ;;
 esac
 echo "fence-ends=$(printf '%s' "$2" | grep -c -e '--- end findings ---')"
+echo "routes=$(printf '%s' "$2" | grep -c route.py) skills=$([ -f .claude/skills/ponytail/SKILL.md ] && echo yes || echo no)"
 if [ -n "$FAKE_NOTES" ]; then
     mkdir -p .git/factory
     cat .git/factory/plan.md >> "$FAKE_AGENT_STATE/seen-plans" 2>/dev/null
@@ -88,6 +89,7 @@ import json, os, pathlib, subprocess, sys
 state = pathlib.Path(os.environ["FAKE_GH_STATE"])
 origin = os.environ["FAKE_ORIGIN"]
 args = sys.argv[1:]
+(state / "calls.log").open("a").write(" ".join(args) + "\\n")
 
 
 def git(*a):
@@ -110,6 +112,7 @@ if args[:2] == ["pr", "create"]:
     (state / "branch").write_text(args[args.index("--head") + 1])
     (state / "title").write_text(args[args.index("--title") + 1])
     (state / "body").write_text(args[args.index("--body") + 1])
+    (state / "create-args").write_text(" ".join(a for a in args if a != args[args.index("--body") + 1]))
     (state / "pr-creates").open("a").write("x")
     print("https://example.invalid/pull/1")
 elif args[:2] == ["pr", "edit"]:
@@ -130,7 +133,7 @@ elif args[:2] == ["pr", "checks"]:
         sys.exit(1)
     # FAKE_CHECKS names the failing check per fix round, which is the number of commits on the branch.
     rounds = os.environ.get("FAKE_CHECKS", "pass").split(",")
-    failing = rounds[min(int(git("rev-list", "--count", "main.." + branch())) - 1, len(rounds) - 1)]
+    failing = rounds[min(int(git("rev-list", "--count", os.environ.get("FAKE_BASE", "main") + ".." + branch())) - 1, len(rounds) - 1)]
     print(json.dumps([{"name": n, "bucket": "fail" if n == failing else "pass"} for n in ("thermo-nuclear", "tests", "ponytail-review")]))
 elif args[:2] == ["run", "list"]:
     print(json.dumps([{"databaseId": 7, "name": "qa-gate", "conclusion": "failure"}]))
@@ -138,7 +141,7 @@ elif args[:2] == ["run", "download"]:
     out = pathlib.Path(args[args.index("--dir") + 1]) / "review-thermo-nuclear"
     out.mkdir(parents=True)
     # A fix round's own commit count equals the round it is about to build, so each round's findings differ.
-    round_n = git("rev-list", "--count", "main.." + branch())
+    round_n = git("rev-list", "--count", os.environ.get("FAKE_BASE", "main") + ".." + branch())
     if os.environ.get("FAKE_REVIEW_CRASHED"):
         (out / "review.md").write_text("REVIEW-NOT-RUN: the reviewer exited with an error twice\\n")
     else:
@@ -217,6 +220,24 @@ def previous(request, monkeypatch):
         monkeypatch.delenv("FACTORY_WEBHOOK_SECRET_PREVIOUS", raising=False)
     else:
         monkeypatch.setenv("FACTORY_WEBHOOK_SECRET_PREVIOUS", request.param)
+
+
+@pytest.fixture
+def foreign(tmp_path, monkeypatch):
+    """A second repo, acme/app, whose default branch is not main. Request it before `adapter`, which reads the env on import."""
+    remote = tmp_path / "remotes" / "acme" / "app.git"
+    remote.parent.mkdir(parents=True)
+    git(tmp_path, "init", "-q", "--bare", "-b", "trunk", str(remote))
+    seed = tmp_path / "foreign-seed"
+    git(tmp_path, "clone", "-q", str(remote), str(seed))
+    (seed / "app.txt").write_text("app")
+    git(seed, "add", "-A")
+    git(seed, "commit", "-q", "-m", "seed")
+    git(seed, "push", "-q", "origin", "HEAD:trunk")
+    monkeypatch.setenv("FACTORY_REPO_URL", f"{tmp_path}/remotes/{{repo}}.git")
+    monkeypatch.setenv("FACTORY_REPOS", "Acme/App, other/thing")
+    monkeypatch.setenv("FAKE_BASE", "trunk")
+    return remote
 
 
 def trigger(client, **payload):
@@ -527,6 +548,60 @@ def test_a_note_dropped_in_a_fix_round_does_not_leave_the_old_one_in_the_descrip
     assert wait_done(client, trigger(client).json()["run_id"])["status"] == "completed"
     body = (root.parent / "gh-state" / "body").read_text()
     assert "## Plan" in body and "## Guide" not in body and "sk-ant" not in body
+
+
+@pytest.mark.parametrize("repo, code", [("nobody/else", 403), ("acme/app/extra", 422), ("../etc", 422), ("acme/..", 422), ("ACME/APP", 202)])
+def test_a_trigger_may_name_only_an_allowed_repo(foreign, adapter, repo, code):
+    _, root, client = adapter
+    assert trigger(client, repo=repo).status_code == code
+    if code == 403:
+        assert "repo not allowed" in (root / ".factory-logs" / "rejected.jsonl").read_text()
+        assert client.get("/command/data").json()["runs"] == []
+
+
+def test_a_run_for_another_repo_builds_pushes_and_opens_its_pr_there(foreign, adapter, monkeypatch):
+    _, root, client = adapter
+    monkeypatch.setenv("FAKE_ORIGIN", str(foreign))
+    (root / ".claude/skills/ponytail").mkdir(parents=True)
+    (root / ".claude/skills/ponytail/SKILL.md").write_text("be lazy")
+    (root / ".claude/agents").mkdir()
+    (root / ".claude/agents/poteto-agent.md").write_text("agent")
+    run_id = trigger(client, repo="acme/app").json()["run_id"]
+    run = wait_done(client, run_id)
+    assert run["status"] == "completed" and run["repo"] == "acme/app", run.get("error")
+    # The branch went to the other repo, off its default branch, and not to this one.
+    assert git(foreign, "rev-list", "--count", f"trunk..factory/{run_id}") == "1"
+    assert f"factory/{run_id}" not in git(root, "ls-remote", "origin")
+    assert set(git(foreign, "ls-tree", "-r", "--name-only", f"factory/{run_id}").split()) == {"app.txt", "change.txt"}  # no seeded skills
+    create = (root.parent / "gh-state" / "create-args").read_text()
+    assert "--repo acme/app" in create and "--base trunk" in create
+    # The builder had the factory's skills but was not told to run the router, which needs this repo's cards.
+    log = (root / ".factory-logs" / f"{run_id}.log").read_text()
+    assert "routes=0 skills=yes" in log
+    assert "acme/app" in (root / "HEARTBEAT.md").read_text()
+    assert client.get("/command/data").json()["runs"][0]["repo"] == "acme/app"
+
+
+def test_a_blocked_run_for_another_repo_reads_the_findings_from_that_repo(foreign, adapter, monkeypatch):
+    _, root, client = adapter
+    monkeypatch.setenv("FAKE_ORIGIN", str(foreign))
+    (root / ".claude/skills/ponytail").mkdir(parents=True)
+    (root / ".claude/skills/ponytail/SKILL.md").write_text("be lazy")
+    (root / ".claude/agents").mkdir()
+    (root / ".claude/agents/poteto-agent.md").write_text("agent")
+    monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,pass")
+    run = wait_done(client, trigger(client, repo="acme/app").json()["run_id"])
+    assert (run["status"], run["attempt"]) == ("completed", 1)
+    calls = (root.parent / "gh-state" / "calls.log").read_text().splitlines()
+    for verb in ("run list", "run download"):
+        assert all("--repo acme/app" in c for c in calls if c.startswith(verb)) and any(c.startswith(verb) for c in calls)
+
+
+def test_a_run_for_this_repo_does_not_set_a_repo(adapter):
+    _, root, client = adapter
+    run = wait_done(client, trigger(client).json()["run_id"])
+    assert "repo" not in run and "--repo" not in (root.parent / "gh-state" / "create-args").read_text()
+    assert "routes=1 skills=no" in (root / ".factory-logs" / f"{run['run_id']}.log").read_text()
 
 
 def test_reused_branch_is_rejected_and_the_next_run_still_runs(adapter):
