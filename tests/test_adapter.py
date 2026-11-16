@@ -50,7 +50,7 @@ case "$2" in *DUPLICATED-HELPER*)
     ;;
 esac
 echo "fence-ends=$(printf '%s' "$2" | grep -c -e '--- end findings ---')"
-echo "routes=$(printf '%s' "$2" | grep -c route.py) skills=$([ -f .claude/skills/ponytail/SKILL.md ] && echo yes || echo no)"
+echo "skills=$([ -f .claude/skills/ponytail/SKILL.md ] && echo yes || echo no)"
 if [ -n "$FAKE_NOTES" ]; then
     mkdir -p .git/factory
     cat .git/factory/plan.md >> "$FAKE_AGENT_STATE/seen-plans" 2>/dev/null
@@ -238,6 +238,18 @@ def foreign(tmp_path, monkeypatch):
     monkeypatch.setenv("FACTORY_REPOS", "Acme/App, other/thing")
     monkeypatch.setenv("FAKE_BASE", "trunk")
     return remote
+
+
+@pytest.fixture
+def foreign_app(foreign, adapter, monkeypatch):
+    """The adapter set up to build for acme/app: this repo's skills to copy, and the fake gh reading acme/app's remote."""
+    _, root, client = adapter
+    monkeypatch.setenv("FAKE_ORIGIN", str(foreign))
+    (root / ".claude/skills/ponytail").mkdir(parents=True)
+    (root / ".claude/skills/ponytail/SKILL.md").write_text("be lazy")
+    (root / ".claude/agents").mkdir()
+    (root / ".claude/agents/poteto-agent.md").write_text("agent")
+    return foreign, root, client
 
 
 def trigger(client, **payload):
@@ -559,13 +571,8 @@ def test_a_trigger_may_name_only_an_allowed_repo(foreign, adapter, repo, code):
         assert client.get("/command/data").json()["runs"] == []
 
 
-def test_a_run_for_another_repo_builds_pushes_and_opens_its_pr_there(foreign, adapter, monkeypatch):
-    _, root, client = adapter
-    monkeypatch.setenv("FAKE_ORIGIN", str(foreign))
-    (root / ".claude/skills/ponytail").mkdir(parents=True)
-    (root / ".claude/skills/ponytail/SKILL.md").write_text("be lazy")
-    (root / ".claude/agents").mkdir()
-    (root / ".claude/agents/poteto-agent.md").write_text("agent")
+def test_a_run_for_another_repo_builds_pushes_and_opens_its_pr_there(foreign_app):
+    foreign, root, client = foreign_app
     run_id = trigger(client, repo="acme/app").json()["run_id"]
     run = wait_done(client, run_id)
     assert run["status"] == "completed" and run["repo"] == "acme/app", run.get("error")
@@ -575,20 +582,13 @@ def test_a_run_for_another_repo_builds_pushes_and_opens_its_pr_there(foreign, ad
     assert set(git(foreign, "ls-tree", "-r", "--name-only", f"factory/{run_id}").split()) == {"app.txt", "change.txt"}  # no seeded skills
     create = (root.parent / "gh-state" / "create-args").read_text()
     assert "--repo acme/app" in create and "--base trunk" in create
-    # The builder had the factory's skills but was not told to run the router, which needs this repo's cards.
-    log = (root / ".factory-logs" / f"{run_id}.log").read_text()
-    assert "routes=0 skills=yes" in log
+    assert "skills=yes" in (root / ".factory-logs" / f"{run_id}.log").read_text()  # the builder had the factory's skills
     assert "acme/app" in (root / "HEARTBEAT.md").read_text()
     assert client.get("/command/data").json()["runs"][0]["repo"] == "acme/app"
 
 
-def test_a_blocked_run_for_another_repo_reads_the_findings_from_that_repo(foreign, adapter, monkeypatch):
-    _, root, client = adapter
-    monkeypatch.setenv("FAKE_ORIGIN", str(foreign))
-    (root / ".claude/skills/ponytail").mkdir(parents=True)
-    (root / ".claude/skills/ponytail/SKILL.md").write_text("be lazy")
-    (root / ".claude/agents").mkdir()
-    (root / ".claude/agents/poteto-agent.md").write_text("agent")
+def test_a_blocked_run_for_another_repo_reads_the_findings_from_that_repo(foreign_app, monkeypatch):
+    _, root, client = foreign_app
     monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,pass")
     run = wait_done(client, trigger(client, repo="acme/app").json()["run_id"])
     assert (run["status"], run["attempt"]) == ("completed", 1)
@@ -597,11 +597,22 @@ def test_a_blocked_run_for_another_repo_reads_the_findings_from_that_repo(foreig
         assert all("--repo acme/app" in c for c in calls if c.startswith(verb)) and any(c.startswith(verb) for c in calls)
 
 
+def test_a_hub_clone_that_was_cut_short_is_redone_and_a_failed_clone_leaves_no_hub(foreign_app):
+    foreign, root, client = foreign_app
+    hubs = root.parent / "the-factory-runs" / "hubs"
+    (hubs / "acme__app.partial").mkdir(parents=True)  # what a restart mid-clone leaves behind
+    (hubs / "acme__app.partial" / "junk").write_text("half a clone")
+    assert wait_done(client, trigger(client, repo="acme/app").json()["run_id"])["status"] == "completed"
+    assert not (hubs / "acme__app.partial").exists() and (hubs / "acme__app").is_dir()
+    run = wait_done(client, trigger(client, repo="other/thing").json()["run_id"])  # allowed, but it does not exist
+    assert run["status"] == "error" and not (hubs / "other__thing").exists()
+
+
 def test_a_run_for_this_repo_does_not_set_a_repo(adapter):
     _, root, client = adapter
     run = wait_done(client, trigger(client).json()["run_id"])
-    assert "repo" not in run and "--repo" not in (root.parent / "gh-state" / "create-args").read_text()
-    assert "routes=1 skills=no" in (root / ".factory-logs" / f"{run['run_id']}.log").read_text()
+    assert run["repo"] is None and "--repo" not in (root.parent / "gh-state" / "create-args").read_text()
+    assert "skills=no" in (root / ".factory-logs" / f"{run['run_id']}.log").read_text()
 
 
 def test_reused_branch_is_rejected_and_the_next_run_still_runs(adapter):

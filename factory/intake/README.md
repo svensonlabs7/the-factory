@@ -105,8 +105,10 @@ For another repo the adapter keeps a trusted clone under `the-factory-runs/hubs/
 no working tree). Each round clones from it into the sandbox, and the push, the secret scan and the diff check run in it.
 The base is the repo's default branch, and the PR is opened with `gh pr create --repo`. Gate results and review
 artifacts are read with `--repo` too. The builder gets copies of this repo's skills and agents, kept out of git so
-they are never committed (a skill the repo already has wins), and is not told to run `factory/qa/route.py`, which
-needs this repo's cards. The run record, the dashboard and HEARTBEAT show the repo.
+they are never committed (a skill the repo already has wins). The prompt says to run `factory/qa/route.py` only if it
+exists, which it does not in another repo. The run record, the dashboard and HEARTBEAT show the repo. The trusted
+clone is made beside its final folder and renamed into place, so a restart mid-clone leaves nothing half-made; its
+default branch is read once from that clone, so delete it if the repo renames its default branch.
 
 Until the QA gate and branch protection are installed in that repo (roadmap item 2b), its PR gets no review, and
 the run waits for checks that never come and ends as an error after `CHECKS_TIMEOUT`. Only allow-list a repo once it has them.
