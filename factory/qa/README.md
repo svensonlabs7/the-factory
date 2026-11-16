@@ -53,7 +53,8 @@ clone before each round's sandbox starts, so nothing in a repo executes before i
 To acknowledge a suspicious finding, read it in the run's log or the run's error, then add a line to
 `factory/scan-acks.txt` in a PR: `owner/name <finding id>  # why`. An id covers one line of one file, so a changed line
 needs acknowledging again. Acknowledgements live here, not in the scanned repo, so a repo cannot acknowledge itself.
-The osv-scanner check runs only if `osv-scanner` is installed (`brew install osv-scanner`); otherwise it is skipped.
+The osv-scanner check runs only if `osv-scanner` is installed (`brew install osv-scanner`); otherwise it is skipped. It reads
+version 2's JSON, so a different version, output it cannot read, or a timeout is a suspicious finding, never a silent pass.
 The scan reads only the files an agent reads first for instructions, so README prose about prompt injection is fine.
 
 ## Presumptive blockers (from the skill)

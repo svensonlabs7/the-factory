@@ -18,11 +18,14 @@ import re
 import shutil
 import subprocess
 import sys
+from typing import NamedTuple
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__"}
 VENDOR_DIRS = SKIP_DIRS | {"vendor", "third_party"}  # where compiled files are expected
 MAX_TEXT = 1_000_000  # bytes; a larger file is a bundle, not something to read line by line
+OSV_TIMEOUT = 120  # seconds; the adapter's SCAN_TIMEOUT for the whole scan must stay above this
+OSV_MAJOR = 2  # the version whose `scan --format json` output osv() reads
 CODE = {".py", ".js", ".mjs", ".cjs", ".ts", ".sh", ".bash", ".zsh", ".rb", ".pl", ".ps1"}
 BUILD_NAMES = {"makefile", "gnumakefile", "dockerfile", "containerfile", "justfile"}
 INSTALL_HOOKS = ("preinstall", "install", "postinstall", "prepare", "prepublish", "prepack")
@@ -46,8 +49,21 @@ EXECUTABLE_MAGIC = (b"\x7fELF", b"\xcf\xfa\xed\xfe", b"\xfe\xed\xfa\xcf", b"\xca
 EXECUTABLE_EXT = {".exe", ".dll", ".so", ".dylib", ".node", ".jar", ".class"}
 
 
+class Finding(NamedTuple):
+    severity: str
+    id: str
+    where: str
+    message: str
+
+
+class Source(NamedTuple):
+    rel: str  # path inside the repo, with /
+    name: str  # lowercased file name
+    suffix: str
+
+
 def finding(severity, rule, path, line, message, text):
-    return severity, f"{rule}:{path}:{hashlib.sha256(text.strip().encode()).hexdigest()[:8]}", f"{path}:{line}", message
+    return Finding(severity, f"{rule}:{path}:{hashlib.sha256(text.strip().encode()).hexdigest()[:8]}", f"{path}:{line}", message)
 
 
 def lines(text):
@@ -106,19 +122,15 @@ def hostile_urls(path, text):
             yield finding("malicious", "decoded-eval", path, number, f"runs decoded data as code: {line.strip()[:120]}", line)
 
 
-def text_rules(rel, name, suffix, text):
-    if name == "package.json":
-        yield from package_json(rel, text)
-    if name == "setup.py":
-        yield from setup_py(rel, text)
-    if name.lower() in BUILD_NAMES or suffix in {".sh", ".bash", ".mk"}:
-        yield from build_file(rel, text)
-    if rel.startswith(".github/workflows/") and suffix in {".yml", ".yaml"}:
-        yield from workflow(rel, text)
-    if name.lower() in AGENT_FILES or (rel.startswith((".cursor/rules/", ".claude/")) and suffix in {".md", ".mdc"}):
-        yield from agent_file(rel, text)
-    if suffix in CODE or name.lower() in BUILD_NAMES or name == "package.json" or rel.startswith(".github/workflows/"):
-        yield from hostile_urls(rel, text)
+# Which rule reads which file: each selector is written once, and a new rule is one more row.
+RULES = [
+    (lambda s: s.name == "package.json", package_json),
+    (lambda s: s.name == "setup.py", setup_py),
+    (lambda s: s.name in BUILD_NAMES or s.suffix in {".sh", ".bash", ".mk"}, build_file),
+    (lambda s: s.rel.startswith(".github/workflows/") and s.suffix in {".yml", ".yaml"}, workflow),
+    (lambda s: s.name in AGENT_FILES or (s.rel.startswith((".cursor/rules/", ".claude/")) and s.suffix in {".md", ".mdc"}), agent_file),
+    (lambda s: s.suffix in CODE or s.name in BUILD_NAMES or s.name == "package.json" or s.rel.startswith(".github/workflows/"), hostile_urls),
+]
 
 
 def osv(root):
@@ -126,10 +138,19 @@ def osv(root):
     Skipped when osv-scanner is not installed."""
     if not shutil.which("osv-scanner"):
         return
-    done = subprocess.run(["osv-scanner", "scan", "--recursive", "--format", "json", str(root)], capture_output=True, text=True, timeout=300)
+    unreadable = lambda why: finding("suspicious", "osv-unreadable", ".", 1, f"osv-scanner is installed but {why}, so the malware check did not run", why)
     try:
-        results = json.loads(done.stdout).get("results", [])
-    except ValueError:
+        version = subprocess.run(["osv-scanner", "--version"], capture_output=True, text=True, timeout=OSV_TIMEOUT).stdout
+        if f"version: {OSV_MAJOR}." not in version:
+            return (yield unreadable(f"is not version {OSV_MAJOR}"))
+        done = subprocess.run(["osv-scanner", "scan", "--recursive", "--format", "json", str(root)], capture_output=True, text=True, timeout=OSV_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        return (yield unreadable("timed out"))
+    try:
+        results = json.loads(done.stdout)["results"]
+    except (ValueError, KeyError):
+        if done.returncode != 128:  # 128 is "no packages found", which prints nothing
+            yield unreadable("printed output that could not be read")
         return
     for result in results:
         for package in result.get("packages", []):
@@ -145,7 +166,7 @@ def scan(root):
         dirs[:] = sorted(d for d in dirs if d not in SKIP_DIRS)
         here = pathlib.Path(current)
         rel_dir = here.relative_to(root).as_posix()
-        if any(rel_dir.endswith(h) for h in (".husky", ".githooks")) and files:
+        if here.name in {".husky", ".githooks"} and files:
             yield finding("suspicious", "hook-dir", rel_dir, 1, "hook scripts that run on commit once they are installed", rel_dir)
         for name in sorted(files):
             path = here / name
@@ -153,12 +174,16 @@ def scan(root):
             if path.is_symlink() or not path.is_file():
                 continue
             suffix = path.suffix.lower()
+            source = Source(rel, name.lower(), suffix)
             with path.open("rb") as f:
                 head = f.read(4)
             if (head.startswith(EXECUTABLE_MAGIC) or suffix in EXECUTABLE_EXT or head[:2] == b"MZ") and not VENDOR_DIRS & set(rel.split("/")):
                 yield finding("suspicious", "executable", rel, 1, "a compiled file outside a vendor folder", rel)
             elif path.stat().st_size <= MAX_TEXT:
-                yield from text_rules(rel, name, suffix, path.read_text(errors="replace"))
+                text = path.read_text(errors="replace")
+                for applies, rule in RULES:
+                    if applies(source):
+                        yield from rule(rel, text)
     yield from osv(root)
 
 
@@ -174,13 +199,13 @@ def main(argv):
     parser.add_argument("--repo", default="-")
     parser.add_argument("--strict", action="store_true")
     args = parser.parse_args(argv)
-    found = sorted(set(scan(args.path)), key=lambda f: (f[0] != "malicious", f[2]))
+    found = sorted(set(scan(args.path)), key=lambda f: (f.severity != "malicious", f.where))
     acked = acknowledged(args.repo, os.environ.get("FACTORY_SCAN_ACKS", ROOT / "factory/scan-acks.txt"))
-    pending = [f for f in found if f[0] == "suspicious" and f[1] not in acked]
-    verdict = "malicious" if any(f[0] == "malicious" for f in found) else "suspicious" if pending else "safe"
+    pending = [f for f in found if f.severity == "suspicious" and f.id not in acked]
+    verdict = "malicious" if any(f.severity == "malicious" for f in found) else "suspicious" if pending else "safe"
     print(f"scan: {verdict}" + ("" if verdict != "safe" or not found else f" ({len(found)} acknowledged or advisory)"))
-    for severity, id_, where, message in found:
-        print(f"{'acknowledged' if id_ in acked and severity == 'suspicious' else severity} {id_} {where} {message}")
+    for f in found:
+        print(f"{'acknowledged' if f.id in acked and f.severity == 'suspicious' else f.severity} {f.id} {f.where} {f.message}")
     return 2 if verdict == "malicious" else 1 if verdict == "suspicious" and args.strict else 0
 
 

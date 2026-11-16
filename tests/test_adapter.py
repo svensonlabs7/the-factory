@@ -642,10 +642,19 @@ def test_a_suspicious_repo_waits_for_an_acknowledgement_that_names_the_finding(f
     _, root, client = foreign_app
     push_to_foreign(tmp_path, "package.json", json.dumps({"scripts": {"postinstall": "prisma generate"}}))
     run = wait_done(client, trigger(client, repo="acme/app").json()["run_id"])
-    assert run["status"] == "error" and "suspicious, not acknowledged" in run["error"] and "prisma generate" in run["error"]
+    assert run["status"] == "error" and "stopped this build (suspicious)" in run["error"] and "prisma generate" in run["error"] and "scan-acks.txt" in run["error"]
     id_ = next(w for w in run["error"].replace(";", " ").split() if w.startswith("install-script:"))
     (tmp_path / "scan-acks.txt").write_text(f"acme/app {id_}  # prisma\n")
     assert wait_done(client, trigger(client, repo="acme/app").json()["run_id"])["status"] == "completed"
+
+
+def test_a_scan_that_crashes_is_reported_as_a_failure_and_stops_the_build(adapter, monkeypatch, tmp_path):
+    _, root, client = adapter
+    (tmp_path / "crash.py").write_text("import sys\nsys.exit(1)\n")  # exit 1 with no verdict, like a traceback
+    monkeypatch.setattr(adapter[0], "SCAN_CMD", ["python3", str(tmp_path / "crash.py")])
+    run = wait_done(client, trigger(client).json()["run_id"])
+    assert run["status"] == "error" and run["error"].startswith("the scan failed to run")
+    assert not (root.parent / "agent-state" / "last-pid").exists()
 
 
 def test_this_repos_own_suspicious_findings_only_warn(adapter, tmp_path):

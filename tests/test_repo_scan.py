@@ -110,13 +110,35 @@ def test_osv_scanner_adds_only_packages_listed_as_malware(tmp_path):
     out = {"results": [{"source": {"path": "package-lock.json"}, "packages": [
         {"package": {"name": "left-padz"}, "vulnerabilities": [{"id": "MAL-2026-1"}]},
         {"package": {"name": "lodash"}, "vulnerabilities": [{"id": "GHSA-xxxx"}]}]}]}
-    (bin_dir / "osv-scanner").write_text(f"#!/bin/sh\necho '{json.dumps(out)}'\n")
+    (bin_dir / "osv-scanner").write_text(f"#!/bin/sh\n[ \"$1\" = --version ] && {{ echo 'osv-scanner version: 2.3.0'; exit 0; }}\necho '{json.dumps(out)}'\n")
     (bin_dir / "osv-scanner").chmod(0o755)
     repo = tmp_path / "repo"
     repo.mkdir()
     done = run_cli(repo, env={"PATH": f"{bin_dir}:/usr/bin:/bin"})
     assert done.returncode == 2 and "left-padz is listed as malware (MAL-2026-1)" in done.stdout and "lodash" not in done.stdout
     assert run_cli(repo).returncode == 0  # osv-scanner not installed: skipped
+
+
+@pytest.mark.parametrize("script, why", [
+    ("[ \"$1\" = --version ] && { echo 'osv-scanner version: 1.9.0'; exit 0; }\necho '{}'", "is not version 2"),
+    ("[ \"$1\" = --version ] && { echo 'osv-scanner version: 2.3.0'; exit 0; }\necho 'a table, not json'", "printed output that could not be read"),
+    ("[ \"$1\" = --version ] && { echo 'osv-scanner version: 2.3.0'; exit 0; }\necho '{\"unexpected\": 1}'", "printed output that could not be read"),
+])
+def test_an_osv_scanner_that_cannot_be_read_is_a_finding_not_a_pass(tmp_path, script, why):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (bin_dir / "osv-scanner").write_text("#!/bin/sh\n" + script + "\n")
+    (bin_dir / "osv-scanner").chmod(0o755)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    done = run_cli(repo, "--strict", env={"PATH": f"{bin_dir}:/usr/bin:/bin"})
+    assert done.returncode == 1 and f"osv-scanner is installed but {why}" in done.stdout
+    (bin_dir / "osv-scanner").write_text("#!/bin/sh\n[ \"$1\" = --version ] && { echo 'osv-scanner version: 2.3.0'; exit 0; }\nexit 128\n")
+    assert run_cli(repo, "--strict", env={"PATH": f"{bin_dir}:/usr/bin:/bin"}).returncode == 0  # 128: no packages found, which is fine
+
+
+def test_a_folder_that_only_ends_in_husky_is_not_a_hook_folder(tmp_path):
+    assert found(tmp_path, {"foo.husky/a": "x"}) == [] and found(tmp_path, {".githooks/pre-push": "x"}) == [("suspicious", "hook-dir")]
 
 
 def test_this_repo_is_safe():

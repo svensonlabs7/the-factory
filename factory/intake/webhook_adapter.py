@@ -60,7 +60,9 @@ AGENT_TIMEOUT_GRACE = 30  # seconds a timed-out round's SIGTERM gets before the 
 # Repos a trigger may name besides this one: FACTORY_REPOS in .env, comma separated "owner/name". Anything else is a 403.
 ALLOWED_REPOS = {r.strip().lower() for r in os.environ.get("FACTORY_REPOS", "").split(",") if r.strip()}
 REPO_URL = os.environ.get("FACTORY_REPO_URL", "https://github.com/{repo}.git")
-# Reads a clone as text before the sandbox runs anything in it (factory/qa/repo_scan.py).
+# Reads a clone as text before the sandbox runs anything in it (factory/qa/repo_scan.py). The command is overridable
+# only because the tests' FACTORY_ROOT is a temporary clone without it. SCAN_TIMEOUT covers the whole scan, so it must
+# stay above the scanner's own OSV_TIMEOUT.
 SCAN_CMD = shlex.split(os.environ.get("FACTORY_SCAN_CMD", f"python3 {FACTORY_ROOT}/factory/qa/repo_scan.py"))
 SCAN_TIMEOUT = 180
 GH_BIN = os.environ.get("GH_BIN", "gh")
@@ -473,9 +475,12 @@ def _scan(workdir: Path, target: Target, report) -> None:
     strict = ["--strict"] if target.repo else []
     done = subprocess.run([*SCAN_CMD, str(workdir), "--repo", target.repo or _home_repo() or "-", *strict], capture_output=True, text=True, timeout=SCAN_TIMEOUT)
     report.write(done.stdout)
+    verdict, *details = done.stdout.splitlines() or [""]
+    if done.returncode not in (0, 1, 2) or not verdict.startswith("scan: "):  # a crash or bad arguments is not a verdict
+        raise RuntimeError(f"the scan failed to run: {(done.stderr.strip() or verdict)[-300:]}")
     if done.returncode:
-        raise RuntimeError(f"the scan stopped this build ({'malicious' if done.returncode == 2 else 'suspicious, not acknowledged'}). "
-                           + "; ".join(l for l in done.stdout.splitlines() if not l.startswith(("scan:", "acknowledged")))[:1500])
+        raise RuntimeError(f"the scan stopped this build ({verdict.removeprefix('scan: ')}). " + "; ".join(l for l in details if not l.startswith("acknowledged"))[:1500]
+                           + ("" if done.returncode == 2 else ". To go ahead, acknowledge each id in factory/scan-acks.txt"))
 
 
 def _seed_skills(workdir: Path) -> None:
