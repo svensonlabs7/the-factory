@@ -51,11 +51,11 @@ A trigger names the repo it is for.
 Done when: tests prove a run for a second repo builds off its default branch, pushes and opens its PR there, and reads
 findings from there; the first real run needs the operator's webhook secret, so the loop does not do one.
 
-### 2b. Target any repo: the gate — status: todo
+### 2b. Target any repo: the gate — status: built, live proof pending (mark done in item 3's PR)
 - Make `qa-gate.yml` callable (`on: workflow_call`) as well as `pull_request_target`, so another repo's caller
   (`factory/qa/caller.yml`, about ten lines, pinned by commit SHA) runs the same lanes with this repo's skills and
-  cards. The adapter strips the caller's `gate / ` prefix from check names. `factory/qa/protect.sh owner/name`
-  requires the lanes on its default branch.
+  cards. The adapter strips the caller's `gate / ` prefix from check names. `factory/qa/attach.sh owner/name` opens
+  the PR that adds the caller; `factory/qa/protect.sh owner/name` requires the lanes on its default branch.
 - The target repo needs the Claude token as a secret. The operator sets it (`gh secret set`); the loop does not use it.
 Done when: a second repo under `svensonlabs7` (create a small private one) has the caller and protection, and a PR
 there runs the lanes from this repo's pinned workflow; the reviews themselves need the operator's secret.

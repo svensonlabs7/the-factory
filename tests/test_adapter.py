@@ -134,7 +134,8 @@ elif args[:2] == ["pr", "checks"]:
     # FAKE_CHECKS names the failing check per fix round, which is the number of commits on the branch.
     rounds = os.environ.get("FAKE_CHECKS", "pass").split(",")
     failing = rounds[min(int(git("rev-list", "--count", os.environ.get("FAKE_BASE", "main") + ".." + branch())) - 1, len(rounds) - 1)]
-    print(json.dumps([{"name": n, "bucket": "fail" if n == failing else "pass"} for n in ("thermo-nuclear", "tests", "ponytail-review")]))
+    prefix = os.environ.get("FAKE_CHECK_PREFIX", "")
+    print(json.dumps([{"name": prefix + n, "bucket": "fail" if n == failing else "pass"} for n in ("thermo-nuclear", "tests", "ponytail-review")]))
 elif args[:2] == ["run", "list"]:
     print(json.dumps([{"databaseId": 7, "name": "qa-gate", "conclusion": "failure"}]))
 elif args[:2] == ["run", "download"]:
@@ -606,6 +607,15 @@ def test_a_hub_clone_that_was_cut_short_is_redone_and_a_failed_clone_leaves_no_h
     assert not (hubs / "acme__app.partial").exists() and (hubs / "acme__app").is_dir()
     run = wait_done(client, trigger(client, repo="other/thing").json()["run_id"])  # allowed, but it does not exist
     assert run["status"] == "error" and not (hubs / "other__thing").exists()
+
+
+def test_checks_from_another_repos_caller_are_matched_without_the_gate_prefix(foreign_app, monkeypatch):
+    _, root, client = foreign_app
+    monkeypatch.setenv("FAKE_CHECK_PREFIX", "gate / ")
+    monkeypatch.setenv("FAKE_CHECKS", "thermo-nuclear,pass")
+    run = wait_done(client, trigger(client, repo="acme/app").json()["run_id"])
+    assert (run["status"], run["attempt"]) == ("completed", 1)
+    assert "retry-saw-findings" in (root / ".factory-logs" / f"{run['run_id']}.log").read_text()  # the review artifact was found
 
 
 def test_a_run_for_this_repo_does_not_set_a_repo(adapter):

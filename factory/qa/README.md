@@ -18,6 +18,26 @@ Fork PRs fail the check.
    Bugs, security, load, missing tests and code to cut. A must-fix finding is a BLOCK.
 3. **UX laws review**: `.claude/skills/ux-laws/SKILL.md`. Runs only when the PR touches a file matching the lane's `paths` (otherwise it passes without calling Claude); like the others it ends with PASS or BLOCK. It is a required check.
 
+## Gating another repo
+
+The factory builds for other repos (`"repo"` in a trigger), and their PRs go through the same lanes. A repo is
+attached in three steps, none of which the build loop does for you:
+
+```bash
+factory/qa/attach.sh owner/name      # opens a PR adding caller.yml, pinned to this repo's current main
+# merge that PR, then:
+factory/qa/protect.sh owner/name     # requires the three lanes on its default branch, for admins too
+gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo owner/name
+```
+
+The caller (`caller.yml`) is a `pull_request_target` workflow whose one job, `gate`, calls this repo's `qa-gate.yml` at
+the pinned commit and passes `factory_ref` (the same commit) so the gate can fetch this repo's skills, scripts and cards
+(`.claude/`, `factory/qa/`, `knowledge/systems/`) and copy them beside the other repo's base checkout, never over its
+own files. The PR's files stay git refs, as here. The checks appear as `gate / thermo-nuclear`, `gate / ponytail-review`
+and `gate / ux-laws`; the adapter strips the prefix. A repo without the token secret fails every lane with the reason.
+To move a repo to a newer gate, bump the two pinned commits in its caller together. Its own tests are not part of
+this gate: add them as a required check yourself, and the onboarding step records the commands.
+
 ## Presumptive blockers (from the skill)
 
 - A file pushed from under 1000 lines to over 1000 lines
