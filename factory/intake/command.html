@@ -247,7 +247,7 @@ function renderDetail() {
   const rows = [
     ["run", run.run_id], ["stage", stageLabel(run)], ["fix rounds", (run.attempt || 0) + " / " + data.limits.max_retries],
     ["queued", clock(run.queued_at)], ["started", clock(run.started_at)], ["finished", clock(run.finished_at)],
-    ["duration", duration(run)], ["branch", run.branch || "—"],
+    ["duration", duration(run)], ["branch", run.branch || "—"], ["repo", run.repo || "this repo"],
   ];
   box.replaceChildren(
     el("h2", { textContent: "[ selected run ]" }),

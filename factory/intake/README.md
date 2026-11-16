@@ -90,6 +90,29 @@ curl -s 127.0.0.1:7654/ready       # {"ready":true}
 curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: x.example' 127.0.0.1:7654/health   # 400: only tunnel hostnames and localhost
 ```
 
+## Building for another repo
+
+A trigger body may carry `"repo": "owner/name"`. Without it the run is for this repo, as before. The name must be
+in `FACTORY_REPOS` in `.env` (comma separated, case-insensitive), or the request is a 403 and counts toward a
+rejection burst. A malformed name is a 422. The factory's own repo is always allowed.
+
+```bash
+FACTORY_REPOS=svensonlabs7/some-app,svensonlabs7/another-app
+BODY='{"task": "Add a health endpoint", "repo": "svensonlabs7/some-app"}'
+```
+
+For another repo the adapter keeps a trusted clone under `the-factory-runs/hubs/` (never touched by the builder,
+no working tree). Each round clones from it into the sandbox, and the push, the secret scan and the diff check run in it.
+The base is the repo's default branch, and the PR is opened with `gh pr create --repo`. Gate results and review
+artifacts are read with `--repo` too. The builder gets copies of this repo's skills and agents, kept out of git so
+they are never committed (a skill the repo already has wins). The prompt says to run `factory/qa/route.py` only if it
+exists, which it does not in another repo. The run record, the dashboard and HEARTBEAT show the repo. The trusted
+clone is made beside its final folder and renamed into place, so a restart mid-clone leaves nothing half-made; its
+default branch is read once from that clone, so delete it if the repo renames its default branch.
+
+Until the QA gate and branch protection are installed in that repo (roadmap item 2b), its PR gets no review, and
+the run waits for checks that never come and ends as an error after `CHECKS_TIMEOUT`. Only allow-list a repo once it has them.
+
 ## The plan and the guide
 
 The builder writes its plan to `.git/factory/plan.md` before it changes code, and a guide (requirements covered, what

@@ -5,7 +5,7 @@ Webhook adapter for The Factory intake pipeline.
 Receives tasks via HTTP, builds each in a sandbox, publishes a PR, and fixes what the QA gate blocks.
 
 Endpoints:
-  POST /trigger   — start a new factory run
+  POST /trigger   — start a new factory run, for this repo or an allow-listed one (repo: "owner/name")
   GET  /status/:run_id — poll run state
   GET  /health    — liveness check, the runs in flight and the commit loaded
   GET  /ready     — 200 when a run could ship right now, else 503 and the problems
@@ -14,6 +14,7 @@ Endpoints:
 
 import datetime as dt
 import fcntl
+import functools
 import hashlib
 import hmac
 import json
@@ -31,6 +32,7 @@ import uuid
 from collections import Counter, deque
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager, contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -55,6 +57,9 @@ FACTORY_ROOT = Path(os.environ.get("FACTORY_ROOT", "/Users/labs/projects/the-fac
 AGENT_CMD = shlex.split(os.environ.get("FACTORY_AGENT_CMD", f"uv run -q --frozen --script {FACTORY_ROOT}/factory/build/run_agent.py"))
 AGENT_TIMEOUT = 1800  # 30-minute cap on a build round; the only hard deadline (the agent's own limit is an idle timeout)
 AGENT_TIMEOUT_GRACE = 30  # seconds a timed-out round's SIGTERM gets before the process group is SIGKILLed
+# Repos a trigger may name besides this one: FACTORY_REPOS in .env, comma separated "owner/name". Anything else is a 403.
+ALLOWED_REPOS = {r.strip().lower() for r in os.environ.get("FACTORY_REPOS", "").split(",") if r.strip()}
+REPO_URL = os.environ.get("FACTORY_REPO_URL", "https://github.com/{repo}.git")
 GH_BIN = os.environ.get("GH_BIN", "gh")
 DOCKER_BIN = os.environ.get("DOCKER_BIN", "docker")
 # A blocked PR gets this many fix rounds, each by a fresh builder, before the run escalates to HEARTBEAT.
@@ -205,6 +210,8 @@ class TriggerPayload(BaseModel):
     task: str
     # Only factory/ branches, so a request can never name main or another branch someone is working on.
     branch: Optional[str] = Field(default=None, pattern=r"^factory/[A-Za-z0-9][A-Za-z0-9._/-]*$")
+    # The repo to build for, "owner/name"; omitted means this one. Checked against FACTORY_REPOS in /trigger.
+    repo: Optional[str] = Field(default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9_][A-Za-z0-9._-]{0,99}$")
 
 
 # ---------------------------------------------------------------------------
@@ -279,7 +286,7 @@ Follow the ponytail skill: the smallest change that fully solves the task.
 Before you change any code, write your plan to .git/factory/plan.md: the files you will touch, your approach, what you will not change, and how you will verify it. No placeholders.
 When you are done, write .git/factory/guide.md: a checklist of the requirements you covered, what remains, and how to run and test the change.
 If either file already exists, update it. They are never committed; the factory puts them in the PR description for the reviewers.
-Before you commit, run `python3 factory/qa/route.py` and handle every item it prints whose "Block if" is true for your change.
+If factory/qa/route.py exists, run `python3 factory/qa/route.py` before you commit and handle every item it prints whose "Block if" is true for your change.
 You are in a git repository on branch {branch}. When you are done, run: git add -A && git commit -m "factory: {run_id}"
 Do not push or open a PR, and skip any playbook step that does. The factory publishes your branch.
 """
@@ -418,12 +425,67 @@ def _problems() -> list[str]:
     return problems
 
 
+@functools.cache
+def _home_repo() -> Optional[str]:
+    """This repo's own "owner/name", from the checkout's origin; None if origin is not on GitHub."""
+    match = re.search(r"github\.com[:/]([^/]+/[^/]+?)(?:\.git)?$", _run("git", "remote", "get-url", "origin"))
+    return match[1].lower() if match else None
+
+
+@dataclass(frozen=True)
+class Target:
+    """What a run builds for, worked out once per run by _target: the repo ("owner/name", None for this one), the
+    trusted checkout git runs in for it (fetch, scan, push), and its default branch."""
+    repo: Optional[str]
+    hub: Path
+    base: str
+
+    @property
+    def gh(self) -> list[str]:
+        """The flag that points a gh command at this repo, empty for this one."""
+        return ["--repo", self.repo] if self.repo else []
+
+
+def _target(repo: Optional[str]) -> Target:
+    """This repo's own hub is FACTORY_ROOT. Any other repo gets a clone that only the factory touches, never the
+    builder: `--no-checkout`, because only its history and remote are used. The default branch is read from that
+    clone's origin/HEAD, set when it was cloned, so a repo that renames its default branch needs its hub deleted."""
+    if repo is None:
+        return Target(None, FACTORY_ROOT, "main")
+    hub = RUNS_DIR / "hubs" / repo.replace("/", "__")
+    if not hub.exists():
+        # Cloned beside and renamed in, so a restart mid-clone never leaves a half-made hub that fails every later run.
+        partial = hub.with_name(hub.name + ".partial")
+        hub.parent.mkdir(parents=True, exist_ok=True)
+        shutil.rmtree(partial, ignore_errors=True)
+        _run("git", "clone", "--quiet", "--no-checkout", REPO_URL.format(repo=repo), str(partial), retry=True)
+        partial.rename(hub)
+    return Target(repo, hub, _run("git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD", cwd=hub).removeprefix("origin/"))
+
+
+def _seed_skills(workdir: Path) -> None:
+    """Another repo has none of the factory's skills (poteto-mode, ponytail, ...), so the builder gets copies, kept
+    out of git's view so `git add -A` never commits them. A skill the repo already has wins."""
+    exclude = workdir / ".git/info/exclude"
+    for rel in (".claude/skills", ".claude/agents"):
+        for item in (FACTORY_ROOT / rel).iterdir():
+            target = workdir / rel / item.name
+            if target.exists():
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(item, target) if item.is_dir() else shutil.copy(item, target)
+            with exclude.open("a") as f:
+                f.write(f"/{rel}/{item.name}\n")
+
+
 @contextmanager
-def _checkout(name: str, branch: str, base: str):
+def _checkout(name: str, branch: str, base: str, target: Target):
     """A private clone for the sandbox, so it never sees the checkout the service runs from."""
     workdir = RUNS_DIR / name
-    _run("git", "clone", "--quiet", "--branch", base, _run("git", "remote", "get-url", "origin"), str(workdir))
+    _run("git", "clone", "--quiet", "--branch", base, _run("git", "remote", "get-url", "origin", cwd=target.hub), str(workdir))
     _run("git", "checkout", "-B", branch, cwd=workdir)
+    if target.repo:
+        _seed_skills(workdir)
     for key in ("user.name", "user.email"):
         _run("git", "config", key, _run("git", "config", key), cwd=workdir)
     try:
@@ -432,24 +494,24 @@ def _checkout(name: str, branch: str, base: str):
         shutil.rmtree(workdir, ignore_errors=True)
 
 
-def _push(branch: str, workdir: Path, since: str) -> str:
-    """Push the agent's branch from the trusted checkout and return its head. The sandbox holds no GitHub
+def _push(branch: str, workdir: Path, since: str, target: Target) -> str:
+    """Push the agent's branch from the target's trusted checkout and return its head. The sandbox holds no GitHub
     credentials, and git run inside the agent's clone would execute whatever hooks and config the agent wrote
     there. The fetch only reads objects from that clone."""
-    _run("git", "fetch", "--quiet", "origin", "main", retry=True)
-    # Into a ref this run owns: FETCH_HEAD is shared with every other fetch in FACTORY_ROOT, the operator's included.
+    _run("git", "fetch", "--quiet", "origin", target.base, cwd=target.hub, retry=True)
+    # Into a ref this run owns: FETCH_HEAD is shared with every other fetch in the hub, the operator's included.
     ref = f"refs/factory/{branch}"
-    _run("git", "fetch", "--quiet", str(workdir), f"+{branch}:{ref}", retry=True)
-    head = _run("git", "rev-parse", ref)
-    if _run("git", "rev-list", "--count", f"{since}..{head}") == "0":
+    _run("git", "fetch", "--quiet", str(workdir), f"+{branch}:{ref}", cwd=target.hub, retry=True)
+    head = _run("git", "rev-parse", ref, cwd=target.hub)
+    if _run("git", "rev-list", "--count", f"{since}..{head}", cwd=target.hub) == "0":
         raise RuntimeError("agent made no commits")
     # A fix that deletes the work leaves nothing for the gate to object to, so an empty PR is not a pass.
-    if not _run("git", "diff", "--name-only", f"origin/main...{head}"):
-        raise RuntimeError("the branch has no net changes against main")
-    # The repo is public: a secret in the agent's commits would be published on push, so a finding ends the run here.
-    _run("gitleaks", "git", "--no-banner", "--redact", f"--log-opts={since}..{head}")
-    _run("git", "push", "origin", f"{head}:refs/heads/{branch}", retry=True)
-    _run("git", "update-ref", "-d", ref)  # pushed, so the ref has done its job and need not pin the objects
+    if not _run("git", "diff", "--name-only", f"origin/{target.base}...{head}", cwd=target.hub):
+        raise RuntimeError(f"the branch has no net changes against {target.base}")
+    # The repo may be public: a secret in the agent's commits would be published on push, so a finding ends the run here.
+    _run("gitleaks", "git", "--no-banner", "--redact", f"--log-opts={since}..{head}", cwd=target.hub)
+    _run("git", "push", "origin", f"{head}:refs/heads/{branch}", cwd=target.hub, retry=True)
+    _run("git", "update-ref", "-d", ref, cwd=target.hub)  # pushed, so the ref has done its job and need not pin the objects
     return head
 
 
@@ -472,14 +534,15 @@ def _gate_results(pr_url: str, head: str) -> dict[str, str]:
     raise RuntimeError("timed out waiting for checks")
 
 
-def _findings(head: str, failed: list[str]) -> tuple[str, list[str]]:
+def _findings(head: str, failed: list[str], target: Target) -> tuple[str, list[str]]:
     """The reviewers' text for each failed check (its review artifact from the gate, else its failed run's log), and
     the failed checks whose reviewer itself crashed (its review starts with REVIEW_NOT_RUN)."""
-    ci_runs = {r["name"]: r for r in json.loads(_run(GH_BIN, "run", "list", "--commit", head, "--json", "databaseId,name,conclusion", retry=True))}
+    on = target.gh
+    ci_runs = {r["name"]: r for r in json.loads(_run(GH_BIN, "run", "list", *on, "--commit", head, "--json", "databaseId,name,conclusion", retry=True))}
     parts, not_run = [], []
     with tempfile.TemporaryDirectory() as tmp:
         if ci_runs.get(GATE_WORKFLOW, {}).get("conclusion") == "failure":
-            _run(GH_BIN, "run", "download", str(ci_runs[GATE_WORKFLOW]["databaseId"]), "--pattern", REVIEW_ARTIFACT.format(check="*"), "--dir", tmp, retry=True)
+            _run(GH_BIN, "run", "download", str(ci_runs[GATE_WORKFLOW]["databaseId"]), "--pattern", REVIEW_ARTIFACT.format(check="*"), "--dir", tmp, *on, retry=True)
         for check in failed:
             review = Path(tmp) / REVIEW_ARTIFACT.format(check=check) / "review.md"
             if review.exists():
@@ -488,7 +551,7 @@ def _findings(head: str, failed: list[str]) -> tuple[str, list[str]]:
                 if text.startswith(REVIEW_NOT_RUN):
                     not_run.append(check)
             elif check in ci_runs:
-                parts.append(f"### {check}\n{_run(GH_BIN, 'run', 'view', str(ci_runs[check]['databaseId']), '--log-failed', retry=True)[-LOG_TAIL:]}")
+                parts.append(f"### {check}\n{_run(GH_BIN, 'run', 'view', str(ci_runs[check]['databaseId']), '--log-failed', *on, retry=True)[-LOG_TAIL:]}")
     return "\n\n".join(parts)[-FINDINGS_LIMIT:] or f"Failed checks: {', '.join(failed)}. No review text was available.", not_run
 
 
@@ -518,7 +581,7 @@ def _finish(run_id: str, status: str, **fields) -> None:
     log.info("Run %s %s", run_id, status)
 
 
-def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> str:
+def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str, target: Target) -> str:
     """One builder round in a fresh sandbox. Returns the head it pushed, or raises AgentFailed or AgentTimedOut."""
     _update(run_id, status="running", attempt=attempt)
     _log_action(run_id, "round_started", attempt=attempt)
@@ -526,7 +589,7 @@ def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> s
     started = time.time()
     log_path = LOG_DIR / f"{run_id}.log"
     start = len(log_path.read_text()) if log_path.exists() else 0
-    with _checkout(f"{run_id}-{attempt}", branch, base="main" if attempt == 0 else branch) as workdir, \
+    with _checkout(f"{run_id}-{attempt}", branch, base=target.base if attempt == 0 else branch, target=target) as workdir, \
             open(log_path, "a") as lf:
         lf.write(f"===== attempt {attempt} =====\n")
         lf.flush()
@@ -554,7 +617,7 @@ def _build(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> s
         if exit_code:
             raise AgentFailed(exit_code, output=log_path.read_text()[start:][-LOG_TAIL:])
         _publish_notes(run_id, workdir)
-        head = _push(branch, workdir, since)
+        head = _push(branch, workdir, since, target)
         _log_action(run_id, "pushed", head=head)
         return head
 
@@ -584,12 +647,12 @@ def _usage_limit_wait(log_tail: str, now: Optional[dt.datetime] = None) -> Optio
     return wait, (now + dt.timedelta(seconds=wait)).strftime("%H:%M")
 
 
-def _build_round(run_id: str, attempt: int, prompt: str, branch: str, since: str) -> str:
+def _build_round(run_id: str, attempt: int, prompt: str, branch: str, since: str, target: Target) -> str:
     """One build round. A failure that shows the agent hit its plan's usage limit pauses until it resets and
     retries this same round once; that retry does not consume a fix round. Any other failure, or a second
     failure during the retry, propagates like a bare `_build` failure."""
     try:
-        return _build(run_id, attempt, prompt, branch, since)
+        return _build(run_id, attempt, prompt, branch, since, target)
     except AgentFailed as exc:
         paused = _usage_limit_wait(exc.output)
         if paused is None:
@@ -597,13 +660,14 @@ def _build_round(run_id: str, attempt: int, prompt: str, branch: str, since: str
         wait, resume = paused
         _set_heartbeat(pipeline_status=f"paused: usage limit, resumes {resume} UTC")
         _SLEEP(wait)
-        return _build(run_id, attempt, prompt, branch, since)
+        return _build(run_id, attempt, prompt, branch, since, target)
 
 
 def _run_agent(run_id: str, prompt: str, branch: str) -> None:
-    task = _load(run_id)["task"]
+    run = _load(run_id)
+    task, repo = run["task"], run.get("repo")
     _update(run_id, started_at=time.time())
-    _set_heartbeat(last_run=f"{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} ({run_id})", blocking_reason="—")
+    _set_heartbeat(last_run=f"{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} ({', '.join(filter(None, (run_id, repo)))})", blocking_reason="—")
 
     log.info("Starting the sandboxed agent for run %s", run_id)
 
@@ -611,10 +675,11 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
         # Fail before the build spends plan usage on work that could not be pushed or turned into a PR.
         if problems := _problems():
             return _finish(run_id, "error", error="not ready to build: " + "; ".join(problems))
-        head = _build_round(run_id, 0, prompt, branch, since="origin/main")
+        target = _target(repo)
+        head = _build_round(run_id, 0, prompt, branch, f"origin/{target.base}", target)
         body = _pr_body(_load(run_id))
         title = next((line.strip() for line in task.splitlines() if line.strip()), branch)[:72]
-        pr_url = _run(GH_BIN, "pr", "create", "--head", branch, "--base", "main", "--title", title, "--body", body)
+        pr_url = _run(GH_BIN, "pr", "create", *target.gh, "--head", branch, "--base", target.base, "--title", title, "--body", body)
         _update(run_id, pr_url=pr_url)
         _log_action(run_id, "pr_opened", url=pr_url)
         # Each pass waits on the checks for `head`. The last pass only decides, because no fix rounds are left.
@@ -627,14 +692,14 @@ def _run_agent(run_id: str, prompt: str, branch: str) -> None:
             failed = sorted(name for name, result in results.items() if result == "fail")
             if not failed:
                 return _finish(run_id, "completed")
-            findings, not_run = _findings(head, failed)
+            findings, not_run = _findings(head, failed, target)
             # A reviewer that crashed found nothing to fix, so a fix round would only feed the builder its error text.
             if sorted(not_run) == failed:
                 return _finish(run_id, "error", error=f"{', '.join(failed)} could not run its review; rerun the failed checks")
             if attempt > MAX_RETRIES:
                 return _finish(run_id, "blocked", blocking_reason=f"{', '.join(failed)} still failing after {MAX_RETRIES} fix rounds")
             findings_history.append({"round": attempt, "findings": findings})
-            head = _build_round(run_id, attempt, _fix_prompt(task, findings_history, branch, run_id), branch, since=head)
+            head = _build_round(run_id, attempt, _fix_prompt(task, findings_history, branch, run_id), branch, head, target)
     except AgentFailed as exc:
         _finish(run_id, "failed", exit_code=exc.code)
     except AgentTimedOut as exc:
@@ -711,6 +776,11 @@ async def trigger(request: Request):
             payload = TriggerPayload(**json.loads(body))
         except Exception as exc:
             raise HTTPException(status_code=422, detail=str(exc))
+        repo = payload.repo.lower() if payload.repo else None
+        if repo == _home_repo():
+            repo = None
+        if repo and repo not in ALLOWED_REPOS:
+            raise HTTPException(status_code=403, detail="repo not allowed")
     except HTTPException as exc:
         # A 422's detail echoes the rejected input, so it is logged as a fixed string.
         _log_rejection(request, "Invalid payload" if exc.status_code == 422 else exc.detail, exc.status_code != 429)
@@ -720,7 +790,7 @@ async def trigger(request: Request):
     branch = payload.branch or f"factory/{run_id}"
     prompt = _build_prompt(payload.task, branch, run_id)
 
-    _update(run_id, run_id=run_id, status="queued", branch=branch, task=payload.task, queued_at=time.time())
+    _update(run_id, run_id=run_id, status="queued", branch=branch, task=payload.task, queued_at=time.time(), repo=repo)
     _log_action(run_id, "queued")
 
     log.info("Queued run %s: branch=%s", run_id, branch)
@@ -772,7 +842,7 @@ async def heartbeat():
     return _heartbeat_fields()
 
 
-RUN_FIELDS = ("run_id", "status", "attempt", "branch", "pr_url", "queued_at", "started_at", "finished_at", "blocking_reason", "error")
+RUN_FIELDS = ("run_id", "status", "attempt", "branch", "repo", "pr_url", "queued_at", "started_at", "finished_at", "blocking_reason", "error")
 PR_CACHE_TTL = 60  # seconds an open PR's state is reused; a merged or closed PR never changes, so it is kept for good
 _pr_cache: dict[str, tuple[float, dict]] = {}
 
