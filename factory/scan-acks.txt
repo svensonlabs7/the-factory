@@ -1,0 +1,4 @@
+# Findings of factory/qa/repo_scan.py that the operator has looked at and accepts, one per line:
+#   owner/name <finding id>   # why
+# An id covers one line of one file; if that line changes it needs acknowledging again. A malicious finding is
+# never acknowledged here. This repo's own tree is not scanned strictly, so it needs no lines.

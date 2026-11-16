@@ -39,6 +39,24 @@ and `gate / ux-laws`; the adapter strips the prefix. A repo without the token se
 To move a repo to a newer gate, change the pinned commit in its caller. Its own tests are not part of
 this gate: add them as a required check yourself, and the onboarding step records the commands.
 
+## Scanning a repo before building in it
+
+`factory/qa/repo_scan.py` reads a checkout as text, with no tokens, and never runs it. The adapter runs it on the
+clone before each round's sandbox starts, so nothing in a repo executes before it has been looked at.
+
+| Verdict | Examples | Effect |
+|---|---|---|
+| malicious | an install script that pipes a download into a shell, `exec` of a download in `setup.py`, a `pull_request_target` workflow that checks out the PR's code, text aimed at an AI agent in `CLAUDE.md`, `AGENTS.md` or `.claude/` ("ignore previous instructions", hidden characters), eval of decoded data, a package OSV lists as malware | refused, whoever owns the repo |
+| suspicious | any install-time script (even Prisma's), commit hooks, a download piped into a shell in a Makefile or Dockerfile, PR text in a `run:` line, raw-IP and paste-site URLs, compiled files outside `vendor/` | another repo's build stops until you acknowledge it; this repo's only warns |
+| safe | nothing found | proceeds |
+
+To acknowledge a suspicious finding, read it in the run's log or the run's error, then add a line to
+`factory/scan-acks.txt` in a PR: `owner/name <finding id>  # why`. An id covers one line of one file, so a changed line
+needs acknowledging again. Acknowledgements live here, not in the scanned repo, so a repo cannot acknowledge itself.
+The osv-scanner check runs only if `osv-scanner` is installed (`brew install osv-scanner`); otherwise it is skipped. It reads
+version 2's JSON, so a different version, output it cannot read, or a timeout is a suspicious finding, never a silent pass.
+The scan reads only the files an agent reads first for instructions, so README prose about prompt injection is fine.
+
 ## Presumptive blockers (from the skill)
 
 - A file pushed from under 1000 lines to over 1000 lines
