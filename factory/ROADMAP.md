@@ -78,8 +78,10 @@ Once per repo the factory has not worked on; the result is committed to that rep
 `uv run factory/onboard.py owner/name` runs, in order, inside the sandbox:
 1. Fetch: clone. Nothing in the repo runs yet.
 2. Scan: item 3's free layer, plus one model pass over the files an agent reads first (README, CLAUDE.md,
-   AGENTS.md, workflows, install scripts) asking only: anything that instructs an AI, runs code on the operator's
-   machine, or sends data out? Verdict as in item 3; `malicious` ends the onboard with a warning.
+   AGENTS.md, workflows, install scripts) asking only: does anything tell an AI to send data out, fetch and run
+   remote code, or switch off checks; run code on the operator's machine; or send data out? Agent files that only
+   describe the repo are normal (operator decision, 2026-11-23; see docs/research/). Verdict as in item 3; `malicious`
+   ends the onboard with a warning.
 3. Map: run floorplan. Render `graph.json` to text: subsystems and their job, request paths, data stores. Keep the
    HTML map as a local artifact (floorplan ignores it in git).
 4. Env proof: install, build, test. Record the exact commands and results in `.factory/env.md`. A build on this repo
